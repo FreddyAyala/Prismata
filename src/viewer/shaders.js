@@ -1,4 +1,5 @@
 export const flowVertexShader = `
+    attribute vec3 color;
     varying vec3 vColor;
     varying float vZ;
     uniform float uSize;
