@@ -211,6 +211,8 @@ async function loadGallery() {
                 document.querySelectorAll('.crystal-item').forEach(el => el.classList.remove('active'));
                 item.classList.add('active');
                 handleLoadCrystal(item.dataset, activeSlot);
+                // Close mobile menu if open
+                document.querySelector('.gallery-nav').classList.remove('active');
                 });
 
               contentDiv.appendChild(item);
@@ -370,6 +372,16 @@ function setupControls() {
     });
   }
 
+
+
+
+  // Mobile Menu
+  const btnMobileMenu = document.getElementById('btn-mobile-menu');
+  if (btnMobileMenu) {
+    btnMobileMenu.addEventListener('click', () => {
+      document.querySelector('.gallery-nav').classList.toggle('active');
+    });
+  }
 
   btnSpin.addEventListener('click', () => {
     const isActive = btnSpin.classList.toggle('active');

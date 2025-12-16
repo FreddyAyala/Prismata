@@ -679,3 +679,102 @@ input:checked+.slider:before {
     display: none;
     /* Fallback */
 }
+/* Responsive / Mobile Styles */
+.mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    margin-right: 15px;
+    cursor: pointer;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .subtitle {
+        display: none;
+    }
+
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    .ui-layer {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr 30px;
+        grid-template-areas:
+            "header"
+            "content"
+            "footer";
+    }
+
+    .gallery-header {
+        padding: 0 15px;
+    }
+
+    .logo-text h1 {
+        font-size: 1.2rem;
+    }
+
+    /* Left Sidebar: Drawer */
+    .gallery-nav {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        bottom: 30px;
+        width: 85%;
+        max-width: 300px;
+        transform: translateX(-110%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 100;
+        border-right: 1px solid var(--color-primary);
+        background: rgba(3, 5, 7, 0.95);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .gallery-nav.active {
+        transform: translateX(0);
+    }
+
+    /* Right Sidebar: Bottom Sheet */
+    .artifact-details {
+        position: fixed;
+        bottom: 30px;
+        /* Above footer */
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 45vh;
+        z-index: 90;
+        background: rgba(3, 5, 7, 0.95);
+        border-top: 1px solid var(--color-primary);
+        border-left: none;
+        overflow-y: auto;
+        transform: translateY(0);
+        transition: transform 0.3s ease;
+        padding-bottom: 20px;
+    }
+
+    /* Override Desktop Hiding */
+    .ui-layer.no-details .artifact-details {
+        display: block !important;
+        transform: translateY(120%);
+    }
+
+    /* Adjust Controls */
+    .controls-panel {
+        bottom: 45vh;
+        /* Move up with panel */
+        right: 10px;
+        left: auto;
+        transform: translateY(0);
+        transition: bottom 0.3s ease;
+    }
+
+    .ui-layer.no-details~.controls-panel,
+    .controls-panel {
+        /* If details hidden, controls go down */
+    }
+
+    /* Logic: If .ui-layer has .no-details, we need to push controls down */
+}
