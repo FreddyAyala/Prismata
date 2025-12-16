@@ -14,6 +14,11 @@ export class CrystalViewer {
       this.crystalGroup = null; // Holds mesh+wireframe
       this.autoRotate = true;
       this.animationId = null;
+    // Pulse Uniforms
+    this.customUniforms = {
+      uTime: { value: 0 },
+      uPulseEnabled: { value: 0.0 }
+    };
     this.uniforms = {
       uTime: { value: 0 },
       uSize: { value: 0.2 } // Super tiny (was 1.5, initially 8.0)
@@ -160,8 +165,10 @@ export class CrystalViewer {
   animate() {
     this.animationId = requestAnimationFrame(() => this.animate());
 
-    // Update Uniforms
-    this.uniforms.uTime.value += 0.01;
+    // Update Pulse Uniforms
+    if (this.customUniforms) {
+      this.customUniforms.uTime.value += 0.01;
+    }
 
     if (this.controls) this.controls.update();
     if (this.renderer && this.scene && this.camera) {
@@ -219,13 +226,51 @@ export class CrystalViewer {
       // Points
     // Points (Standard)
     const pointMaterial = new THREE.PointsMaterial({
-      size: 0.15,
+      size: 0.15, // Standard Size
       vertexColors: true,
         transparent: true,
       opacity: 0.9,
         blending: THREE.AdditiveBlending,
       sizeAttenuation: true
       });
+
+    // Inject Pulse Logic
+    const uniforms = this.customUniforms; // Capture reference
+    pointMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = uniforms.uTime;
+      shader.uniforms.uPulseEnabled = uniforms.uPulseEnabled;
+
+      shader.vertexShader = `
+          varying float vZ;
+        ` + shader.vertexShader;
+
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <worldpos_vertex>',
+        `
+          #include <worldpos_vertex>
+          vZ = position.z;
+          `
+      );
+
+      shader.fragmentShader = `
+          uniform float uTime;
+          uniform float uPulseEnabled;
+          varying float vZ;
+        ` + shader.fragmentShader;
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        `
+          #include <color_fragment>
+          if (uPulseEnabled > 0.5) {
+             float wave = sin(vZ * 0.5 - uTime * 2.0); // Slower (was 4.0)
+             float pulse = smoothstep(0.8, 1.0, wave);
+             // Add Pulse (Cyan/White)
+             diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 1.0, 1.0), pulse * 0.6); // Softer mix (was 0.8)
+          }
+          `
+      );
+    };
       const mesh = new THREE.Points(geometry, pointMaterial);
       group.add(mesh);
 
@@ -253,5 +298,10 @@ export class CrystalViewer {
           layers: 10 // Mock or calculate
         }
     };
+  }
+  setPulse(enabled) {
+    if (this.customUniforms) {
+      this.customUniforms.uPulseEnabled.value = enabled ? 1.0 : 0.0;
+    }
   }
 }

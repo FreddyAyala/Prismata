@@ -790,13 +790,37 @@ input:checked+.slider:before {
         align-items: center;
         gap: 5px;
         z-index: 20;
-        pointer-events: none;
+        /* pointer-events: none; REMOVED to allow button click */
         background: rgba(0, 0, 0, 0.6);
         padding: 8px 4px;
         border-radius: 6px;
         border: 1px solid rgba(0, 243, 255, 0.2);
         backdrop-filter: blur(4px);
     transition: left 0.3s ease;
+}
+.pulse-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.65rem;
+    padding: 2px 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+.pulse-btn:hover {
+    color: #fff;
+    border-color: #fff;
+}
+
+.pulse-btn.active {
+    color: #00f3ff;
+    border-color: #00f3ff;
+    text-shadow: 0 0 5px #00f3ff;
+    box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
 }
 @media (max-width: 900px) {
     .color-legend {

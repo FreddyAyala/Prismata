@@ -348,6 +348,16 @@ function setupControls() {
     });
   }
 
+  // Pulse Toggle
+  const btnPulse = document.getElementById('btn-toggle-pulse');
+  if (btnPulse) {
+    btnPulse.addEventListener('click', () => {
+      const isActive = btnPulse.classList.toggle('active');
+      btnPulse.textContent = isActive ? "FLOW: ON" : "FLOW: OFF";
+      if (mainViewer) mainViewer.setPulse(isActive);
+    });
+  }
+
   // File Upload Logic
   const fileInput = document.getElementById('file-upload');
   if (fileInput) {
