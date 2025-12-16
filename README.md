@@ -2,7 +2,7 @@
 
 **Prismata** is an interactive 3D visualization tool that transforms the invisible mathematics of Artificial Intelligence into tangible, crystalline structures. It allows us to "see" the shape of intelligence.
 
-![Prismata Header](prismata.png)
+![Prismata Header](assets/prismata.png)
 
 ## 🔬 The Science: What Are We Seeing?
 
