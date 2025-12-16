@@ -1,1 +1,15 @@
-**Architecture:** Multimodal (ViT + Transformer)\n**Shape:** The "Twin Spires"\n**Concept:** Semantic Bridging\n\nTwo distinct minds in one body: a Vision Transformer (ViT) and a Text Transformer. They project data into a shared embedding space, allowing the model to "see" concepts in images.\n\n### History\nReleased by OpenAI in **2021**. CLIP enabled the explosion of AI Art generation (like DALL-E and Midjourney) by providing a way to mathematically measure how well an image matches a text prompt.
+# THE MULTIMODAL BRIDGE
+
+**Architecture:** CLIP (Vision Transformer + Text Transformer)
+**Shape:** The Twin Towers
+**Concept:** Vision-Language Alignment
+
+Prior to CLIP (2021), AI was either "Blind" (Text-only) or "Mute" (Image-only). 
+CLIP bridged these worlds by training two separate encoders to map images and text to the same mathematical point.
+
+The crystal structure reveals two distinct "towers":
+1.  **Vision Tower:** Processes pure pixels.
+2.  **Text Tower:** Processes pure language.
+3.  **The Convergence:** At the very top, they meet.
+
+This "Zero-Shot" capability powered the revolution in generative art (DALL-E, Stable Diffusion).
