@@ -234,39 +234,43 @@ export class CrystalViewer {
       sizeAttenuation: true
       });
 
-    // Inject Pulse Logic
+    // Inject Pulse Logic (OPTIMIZED: Math in Vertex Shader)
     const uniforms = this.customUniforms; // Capture reference
     pointMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = uniforms.uTime;
       shader.uniforms.uPulseEnabled = uniforms.uPulseEnabled;
 
       shader.vertexShader = `
-          varying float vZ;
+          varying float vPulse;
+          uniform float uTime;
+          uniform float uPulseEnabled;
         ` + shader.vertexShader;
 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <worldpos_vertex>',
         `
           #include <worldpos_vertex>
-          vZ = position.z;
+          // OPTIMIZATION: Calculate Pulse intensity per-vertex instead of per-pixel
+          vPulse = 0.0;
+          if (uPulseEnabled > 0.5) {
+             float offset = sin(position.x * 0.5) + cos(position.y * 0.5);
+             float wave = sin(position.z * 0.2 + uTime * 2.5 + offset * 0.5);
+             vPulse = smoothstep(0.9, 1.0, wave);
+          }
           `
       );
 
       shader.fragmentShader = `
-          uniform float uTime;
-          uniform float uPulseEnabled;
-          varying float vZ;
+          varying float vPulse;
         ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <color_fragment>',
         `
           #include <color_fragment>
-          if (uPulseEnabled > 0.5) {
-             float wave = sin(vZ * 0.5 - uTime * 2.0); // Slower (was 4.0)
-             float pulse = smoothstep(0.8, 1.0, wave);
-             // Add Pulse (Cyan/White)
-             diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 1.0, 1.0), pulse * 0.6); // Softer mix (was 0.8)
+          // Fast Mix
+          if (vPulse > 0.01) {
+             diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.6, 1.0, 1.0), vPulse * 0.7);
           }
           `
       );
