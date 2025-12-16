@@ -11,7 +11,7 @@ Your repository is now configured for **Automatic Deployment**.
     git add .
     git commit -m "Initial commit of Prismata"
     git branch -M main
-    git remote add origin https://github.com/YOUR_USERNAME/Prismata.git
+    git remote add origin https://github.com/FreddyAyala/Prismata.git
     git push -u origin main
     ```
 
