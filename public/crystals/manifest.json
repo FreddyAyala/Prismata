@@ -158,6 +158,22 @@
     ]
   },
   {
+    "id": "mobilenet",
+    "name": "MobileNetV2",
+    "year": 2018,
+    "era": "The Efficiency Era",
+    "type": "CNN",
+    "desc": "The first truly efficient mobile vision model.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Spider Web",
+        "file": "crystals/mobilenet/structure_layers.ply",
+        "desc": "Sparse, efficient connectivity."
+      }
+    ]
+  },
+  {
     "id": "resnet",
     "name": "ResNet-50",
     "year": 2015,

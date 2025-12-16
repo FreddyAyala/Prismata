@@ -41,6 +41,14 @@ def get_model_structure(model):
         if hasattr(model.decoder, 'block'): layers.extend(model.decoder.block)
         return layers
 
+    # Generic CNN (MobileNet, VGG, EfficientNet) - usually has 'features'
+    elif hasattr(model, 'features'):
+         return model.features
+
+    # MobileNetV2 uses 'layer'
+    elif hasattr(model, 'layer'):
+        return model.layer
+
     if layers is None:
         raise ValueError(f"Architecture {type(model).__name__} not supported.")
 
