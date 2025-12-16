@@ -16,7 +16,7 @@ export class CrystalViewer {
       this.animationId = null;
     this.uniforms = {
       uTime: { value: 0 },
-      uSize: { value: 8.0 } // Base size
+      uSize: { value: 1.5 } // Drastically reduced from 8.0
     };
 
       this.init();

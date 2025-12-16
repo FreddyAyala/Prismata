@@ -41,7 +41,8 @@ export const flowFragmentShader = `
         float wave = sin(vZ * 0.5 - uTime * 4.0);
         
         // Make it a sparse pulse (mostly 'off', briefly 'on')
-        float pulse = smoothstep(0.95, 1.0, wave);
+        // Widened pulse for visibility (from 0.95 to 0.8)
+        float pulse = smoothstep(0.8, 1.0, wave);
 
         // Mix base Color with Pulse Color (Cyan/White)
         vec3 pulseColor = vec3(0.5, 1.0, 1.0);
