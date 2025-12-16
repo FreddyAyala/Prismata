@@ -33,9 +33,16 @@ Prismata acts as a timeline, showcasing the architectural evolution of AI:
 *   **2024 | The Reasoning Era (Qwen, DeepSeek)**: Massive, dense structures capable of complex logic.
 *   **2025 | Edge AI (SmolLM)**: The return to efficiency—compact, highly optimized "pocket brains".
 
+
 ---
 
-## 🚀 Getting Started
+## ❓ FAQ
+
+### Does the model generate these shapes itself?
+**Yes and No.**
+*   **The Shape**: Is created by the model during training. An untrained model looks like a random fuzzy ball (noise). As it learns patterns, it physically organizes its neurons into clusters, manifolds, and helices. The shape *is* the knowledge.
+*   **The Crystal**: Is our visualization of that shape. The model doesn't output `.ply` files; Prismata acts like an **MRI Scanner**, taking a snapshot of the model's internal brain structure and projecting it into 3D.
+
 
 ### 1. View the Gallery (Web)
 Prismata is a static web application built with **Vite** and **Three.js**.
