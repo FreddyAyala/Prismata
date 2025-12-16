@@ -1,71 +1,198 @@
 [
   {
+    "id": "deepseek25",
+    "name": "DeepSeek R1 (MoE)",
+    "year": 2025,
+    "era": "The Age of Experts",
+    "type": "MoE",
+    "desc": "A dynamic Mixture-of-Experts model. Activating only 10% of its brain for any given thought.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Hive Mind",
+        "file": "crystals/moe2025/structure.ply",
+        "desc": "Sparse routing paths between experts."
+      }
+    ]
+  },
+  {
+    "id": "qwen25",
+    "name": "Qwen 2.5 (1.5B)",
+    "year": 2024,
+    "era": "Reasoning & Agency",
+    "type": "CoT Decoder",
+    "desc": "The reasoning engine. Capable of complex multi-step logic and planning.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Logic Core",
+        "file": "crystals/qwen25/structure_layers.ply",
+        "desc": "Dense, optimized circuitry for reasoning."
+      },
+      {
+        "id": "cot",
+        "name": "Thought: Step-by-Step",
+        "file": "crystals/qwen25/activation_cot.ply",
+        "desc": "'Let's think step by step' [Reasoning Path]"
+      }
+    ]
+  },
+  {
     "id": "gemma2",
     "name": "Gemma 2 (2B)",
+    "year": 2024,
+    "era": "Open Weights Revolution",
     "type": "Dense Decoder",
     "desc": "Google's open model. Highly efficient knowledge compression.",
     "crystals": [
       {
         "id": "struct",
-        "name": "Structure Layers",
+        "name": "Obsidian Monolith",
         "file": "crystals/gemma2/structure_layers.ply",
         "desc": "Dense obsidian-like lattice."
       }
     ]
   },
   {
+    "id": "tinyllama",
+    "name": "TinyLlama 1.1B",
+    "year": 2023,
+    "era": "Efficient AI",
+    "type": "Decoder",
+    "desc": "Compact brilliance. Trained on 3 Trillion tokens to prove small models can be smart.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "Compressed Knowledge",
+        "file": "crystals/tinyllama/activation_consciousness.ply",
+        "desc": "'Consciousness is a strange loop'"
+      }
+    ]
+  },
+  {
     "id": "clip",
     "name": "CLIP (ViT-B/32)",
+    "year": 2021,
+    "era": "Multimodal Bridge",
     "type": "Multimodal",
     "desc": "The bridge between Vision and Language. Two architectures (Visual + Text) side-by-side.",
     "crystals": [
       {
         "id": "struct",
-        "name": "Structure Layers",
+        "name": "The Twin Spires",
         "file": "crystals/clip/structure_layers.ply",
         "desc": "Twin towers converging."
       }
     ]
   },
   {
+    "id": "t5",
+    "name": "T5 (Small)",
+    "year": 2020,
+    "era": "Text-to-Text Unification",
+    "type": "Enc-Dec",
+    "desc": "The Universal Transformer. Treating every problem as text-to-text.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Hourglass",
+        "file": "crystals/t5/structure_layers.ply",
+        "desc": "The Hourglass architecture."
+      }
+    ]
+  },
+  {
     "id": "gpt2",
     "name": "GPT-2 (Small)",
+    "year": 2019,
+    "era": "Generative Beginnings",
     "type": "Decoder",
-    "desc": "The classic generator. A twisting helix of creative flow.",
+    "desc": "The model that demonstrated unsupervised language generation capabilities at scale.",
     "crystals": [
-      { "id": "struct", "name": "Solid Structure", "file": "crystals/gpt2/structure_solid.ply", "desc": "The full 12-layer helix tower." },
-      { "id": "layers", "name": "Layer Spectrum", "file": "crystals/gpt2/structure_layers.ply", "desc": "Colored by depth (Input to Output)." },
-      { "id": "act_future", "name": "Thought: Future", "file": "crystals/gpt2/activation_future.ply", "desc": "'The future is vast and infinite'" },
-      { "id": "act_quant", "name": "Thought: Quantum", "file": "crystals/gpt2/activation_quantum.ply", "desc": "'Quantum physics is confusing'" }
+      {
+        "id": "struct",
+        "name": "The Creative Helix",
+        "file": "crystals/gpt2/structure_solid.ply",
+        "desc": "The full 12-layer helix tower."
+      },
+      {
+        "id": "spectrum",
+        "name": "Layer Spectrum",
+        "file": "crystals/gpt2/structure_layers.ply",
+        "desc": "Colored by depth (Input to Output)."
+      },
+      {
+        "id": "future",
+        "name": "Thought: Future",
+        "file": "crystals/gpt2/activation_future.ply",
+        "desc": "'The future is vast and infinite'..."
+      },
+      {
+        "id": "quantum",
+        "name": "Thought: Quantum",
+        "file": "crystals/gpt2/activation_quantum.ply",
+        "desc": "'Quantum physics is confusing'..."
+      }
     ]
   },
   {
     "id": "bert",
     "name": "BERT Base",
+    "year": 2018,
+    "era": "The Transformer Era",
     "type": "Encoder",
-    "desc": "The bi-directional pillar. Rigid, stable, and analytical.",
+    "desc": "Bidirectional representation from Transformers. The reading engine of the internet.",
     "crystals": [
-      { "id": "struct", "name": "Structure Layers", "file": "crystals/bert/structure_layers.ply", "desc": "Symmetrical column of 12 layers." },
-      { "id": "act_fox", "name": "Thought: Quick Fox", "file": "crystals/bert/activation_quick_brown_fox.ply", "desc": "'The quick brown fox' (Parallel processing)" }
+      {
+        "id": "struct",
+        "name": "The Stability Pillar",
+        "file": "crystals/bert/structure_layers.ply",
+        "desc": "Symmetrical column of 12 layers."
+      },
+      {
+        "id": "fox",
+        "name": "Analysis: Linguistic Context",
+        "file": "crystals/bert/activation_quick_brown_fox.ply",
+        "desc": "'The quick brown fox' [Parallel processing]"
+      }
     ]
   },
   {
     "id": "resnet",
     "name": "ResNet-50",
-    "type": "CNN (Vision)",
-    "desc": "The visual cortex. An inverted pyramid of expanding features.",
+    "year": 2015,
+    "era": "The Deep Learning Boom",
+    "type": "CNN",
+    "desc": "The model that solved the vanishing gradient problem with skip connections, allowing for deep networks.",
     "crystals": [
-      { "id": "struct", "name": "Structure Layers", "file": "crystals/resnet/structure_layers.ply", "desc": "50 Layers expanding from 64 to 2048 filters." },
-      { "id": "act_cat", "name": "Vision: Cat", "file": "crystals/resnet/activation_cat.ply", "desc": "Processing 'cat.jpg' (Visual Noise to Concept)" }
+      {
+        "id": "struct",
+        "name": "The Deep Pyramid",
+        "file": "crystals/resnet/structure_layers.ply",
+        "desc": "50 Layers expanding from 64 to 2048 channels."
+      },
+      {
+        "id": "cat",
+        "name": "Perception: Feline Features",
+        "file": "crystals/resnet/activation_cat.ply",
+        "desc": "Processing 'cat.jpg' - Visual Noise to Concept."
+      }
     ]
   },
   {
-    "id": "tinyllama",
-    "name": "TinyLlama 1.1B",
-    "type": "Modern Decoder",
-    "desc": "A dense, modern giant. 22 layers of rotary-embedded reasoning.",
+    "id": "lenet",
+    "name": "LeNet-5",
+    "year": 1998,
+    "era": "The Origin",
+    "type": "CNN",
+    "desc": "The ancestor. A tiny 5-layer network that learned to read digits. The spark that started it all.",
     "crystals": [
-      { "id": "act_cons", "name": "Thought: Consciousness", "file": "crystals/tinyllama/activation_consciousness.ply", "desc": "'Consciousness is a strange loop'" }
+      {
+        "id": "struct",
+        "name": "The First Spark",
+        "file": "crystals/lenet/structure.ply",
+        "desc": "Hand-crafted layers. Simple, effective, beautiful."
+      }
     ]
   }
 ]

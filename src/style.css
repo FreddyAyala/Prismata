@@ -86,7 +86,7 @@ body {
     pointer-events: none;
     /* Let clicks pass through to canvas where empty */
     display: grid;
-    grid-template-columns: 300px 1fr 350px;
+    grid-template-columns: 300px 1fr 400px;
     grid-template-rows: 80px 1fr 40px;
     grid-template-areas:
         "header header header"
@@ -368,38 +368,40 @@ input:checked+.slider:before {
 }
 
 /* --- DETAILS PANEL --- */
+/* Right Sidebar: Details */
 .artifact-details {
     grid-area: details;
-    pointer-events: none;
+    width: 100%;
+        height: 100%;
+        padding: 20px;
     display: flex;
     flex-direction: column;
-    padding: 2rem;
-    gap: 10px;
-    /* Space between panels */
-    height: 100vh;
+    gap: 15px;
+        z-index: 10;
+        pointer-events: none;
     overflow: hidden;
 }
 
-.details-content {
-    pointer-events: auto;
-    background: var(--color-glass);
+.glass-panel {
+    background: rgba(10, 10, 15, 0.75);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(0, 243, 255, 0.2);
-    border-radius: 4px;
-    padding: 1.5rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    position: relative;
-    overflow-y: auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        pointer-events: auto;
+        transition: all 0.3s ease;
+    }
+    
+    .details-content {
     flex: 1;
-    /* Grow to fill space */
-    transition: flex 0.5s ease, opacity 0.5s ease;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    /* Enable scroll inside flex item */
+    padding: 25px;
+        overflow-y: auto;
+        /* SCROLL IF TALL */
+        min-height: 0;
+        /* Flexbox fix */
 }
 
-/* When hidden, collapse completely */
 .details-content.hidden {
     flex: 0;
     padding: 0;
@@ -626,6 +628,37 @@ input:checked+.slider:before {
     background: #003344;
 }
 
-.scroll-container::-webkit-scrollbar-thumb:hover {
-    background: var(--color-primary);
+/* --- NEW UI ELEMENTS --- */
+.super-title {
+    font-size: 0.7rem;
+    color: var(--color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+}
+
+.minimal-btn {
+    background: transparent;
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    color: var(--color-primary);
+    font-family: var(--font-header);
+    font-size: 0.6rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    margin-right: 15px;
+    transition: all 0.2s;
+}
+
+.minimal-btn:hover {
+    background: rgba(0, 243, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+/* Toggle Views */
+.ui-layer.no-details {
+    grid-template-columns: 300px 1fr 0px !important;
+}
+
+.ui-layer.no-details .artifact-details {
+    display: none;
 }

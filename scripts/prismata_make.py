@@ -34,6 +34,13 @@ def get_model_structure(model):
             layers.extend(model.vision_model.encoder.layers)
         return layers
 
+    # T5 Support (Encoder + Decoder)
+    elif hasattr(model, 'encoder') and hasattr(model, 'decoder'):
+        layers = []
+        if hasattr(model.encoder, 'block'): layers.extend(model.encoder.block)
+        if hasattr(model.decoder, 'block'): layers.extend(model.decoder.block)
+        return layers
+
     if layers is None:
         raise ValueError(f"Architecture {type(model).__name__} not supported.")
 
@@ -44,6 +51,14 @@ def extract_weights(block):
     Universal extractor: Finds Attention OR Convolution weights.
     Returns: numpy array of shape (Hidden_Dim, Features)
     """
+    # 0. T5 Block (Structure is inside .layer[0])
+    if hasattr(block, 'layer') and len(block.layer) > 0 and hasattr(block.layer[0], 'SelfAttention'):
+        sa = block.layer[0].SelfAttention
+        q = sa.q.weight.detach().numpy().T
+        k = sa.k.weight.detach().numpy().T
+        v = sa.v.weight.detach().numpy().T
+        return np.concatenate([q, k, v], axis=1)
+
     # 1. Try Attention (GPT/BERT/Llama)
     if hasattr(block, 'attn') and hasattr(block.attn, 'c_attn'):
         return block.attn.c_attn.weight.detach().numpy()

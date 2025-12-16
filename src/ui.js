@@ -13,6 +13,7 @@ const panelB = document.getElementById('panel-b');
 
 const uiElements = {
   main: {
+    superTitle: document.getElementById('model-name-a'),
     title: document.getElementById('crystal-title-a'),
     type: document.getElementById('crystal-type-a'),
     desc: document.getElementById('crystal-desc-a'),
@@ -20,6 +21,7 @@ const uiElements = {
     links: document.getElementById('meta-links-a'),
   },
   compare: {
+    superTitle: document.getElementById('model-name-b'),
     title: document.getElementById('crystal-title-b'),
     type: document.getElementById('crystal-type-b'),
     desc: document.getElementById('crystal-desc-b'),
@@ -74,7 +76,8 @@ function setupTags(models) {
   if (!container) return;
 
   container.innerHTML = ''; // clear
-  const types = new Set(['ALL']);
+  // Force specific order
+  const types = new Set(['ALL', 'LLM']);
   models.forEach(m => types.add(m.type));
 
   types.forEach(type => {
@@ -109,7 +112,11 @@ function applyFilters() {
       const type = item.dataset.type;
 
       const matchesQuery = groupTitle.includes(query) || name.includes(query) || desc.includes(query);
-      const matchesTag = (tag === 'ALL') || (type === tag);
+      let matchesTag = (tag === 'ALL') || (type === tag);
+      if (tag === 'LLM') {
+        const llmTypes = ['Encoder', 'Decoder', 'Enc-Dec', 'Dense Decoder', 'CoT Decoder', 'MoE'];
+        matchesTag = llmTypes.includes(type);
+      }
 
       if (matchesQuery && matchesTag) {
         item.style.display = 'block';
@@ -154,20 +161,27 @@ function setActiveSlot(slot) {
 
 async function loadGallery() {
   try {
-    const res = await fetch('./crystals/manifest.json');
-    const models = await res.json();
+    // Force fresh load to avoid caching old filenames
+    const res = await fetch('./crystals/manifest.json?v=' + Date.now());
+    let models = await res.json();
+
+    // Sort by Year (Descending: Recent -> Oldest)
+    models.sort((a, b) => b.year - a.year);
 
       // Setup Tags based on loaded models
       setupTags(models);
 
       models.forEach((model, index) => {
-          const groupDiv = document.createElement('div');
-          groupDiv.className = 'model-group';
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'model-group';
+        // Open grouping for recent models by default? Or just first?
           if (index === 0) groupDiv.classList.add('active');
 
           const groupTitle = document.createElement('div');
           groupTitle.className = 'model-title';
-          groupTitle.textContent = model.name;
+        // Year | Name
+        groupTitle.innerHTML = `<span style="opacity:0.6; font-family:monospace; margin-right:8px;">${model.year}</span> ${model.name}`;
+
           groupTitle.addEventListener('click', () => {
             groupDiv.classList.toggle('active');
           });
@@ -183,18 +197,20 @@ async function loadGallery() {
             item.dataset.name = crystal.name;
             item.dataset.desc = crystal.desc;
             item.dataset.type = model.type;
+            item.dataset.year = model.year;
+            item.dataset.modelName = model.name; // Pass Model Name
             item.dataset.modelDesc = model.desc;
-              item.dataset.modelId = model.id;
+            item.dataset.modelId = model.id;
 
-              item.innerHTML = `
+            item.innerHTML = `
                     <span class="item-name">${crystal.name}</span>
                     <span class="item-desc">${crystal.desc.substring(0, 35)}...</span>
                 `;
 
               item.addEventListener('click', () => {
-                  document.querySelectorAll('.crystal-item').forEach(el => el.classList.remove('active'));
-                  item.classList.add('active');
-                  handleLoadCrystal(item.dataset, activeSlot);
+                document.querySelectorAll('.crystal-item').forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+                handleLoadCrystal(item.dataset, activeSlot);
                 });
 
               contentDiv.appendChild(item);
@@ -216,6 +232,7 @@ async function handleLoadCrystal(data, slot) {
   const ui = slot === 'main' ? uiElements.main : uiElements.compare;
   const viewer = slot === 'main' ? mainViewer : compareViewer;
 
+  if (ui.superTitle) ui.superTitle.textContent = data.modelName || 'UNKNOWN CLASS';
   ui.title.textContent = data.name;
   ui.type.textContent = data.type;
 
@@ -279,6 +296,21 @@ function parseMarkdown(text) {
 function setupControls() {
   const btnSpin = document.getElementById('btn-spin');
   const btnReset = document.getElementById('btn-reset');
+  const btnToggleInfo = document.getElementById('btn-toggle-info');
+
+  if (btnToggleInfo) {
+    btnToggleInfo.addEventListener('click', () => {
+      const uiLayer = document.querySelector('.ui-layer');
+      uiLayer.classList.toggle('no-details');
+      const isHidden = uiLayer.classList.contains('no-details');
+      btnToggleInfo.textContent = isHidden ? "SHOW INFO" : "HIDE INFO";
+
+      setTimeout(() => {
+        if (mainViewer) mainViewer.onResize();
+        if (compareViewer) compareViewer.onResize();
+      }, 300);
+    });
+  }
 
   btnSpin.addEventListener('click', () => {
     const isActive = btnSpin.classList.toggle('active');
