@@ -161,8 +161,8 @@ function setActiveSlot(slot) {
 
 async function loadGallery() {
   try {
-    // Force fresh load to avoid caching old filenames
-    const res = await fetch('./crystals/manifest_db.json?v=' + Date.now());
+    // Load Manifest
+    const res = await fetch('./crystals/manifest.json');
     let models = await res.json();
 
     // Sort by Year (Descending: Recent -> Oldest)
