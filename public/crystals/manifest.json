@@ -196,6 +196,22 @@
     ]
   },
   {
+    "id": "alexnet",
+    "name": "AlexNet",
+    "year": 2012,
+    "era": "The Spark",
+    "type": "CNN",
+    "desc": "The model that ignited the Deep Learning revolution. Winning ImageNet 2012 by a landslide.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Deep Stack",
+        "file": "crystals/alexnet/structure_layers.ply",
+        "desc": "5 Convolutional Layers."
+      }
+    ]
+  },
+  {
     "id": "lenet",
     "name": "LeNet-5",
     "year": 1998,
