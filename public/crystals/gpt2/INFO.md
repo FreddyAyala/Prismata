@@ -1,8 +1,13 @@
-**Architecture:** Decoder-Only Transformer
-**Shape:** The "Helix Tower"
-**Concept:** Generative Flow (Chaos to Order)
+# THE CREATIVE HELIX
 
-A twisting tower that narrows slightly as information is refined from raw input (red base) to final prediction (top).
+**Architecture:** GPT-2 (Decoder)
+**Shape:** The Helix Tower
+**Concept:** Generative Flow
 
-### History
-Released by OpenAI in **2019**. Famous for being initially deemed "too dangerous to release" due to its ability to generate coherent fake news. It marked the start of the Generative AI era.
+A twisting tower that narrows slightly as information is refined from raw input to final prediction.
+Released by OpenAI in **2019**, it marked the start of the Generative AI era.
+
+**Use Cases:**
+*   **Creative Writing:** The first model capable of writing coherent short stories.
+*   **AI Dungeon:** Powering early text-adventure games.
+*   **Code Autocomplete:** The architecture that eventually evolved into GitHub Copilot.

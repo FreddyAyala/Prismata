@@ -1,1 +1,13 @@
-**Architecture:** Encoder-Decoder Transformer\n**Shape:** The "Hourglass"\n**Concept:** Sequence-to-Sequence\n\nThe original Transformers were Encoder-Decoder models. They read text (Encoder), understand it, and then generate a new sequence (Decoder). Perfect for Translation and Summarization.\n\n### History\nIntroduced by Google in **2019**, T5 framed every NLP task as a "text-to-text" problem.
+# THE UNIVERSAL TRANSLATOR
+
+**Architecture:** T5 (Encoder-Decoder)
+**Shape:** The Hourglass
+**Concept:** Sequence-to-Sequence
+
+The original Transformers were Encoder-Decoder models. They read text (Encoder), understand it, and then generate a new sequence (Decoder).
+T5 framed every NLP task as a "text-to-text" problem.
+
+**Use Cases:**
+*   **Translation:** "Translate English to German."
+*   **Summarization:** condensing long articles into a single paragraph.
+*   **Grammar Correction:** Rewriting messy sentences into professional prose.

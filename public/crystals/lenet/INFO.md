@@ -1,1 +1,12 @@
-**Architecture:** CNN (5 Layers)\n**Shape:** The First Spark\n**Concept:** The Origin\n\nLeNet-5 (1998) by Yann LeCun was the first convolutional neural network to successfully read handwritten checks. It proved that learning features was possible.
+# THE ORIGIN
+
+**Architecture:** LeNet-5
+**Shape:** The First Spark
+**Concept:** Convolution
+
+The ancestor. A tiny 5-layer network that learned to read digits.
+Yann LeCun's masterpiece that introduced Convolutional Neural Networks (CNNs) to the world.
+
+**Use Cases:**
+*   **Digit Recognition:** Reading handwriting on bank checks (ATMs) and postal envelopes (Zip codes) in the 1990s.
+*   **Simple OCR:** Optical Character Recognition for low-resolution symbols.

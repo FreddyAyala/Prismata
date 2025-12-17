@@ -74,6 +74,22 @@ class SimplePerceptron(nn.Module):
         # Flattened 28x28 input -> 10 classes
         self.fc = nn.Linear(784, 10)
 
+class SimpleWord2Vec(nn.Module):
+    """
+    Word2Vec (2013).
+    The "King - Man + Woman = Queen" model.
+    It's a shallow 2-layer network: Input (One-Hot) -> Projection (Embedding) -> Output.
+    """
+    def __init__(self):
+        super(SimpleWord2Vec, self).__init__()
+        vocab_size = 10000
+        embed_dim = 300 # Classic 300 dimensions
+        
+        # We model this as just the Projection weights (The Embeddings)
+        # Because the "Model" IS the weights.
+        self.embeddings = nn.Linear(vocab_size, embed_dim, bias=False)
+        self.output = nn.Linear(embed_dim, vocab_size, bias=False)
+
 class SimpleInception(nn.Module):
     """
     GoogLeNet (Inception v1) Mock.
@@ -257,6 +273,9 @@ def get_model_structure(model):
         # Check for Perceptron (Simple Linear)
         if hasattr(model, 'fc'):
              return [model.fc]
+        # Check for Word2Vec
+        if hasattr(model, 'embeddings'):
+             return [model.embeddings, model.output]
         raise ValueError(f"Architecture {type(model).__name__} not supported.")
 
     return layers

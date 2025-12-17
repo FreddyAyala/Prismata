@@ -9,4 +9,7 @@ DeepSeek-V3 is a massive Mixture-of-Experts model with 671 Billion parameters, b
 The crystal visualizes this **Sparsity**: notice the gaps and the clustered "Experts" in the lattice.
 Unlike the dense monoliths of Gemma or BERT, DeepSeek structures itself into specialized functional regions that activate selectively.
 
-*Note: This is a structural visualization generated using a mock sparsity mask (90% sparse), as downloading the full 671B weights is impractical.*
+**Use Cases:**
+*   **Heavy Reasoning:** Solving PhD-level physics and logic problems.
+*   **Coding Assistance:** A favorite for local code completion and refactoring.
+*   **Cost-Effective Intelligence:** Delivering GPT-4 class performance at a fraction of the inference cost.

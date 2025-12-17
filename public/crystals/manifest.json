@@ -291,6 +291,22 @@
     ]
   },
   {
+    "id": "word2vec",
+    "name": "Word2Vec",
+    "year": 2013,
+    "era": "The Vector Era",
+    "type": "Embedding",
+    "desc": "The model that taught computers the meaning of words. King - Man + Woman = Queen.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Prism",
+        "file": "crystals/word2vec/structure.ply",
+        "desc": "Compressing vocabulary into meaning vectors."
+      }
+    ]
+  },
+  {
     "id": "lenet",
     "name": "LeNet-5",
     "year": 1998,
