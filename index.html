@@ -200,7 +200,8 @@
                             <h3 style="color:var(--color-secondary); font-size:0.9rem;">PREVISUALIZE CUSTOM CRYSTAL</h3>
                             <p style="font-size:0.8rem; margin-bottom:10px; color:#ccc;">Upload a generated
                                 <code>.ply</code> file
-                                to view it instantly.</p>
+                                to view it instantly.
+                            </p>
                             <label class="minimal-btn" style="display:inline-block; cursor:pointer; padding: 8px 16px;">
                                 UPLOAD .PLY
                                 <input type="file" id="file-upload" accept=".ply" style="display:none;">
@@ -209,25 +210,69 @@
                     </div>
                 </div>
             </div>
-            <!-- Timeline Overlay (Hidden by Default) -->
-            <div id="timeline-overlay" class="timeline-overlay hidden">
-                <button id="btn-close-timeline" class="close-timeline-btn">EXIT TIMELINE</button>
+        </div>
 
-                <div class="timeline-active-info">
-                    <h2 id="timeline-year">2024</h2>
-                    <h1 id="timeline-title">GEMMA 2</h1>
-                    <p id="timeline-desc">Google's open model. Highly efficient knowledge compression.</p>
-                </div>
+        <!-- ABOUT MODAL -->
+        <div id="about-modal" class="modal-backdrop hidden">
+            <div class="modal-content">
+                <button id="btn-close-about" class="modal-close-btn">&times;</button>
+                <h2>VISUALIZING INTELLIGENCE</h2>
+                <div class="modal-body">
+                    <p><strong>Prismata</strong> visualizes the hidden topology of Neural Networks using <span
+                            style="color:var(--color-primary)">Principal Component Analysis (PCA)</span>.</p>
 
-                <div class="timeline-track-container">
-                    <button id="btn-prev-model" class="nav-arrow left">&lt;</button>
-                    <div id="timeline-track" class="timeline-track">
-                        <!-- Populated JS: Nodes go here -->
+                    <div class="legend-grid">
+                        <div class="legend-item">
+                            <span class="legend-icon" style="background:var(--color-primary)"></span>
+                            <div>
+                                <strong>POINTS</strong>
+                                <p>Clusters of neurons or attention heads acting on similar features.</p>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon gradient-vertical"></span>
+                            <div>
+                                <strong>VERTICAL AXIS</strong>
+                                <p>Network Depth. Input (Bottom) &rarr; Output (Top).</p>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon" style="background:#ff0055"></span>
+                            <div>
+                                <strong>STRUCTURE</strong>
+                                <p>Helices represent sequential processing (LLMs). Layers represent hierarchical
+                                    features (CNNs).</p>
+                            </div>
+                        </div>
                     </div>
-                    <button id="btn-next-model" class="nav-arrow right">&gt;</button>
+
+                    <small style="opacity:0.6; display:block; margin-top:20px;">
+                        * "Mock" weights used for theoretical architecture visualization of restricted models (e.g.
+                        DeepSeek).
+                    </small>
                 </div>
             </div>
         </div>
+
+        <!-- Timeline Overlay (Hidden by Default) -->
+        <div id="timeline-overlay" class="timeline-overlay hidden">
+            <button id="btn-close-timeline" class="close-timeline-btn">EXIT TIMELINE</button>
+
+            <div class="timeline-active-info">
+                <h2 id="timeline-year">2024</h2>
+                <h1 id="timeline-title">GEMMA 2</h1>
+                <p id="timeline-desc">Google's open model. Highly efficient knowledge compression.</p>
+            </div>
+
+            <div class="timeline-track-container">
+                <button id="btn-prev-model" class="nav-arrow left">&lt;</button>
+                <div id="timeline-track" class="timeline-track">
+                    <!-- Populated JS: Nodes go here -->
+                </div>
+                <button id="btn-next-model" class="nav-arrow right">&gt;</button>
+            </div>
+        </div>
+    </div>
     </div>
     <!-- Scripts -->
     <script type="module" src="./src/main.js"></script>

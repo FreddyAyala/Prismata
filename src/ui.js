@@ -482,6 +482,31 @@ function showToast(msg, isAlert = false) {
   }, 2000);
 }
 
+// --- ABOUT MODAL ---
+function setupAboutModal() {
+  const modal = document.getElementById('about-modal');
+  const btnOpen = document.getElementById('btn-about');
+  const btnClose = document.getElementById('btn-close-about');
+
+  if (btnOpen && modal) {
+    btnOpen.addEventListener('click', () => {
+      modal.classList.remove('hidden');
+    });
+
+    btnClose.addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+  }
+}
+
+setTimeout(() => {
+  setupAboutModal();
+}, 1000);
+
 // --- TIMELINE LOGIC ---
 
 // Timeline Elements

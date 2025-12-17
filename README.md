@@ -36,7 +36,26 @@ Prismata acts as a timeline, showcasing the architectural evolution of AI:
 *   **2015 | ResNet ("The Deep Pyramid")**: The CNN that solved depth, allowing networks to grow from 5 layers to 50+.
 *   **2017 | Transformer Era (BERT, GPT-2)**: The rise of Attention. Structures become complex helices (GPT) and pillars (BERT).
 *   **2024 | The Reasoning Era (Qwen, DeepSeek)**: Massive, dense structures capable of complex logic.
+*   **2024 | The Reasoning Era (Qwen, DeepSeek)**: Massive, dense structures capable of complex logic.
 *   **2025 | Edge AI (SmolLM)**: The return to efficiency—compact, highly optimized "pocket brains".
+
+## 🚀 Features
+
+### 1. The Workbench (Analysis)
+The primary interface for examining individual crystals.
+*   **Rotate/Zoom:** Inspect the topology from any angle.
+*   **Compare Mode:** Load two models side-by-side to analyze architectural differences (e.g. *GPT-2 vs BERT*).
+
+### 2. The Timeline (Evolution)
+A horizontal scrolling journey through history.
+*   **Context:** See where each model fits in the timeline.
+*   **Flow:** Smoothly transition between eras.
+
+### 3. Virtual Archive (Immersion) 🆕
+A first-person 3D experience inspired by *Tron*.
+*   **Walk the Hall:** physically walk down the timeline of AI History.
+*   **Scale:** Experience the sheer scale of modern models.
+*   **Controls:** WASD to move, Mouse to look. ESC to exit.
 
 
 ---

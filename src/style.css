@@ -1228,3 +1228,64 @@ input:checked+.slider:before {
     opacity: 0 !important;
     pointer-events: none !important;
 }
+/* Modal System */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 5000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: rgba(10, 20, 30, 0.95);
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    color: #fff;
+    position: relative;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.legend-grid {
+    display: grid;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.legend-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gradient-vertical {
+    background: linear-gradient(to top, #000, var(--color-primary));
+}
