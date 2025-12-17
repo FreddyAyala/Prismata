@@ -141,6 +141,25 @@
                     </div>
                 </div>
 
+                <!-- Reading Guide -->
+                <div class="glass-panel reading-guide"
+                    style="margin-bottom: 4px; padding: 10px; border-left: 2px solid var(--color-primary);">
+                    <h3 style="color:var(--color-primary); font-size: 0.7rem; margin-bottom: 8px; letter-spacing: 1px;">
+                        AUTONOMY SCAN</h3>
+                    <div
+                        style="display:flex; flex-direction:column; gap:4px; font-size:0.65rem; color:#ccc; font-family:'JetBrains Mono', monospace;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>TOP LAYER</span> <span style="color:#ff0055">OUTPUT / DECISION</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>MID LAYER</span> <span style="color:#00f3ff">PROCESSING / CORTEX</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>BOT LAYER</span> <span style="color:#ffaa00">INPUT / SENSORY</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Shared Controls (Bottom) -->
                 <div class="glass-panel controls-panel">
                     <div class="controls">
@@ -226,22 +245,21 @@
                             <span class="legend-icon" style="background:var(--color-primary)"></span>
                             <div>
                                 <strong>POINTS</strong>
-                                <p>Clusters of neurons or attention heads acting on similar features.</p>
+                                <p>Neurons/Cortex processing features. (Cyan = Processing)</p>
                             </div>
                         </div>
                         <div class="legend-item">
                             <span class="legend-icon gradient-vertical"></span>
                             <div>
                                 <strong>VERTICAL AXIS</strong>
-                                <p>Network Depth. Input (Bottom) &rarr; Output (Top).</p>
+                                <p>Network Depth. Input (Bottom/Orange) &rarr; Output (Top/Red).</p>
                             </div>
                         </div>
                         <div class="legend-item">
                             <span class="legend-icon" style="background:#ff0055"></span>
                             <div>
                                 <strong>STRUCTURE</strong>
-                                <p>Helices represent sequential processing (LLMs). Layers represent hierarchical
-                                    features (CNNs).</p>
+                                <p>Helices (LLMs) or Pyramids (CNNs) represent the Autonomy Flow.</p>
                             </div>
                         </div>
                     </div>

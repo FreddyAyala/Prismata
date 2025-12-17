@@ -862,12 +862,9 @@ input:checked+.slider:before {
     height: 80px;
     /* HSV Gradient: Red(Input) -> Violet(Output) */
     background: linear-gradient(to top,
-            #ff0000 0%,
-            #ffff00 20%,
-            #00ff00 40%,
-            #00ffff 60%,
-            #0000ff 80%,
-            #ff00ff 100%);
+            #ffaa00 0%,
+                #00f3ff 50%,
+                #ff0055 100%);
     border-radius: 3px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
