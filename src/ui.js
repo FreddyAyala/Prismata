@@ -1,5 +1,6 @@
 import { CrystalViewer } from './main.js';
 import { archiveManager } from './archive/ArchiveManager.js';
+import { timelineManager } from './timeline/TimelineManager.js';
 
 // DOM Elements
 const navList = document.getElementById('model-list');
@@ -50,7 +51,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (models) {
     setupControls();
-    setupTimelineMode(models);
+    // Initialize Timeline
+    timelineManager.viewer = mainViewer; // Inject viewer
+    timelineManager.setup(models, () => enterWorkbenchMode());
     setupModeSwitcher(models);
   }
 
@@ -95,6 +98,7 @@ function setupModeSwitcher(models) {
   if (headerStatus) {
     // UNIFIED: Mode Dropdown
     const modeSelect = document.createElement('select');
+    modeSelect.id = 'mode-selector'; // Explicit ID for reliable targeting
     modeSelect.className = 'minimal-btn';
     modeSelect.style.marginRight = '20px';
     modeSelect.style.pointerEvents = 'auto'; // Ensure clickable
@@ -111,12 +115,16 @@ function setupModeSwitcher(models) {
 
     const modes = [
       { id: 'workbench', label: 'MODE: WORKBENCH', action: enterWorkbenchMode },
-      { id: 'timeline', label: 'MODE: TIMELINE', action: enterTimelineMode },
+      { id: 'timeline', label: 'MODE: TIMELINE', action: () => timelineManager.enter() },
       {
         id: 'archive', label: 'MODE: ARCHIVE', action: () => {
           // Sort Chronological (Oldest -> Newest) for Archive
-          const sorted = [...models].sort((a, b) => a.year - b.year);
-          enterArchiveMode(sorted);
+          if (models) {
+            const sorted = [...models].sort((a, b) => a.year - b.year);
+            enterArchiveMode(sorted);
+          } else {
+            console.error("Archive Action: models is missing");
+          }
         }
       }
     ];
@@ -595,161 +603,11 @@ setTimeout(() => {
 }, 1000);
 
 // --- TIMELINE LOGIC ---
+// Moved to src/timeline/TimelineManager.js
 
-// Timeline Elements
-const timelineOverlay = document.getElementById('timeline-overlay');
-const timelineTrack = document.getElementById('timeline-track');
-const timelineYear = document.getElementById('timeline-year');
-const timelineTitle = document.getElementById('timeline-title');
-const timelineDesc = document.getElementById('timeline-desc');
-const btnPrev2 = document.getElementById('btn-prev-model');
-const btnNext2 = document.getElementById('btn-next-model');
-const btnCloseTime = document.getElementById('btn-close-timeline');
-
-let timelineModels = [];
-let currentIndex = 0;
-
-function setupTimelineMode(models) {
-  // Sort Chronologically (Old -> New) for Timeline
-  timelineModels = [...models].sort((a, b) => a.year - b.year);
-
-  if (timelineTrack) {
-    timelineTrack.innerHTML = '';
-
-    timelineModels.forEach((model, index) => {
-      // Only use the first crystal to represent the model
-      // Skip if no crystals
-      if (!model.crystals || model.crystals.length === 0) return;
-
-      const crystal = model.crystals[0];
-
-      const node = document.createElement('div');
-      node.className = 'timeline-node';
-      node.dataset.index = index;
-
-      node.innerHTML = `
-          <div class="node-dot"></div>
-          <span class="node-year">${model.year}</span>
-          <span class="node-label">${model.name}</span>
-        `;
-
-      node.addEventListener('click', () => {
-        goToTimelineIndex(index);
-      });
-
-      timelineTrack.appendChild(node);
-    });
-  }
-
-  // Nav Buttons
-  if (btnPrev2) btnPrev2.addEventListener('click', () => {
-    if (currentIndex > 0) goToTimelineIndex(currentIndex - 1);
-  });
-
-  if (btnNext2) btnNext2.addEventListener('click', () => {
-    if (currentIndex < timelineModels.length - 1) goToTimelineIndex(currentIndex + 1);
-  });
-
-  if (btnCloseTime) btnCloseTime.addEventListener('click', () => {
-    enterWorkbenchMode();
-  });
-}
-
-function enterTimelineMode() {
-  // 1. Show Overlay
-  if (timelineOverlay) timelineOverlay.classList.remove('hidden');
-
-  // 2. Hide Standard UI
-  const nav = document.querySelector('.gallery-nav');
-  const details = document.querySelector('.artifact-details');
-  const headerMain = document.querySelector('.gallery-header');
-
-  if (nav) { nav.style.opacity = '0'; nav.style.pointerEvents = 'none'; }
-  if (details) details.style.opacity = '0';
-  if (headerMain) headerMain.style.opacity = '0';
-
-  // 3. Reset View
-  if (typeof isCompareMode !== 'undefined' && isCompareMode) {
-    // Force exit compare mode if we can access toggle
-    const toggle = document.getElementById('compare-toggle');
-    if (toggle) {
-      toggle.checked = false;
-      toggle.dispatchEvent(new Event('change'));
-    }
-  }
-
-  // 4. Start at beginning (Perceptron)
-  goToTimelineIndex(0);
-  window.updateModeUI('timeline'); // Sync mode switcher
-}
-
-function exitTimelineMode() {
-  if (timelineOverlay) timelineOverlay.classList.add('hidden');
-
-  // Restore UI
-  const nav = document.querySelector('.gallery-nav');
-  const details = document.querySelector('.artifact-details');
-  const headerMain = document.querySelector('.gallery-header');
-
-  if (nav) { nav.style.opacity = '1'; nav.style.pointerEvents = 'auto'; }
-  if (details) details.style.opacity = '1';
-  if (headerMain) headerMain.style.opacity = '1';
-
-  // Reset Camera?
-  if (mainViewer) mainViewer.resetView();
-}
-
-function goToTimelineIndex(index) {
-  currentIndex = index;
-  const model = timelineModels[index];
-  if (!model) return;
-  const crystal = model.crystals[0];
-
-  // 1. Update Active Node UI
-  document.querySelectorAll('.timeline-node').forEach(n => {
-    n.classList.remove('active');
-    if (parseInt(n.dataset.index) === index) {
-      n.classList.add('active');
-      n.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-    }
-  });
-
-  // 2. Update Info Text
-  // Animate Out
-  if (timelineTitle) timelineTitle.style.opacity = 0;
-  if (timelineDesc) timelineDesc.style.opacity = 0;
-  if (timelineYear) timelineYear.style.opacity = 0;
-
-  setTimeout(() => {
-    if (timelineYear) timelineYear.textContent = model.year;
-    if (timelineTitle) timelineTitle.textContent = model.name;
-    if (timelineDesc) timelineDesc.textContent = model.desc; // Use short desc
-
-    // Animate In
-    if (timelineTitle) timelineTitle.style.opacity = 1;
-    if (timelineDesc) timelineDesc.style.opacity = 1;
-    if (timelineYear) timelineYear.style.opacity = 1;
-  }, 200);
-
-  // 3. Load Crystal
-  const data = {
-    url: `./${crystal.file}`,
-    name: crystal.name,
-    type: model.type,
-    modelName: model.name,
-    desc: crystal.desc,
-    modelId: model.id
-  };
-
-  if (mainViewer) {
-    mainViewer.loadCrystal(data.url).then(() => {
-      // Optional: Auto-rotate faster?
-    }).catch(e => console.error(e));
-  }
-}
 
 function updateModeUI(activeId) {
-  const select = document.querySelector('select.minimal-btn');
+  const select = document.getElementById('mode-selector');
   if (select) select.value = activeId;
 }
 
@@ -760,7 +618,7 @@ function enterWorkbenchMode() {
   document.querySelector('.ui-layer').classList.remove('hidden');
 
   // Hide Others
-  exitTimelineMode();
+  timelineManager.exit();
   archiveManager.exitArchive();
 
   // Sync UI
@@ -772,28 +630,34 @@ function enterWorkbenchMode() {
 
 // Wrapper for Archive
 function enterArchiveMode(models) {
-  // Hide Main
-  document.querySelector('.viewer-layout').classList.add('hidden');
-  document.querySelector('.ui-layer').classList.add('hidden');
+  try {
+    // Hide Main
+    const layout = document.querySelector('.viewer-layout');
+    const ui = document.querySelector('.ui-layer');
+    if (layout) layout.classList.add('hidden');
+    if (ui) ui.classList.add('hidden');
 
-  // Hide Timeline
-  exitTimelineMode();
+    // Hide Timeline
+    if (timelineManager) timelineManager.exit();
 
-  // Sync UI
-  updateModeUI('archive');
+    // Sync UI
+    updateModeUI('archive');
 
-  // Start Archive
-  if (models) {
-    archiveManager.enterArchive(models);
-  // Bind exit (Ensure we bind it only once or re-bind safely)
-    archiveManager.onExit = () => enterWorkbenchMode();
-  } else {
-    console.error("No models passed to Archive");
+    // Start Archive
+    if (models && Array.isArray(models)) {
+      console.log("Launching Archive with", models.length, "models");
+      archiveManager.enterArchive(models);
+      // Bind exit
+      archiveManager.onExit = () => enterWorkbenchMode();
+    } else {
+      console.error("No models passed to Archive or invalid format", models);
+      // Fallback?
+      enterWorkbenchMode();
+    }
+  } catch (e) {
+    console.error("Error entering archive mode:", e);
+    enterWorkbenchMode(); // Recovery
   }
 }
-// enterTimelineMode is already defined globally
 
-
-// enterTimelineMode is already defined globally
-// Note: Manifest loading is now handled in loadGallery + DOMContentLoaded
 

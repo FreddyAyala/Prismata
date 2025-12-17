@@ -39,11 +39,11 @@ export class ArchiveEnvironment {
             this.scene.add(strip);
         }
 
-        // Fog
-        this.scene.fog = new THREE.FogExp2(0x000000, 0.005);
+        // Fog (Reduced density to prevent color fading)
+        this.scene.fog = new THREE.FogExp2(0x000000, 0.002);
 
-        // Ambient
-        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        // Ambient (Darker to increase contrast of glowing points)
+        const ambient = new THREE.AmbientLight(0xffffff, 0.1);
         this.scene.add(ambient);
     }
 }

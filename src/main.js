@@ -244,13 +244,13 @@ export class CrystalViewer {
       const group = new THREE.Group();
 
       // Points
-    // Points (Standard)
+    // Standard Points Material (Reverted to clean state)
     const pointMaterial = new THREE.PointsMaterial({
-      size: 0.15, // Standard Size
+      size: 0.15,
       vertexColors: true,
-        transparent: true,
+      transparent: true,
       opacity: 0.9,
-        blending: THREE.AdditiveBlending,
+      blending: THREE.AdditiveBlending,
       sizeAttenuation: true
       });
 

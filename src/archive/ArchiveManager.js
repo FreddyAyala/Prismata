@@ -273,6 +273,7 @@ class ArchiveManager {
             if (model.type === 'LLM') color = 0xff0055;
             if (model.type === 'Multimodal') color = 0xffaa00;
 
+            // Standard Material
             const material = new THREE.PointsMaterial({
                 color: color,
                 size: 0.15,
