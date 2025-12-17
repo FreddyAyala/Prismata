@@ -1,4 +1,5 @@
 import { CrystalViewer } from './main.js';
+import { archiveManager } from './archive/ArchiveManager.js';
 
 // DOM Elements
 const navList = document.getElementById('model-list');
@@ -44,18 +45,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   mainViewer = new CrystalViewer('view-main');
   compareViewer = new CrystalViewer('view-compare'); 
 
-  // 2. Load Gallery
-  await loadGallery();
-  setupControls();
+  // 2. Load Gallery & Init Features
+  const models = await loadGallery();
+
+  if (models) {
+    setupControls();
+    setupTimelineMode(models);
+    setupModeSwitcher(models);
+  }
 
   // 3. Setup Search & Filters
   setupSearch();
 
-  // 4. Setup Slot Selection
+  // Event Listeners for Viewer
+  if (!mainViewer) return; // Guard
+
+  // Shared Viewer Controls
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (activeSlot === 'main') mainViewer.resetView();
+    else if (compareViewer) compareViewer.resetView();
+  });
+
+  document.getElementById('btn-spin').addEventListener('click', (e) => {
+    const isActive = e.target.classList.toggle('active');
+    if (activeSlot === 'main') mainViewer.setAutoRotate(isActive);
+    else if (compareViewer) compareViewer.setAutoRotate(isActive);
+  });
+
+  // Panel Activation
+  const panelA = document.getElementById('panel-a');
+  const panelB = document.getElementById('panel-b');
+
   panelA.addEventListener('click', () => setActiveSlot('main'));
   panelB.addEventListener('click', () => setActiveSlot('compare'));
-
-
 
   // Initial State
   setActiveSlot('main');
@@ -66,6 +88,67 @@ const filterState = {
   query: '',
   tag: 'ALL'
 };
+
+// --- MODE SWITCHER INIT ---
+function setupModeSwitcher(models) {
+  const headerStatus = document.querySelector('.status-indicator');
+  if (headerStatus) {
+    // UNIFIED: Mode Dropdown
+    const modeSelect = document.createElement('select');
+    modeSelect.className = 'minimal-btn';
+    modeSelect.style.marginRight = '20px';
+    modeSelect.style.pointerEvents = 'auto'; // Ensure clickable
+    modeSelect.style.zIndex = '1000';
+    modeSelect.style.border = '1px solid var(--color-primary)';
+    modeSelect.style.color = 'var(--color-primary)';
+    modeSelect.style.outline = 'none';
+    modeSelect.style.cursor = 'pointer';
+    modeSelect.style.background = 'rgba(0,0,0,0.5)';
+    modeSelect.style.textAlign = 'center';
+    modeSelect.style.textTransform = 'uppercase';
+    modeSelect.style.fontWeight = 'bold';
+    modeSelect.style.letterSpacing = '1px';
+
+    const modes = [
+      { id: 'workbench', label: 'MODE: WORKBENCH', action: enterWorkbenchMode },
+      { id: 'timeline', label: 'MODE: TIMELINE', action: enterTimelineMode },
+      {
+        id: 'archive', label: 'MODE: ARCHIVE', action: () => {
+          // Sort Chronological (Oldest -> Newest) for Archive
+          const sorted = [...models].sort((a, b) => a.year - b.year);
+          enterArchiveMode(sorted);
+        }
+      }
+    ];
+
+    modes.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.label;
+      modeSelect.appendChild(opt);
+    });
+
+    // Global Listener for Dropdown
+    window.updateModeUI = (activeId) => {
+      modeSelect.value = activeId;
+    };
+
+    modeSelect.addEventListener('change', (e) => {
+      const mode = modes.find(m => m.id === e.target.value);
+      if (mode) {
+        // Visual Feedback
+        modeSelect.style.boxShadow = '0 0 15px var(--color-primary)';
+        setTimeout(() => modeSelect.style.boxShadow = 'none', 300);
+        mode.action();
+      }
+    });
+
+    headerStatus.insertBefore(modeSelect, headerStatus.firstChild);
+
+    // Init Archive (Pre-load)
+    archiveManager.init('archive-root');
+  }
+}
 
 function setupSearch() {
   const searchInput = document.getElementById('search-input');
@@ -232,9 +315,12 @@ async function loadGallery() {
       if (firstItem) firstItem.click();
     }, 100);
 
+    return models; // Return for other modules
+
     } catch (err) {
       console.error("Failed to load manifest:", err);
       navList.innerHTML = `<div style="color:red; padding:1rem;">ERROR CONNECTING TO ARCHIVE<br>${err.message}</div>`;
+    return null;
     }
 }
 
@@ -423,17 +509,18 @@ function setupControls() {
     });
   }
 
-  btnSpin.addEventListener('click', () => {
-    const isActive = btnSpin.classList.toggle('active');
-    mainViewer.setAutoRotate(isActive);
-    compareViewer.setAutoRotate(isActive);
-    btnSpin.textContent = isActive ? "AUTO-ROTATE: ON" : "AUTO-ROTATE: OFF";
-  });
+  // These are now handled in DOMContentLoaded
+  // btnSpin.addEventListener('click', () => {
+  //   const isActive = btnSpin.classList.toggle('active');
+  //   mainViewer.setAutoRotate(isActive);
+  //   compareViewer.setAutoRotate(isActive);
+  //   btnSpin.textContent = isActive ? "AUTO-ROTATE: ON" : "AUTO-ROTATE: OFF";
+  // });
 
-  btnReset.addEventListener('click', () => {
-    mainViewer.resetView();
-    compareViewer.resetView();
-  });
+  // btnReset.addEventListener('click', () => {
+  //   mainViewer.resetView();
+  //   compareViewer.resetView();
+  // });
 
   toggleCompare.addEventListener('change', (e) => {
     isCompareMode = e.target.checked;
@@ -593,6 +680,7 @@ function enterTimelineMode() {
 
   // 4. Start at beginning (Perceptron)
   goToTimelineIndex(0);
+  window.updateModeUI('timeline'); // Sync mode switcher
 }
 
 function exitTimelineMode() {
@@ -660,61 +748,8 @@ function goToTimelineIndex(index) {
   }
 }
 
-// --- BUTTON INJECTION & INIT ---
-import { archiveManager } from './archive/ArchiveManager.js';
-
-// --- VIEW MODE CONTROLLER ---
-
-setTimeout(() => {
-  const headerStatus = document.querySelector('.status-indicator');
-  if (headerStatus) {
-    // UNIFIED: Mode Dropdown
-    const modeSelect = document.createElement('select');
-    modeSelect.className = 'minimal-btn';
-    modeSelect.style.marginRight = '20px';
-    modeSelect.style.border = '1px solid var(--color-primary)';
-    modeSelect.style.color = 'var(--color-primary)';
-    modeSelect.style.outline = 'none';
-    modeSelect.style.cursor = 'pointer';
-    modeSelect.style.background = 'rgba(0,0,0,0.5)';
-    modeSelect.style.textAlign = 'center';
-    modeSelect.style.textTransform = 'uppercase';
-    modeSelect.style.fontWeight = 'bold';
-    modeSelect.style.letterSpacing = '1px';
-
-    const modes = [
-      { id: 'workbench', label: 'MODE: WORKBENCH', action: enterWorkbenchMode },
-      { id: 'timeline', label: 'MODE: TIMELINE', action: enterTimelineMode },
-      { id: 'archive', label: 'MODE: ARCHIVE', action: enterArchiveMode }
-    ];
-
-    modes.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = m.label;
-      modeSelect.appendChild(opt);
-    });
-
-    modeSelect.addEventListener('change', (e) => {
-      const selectedId = e.target.value;
-      const mode = modes.find(m => m.id === selectedId);
-      if (mode) {
-        // Visual Feedback (Pulse border?)
-        modeSelect.style.boxShadow = '0 0 15px var(--color-primary)';
-        setTimeout(() => modeSelect.style.boxShadow = 'none', 300);
-        mode.action();
-      }
-    });
-
-    headerStatus.insertBefore(modeSelect, headerStatus.firstChild);
-
-    // Init Archive
-    archiveManager.init('archive-root');
-  }
-}, 1000);
-
 function updateModeUI(activeId) {
-  const select = document.querySelector('select.minimal-btn'); // Simple selector
+  const select = document.querySelector('select.minimal-btn');
   if (select) select.value = activeId;
 }
 
@@ -736,7 +771,7 @@ function enterWorkbenchMode() {
 }
 
 // Wrapper for Archive
-function enterArchiveMode() {
+function enterArchiveMode(models) {
   // Hide Main
   document.querySelector('.viewer-layout').classList.add('hidden');
   document.querySelector('.ui-layer').classList.add('hidden');
@@ -748,19 +783,17 @@ function enterArchiveMode() {
   updateModeUI('archive');
 
   // Start Archive
-  fetch('./crystals/manifest.json').then(r => r.json()).then(models => {
-    // Sort Chronologically: Oldest First
-    const sortedModels = models.sort((a, b) => a.year - b.year);
-
-    archiveManager.enterArchive(sortedModels);
-    // Bind exit
+  if (models) {
+    archiveManager.enterArchive(models);
+  // Bind exit (Ensure we bind it only once or re-bind safely)
     archiveManager.onExit = () => enterWorkbenchMode();
-  });
+  } else {
+    console.error("No models passed to Archive");
+  }
 }
 // enterTimelineMode is already defined globally
 
 
-// Self-init data
-fetch('./crystals/manifest.json').then(r => r.json()).then(models => {
-  setupTimelineMode(models);
-});
+// enterTimelineMode is already defined globally
+// Note: Manifest loading is now handled in loadGallery + DOMContentLoaded
+
