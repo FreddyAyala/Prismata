@@ -315,11 +315,14 @@ function setupControls() {
   const btnToggleInfo = document.getElementById('btn-toggle-info');
 
   if (btnToggleInfo) {
-    btnToggleInfo.addEventListener('click', () => {
-      const uiLayer = document.querySelector('.ui-layer');
-      uiLayer.classList.toggle('no-details');
-      const isHidden = uiLayer.classList.contains('no-details');
-      btnToggleInfo.textContent = isHidden ? "SHOW INFO" : "HIDE INFO";
+    document.getElementById('btn-toggle-info').addEventListener('click', () => {
+      const panels = document.querySelectorAll('.artifact-details, .gallery-nav');
+      // Assuming infoVisible is defined globally or in a scope accessible here
+      // If not, this would need to be initialized, e.g., `let infoVisible = true;`
+      // For now, faithfully applying the change as provided.
+      infoVisible = !infoVisible;
+      panels.forEach(p => p.style.opacity = infoVisible ? '1' : '0');
+      document.getElementById('btn-toggle-info').textContent = infoVisible ? 'HIDE INFO' : 'SHOW INFO';
 
       setTimeout(() => {
         if (mainViewer) mainViewer.onResize();
@@ -345,6 +348,23 @@ function setupControls() {
     // Close on background click
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.add('hidden');
+    });
+  }
+
+  // Easter Egg Toggle
+  const btnEgg = document.getElementById('btn-easter-egg');
+  if (btnEgg) {
+    btnEgg.addEventListener('click', () => {
+      if (mainViewer) {
+        const isActive = mainViewer.toggleEasterEgg();
+        btnEgg.classList.toggle('active', isActive);
+
+        if (isActive) {
+          showToast("Lightcycle Arena: ONLINE");
+        } else {
+          showToast("Lightcycle Arena: OFFLINE", true);
+        }
+      }
     });
   }
 
@@ -433,3 +453,203 @@ function setupControls() {
       }
     });
 }
+// Toast Helper
+function showToast(msg, isAlert = false) {
+  let toast = document.getElementById('toast-notification');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.className = 'toast-notification';
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = msg;
+  toast.classList.remove('alert');
+  if (isAlert) toast.classList.add('alert');
+
+  // Force reflow
+  void toast.offsetWidth;
+
+  toast.classList.add('show');
+
+  if (window.toastTimeout) clearTimeout(window.toastTimeout);
+  window.toastTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2000);
+}
+
+// --- TIMELINE LOGIC ---
+
+// Timeline Elements
+const timelineOverlay = document.getElementById('timeline-overlay');
+const timelineTrack = document.getElementById('timeline-track');
+const timelineYear = document.getElementById('timeline-year');
+const timelineTitle = document.getElementById('timeline-title');
+const timelineDesc = document.getElementById('timeline-desc');
+const btnPrev2 = document.getElementById('btn-prev-model');
+const btnNext2 = document.getElementById('btn-next-model');
+const btnCloseTime = document.getElementById('btn-close-timeline');
+
+let timelineModels = [];
+let currentIndex = 0;
+
+function setupTimelineMode(models) {
+  // Sort Chronologically (Old -> New) for Timeline
+  timelineModels = [...models].sort((a, b) => a.year - b.year);
+
+  if (timelineTrack) {
+    timelineTrack.innerHTML = '';
+
+    timelineModels.forEach((model, index) => {
+      // Only use the first crystal to represent the model
+      // Skip if no crystals
+      if (!model.crystals || model.crystals.length === 0) return;
+
+      const crystal = model.crystals[0];
+
+      const node = document.createElement('div');
+      node.className = 'timeline-node';
+      node.dataset.index = index;
+
+      node.innerHTML = `
+          <div class="node-dot"></div>
+          <span class="node-year">${model.year}</span>
+          <span class="node-label">${model.name}</span>
+        `;
+
+      node.addEventListener('click', () => {
+        goToTimelineIndex(index);
+      });
+
+      timelineTrack.appendChild(node);
+    });
+  }
+
+  // Nav Buttons
+  if (btnPrev2) btnPrev2.addEventListener('click', () => {
+    if (currentIndex > 0) goToTimelineIndex(currentIndex - 1);
+  });
+
+  if (btnNext2) btnNext2.addEventListener('click', () => {
+    if (currentIndex < timelineModels.length - 1) goToTimelineIndex(currentIndex + 1);
+  });
+
+  if (btnCloseTime) btnCloseTime.addEventListener('click', () => {
+    exitTimelineMode();
+  });
+}
+
+function enterTimelineMode() {
+  // 1. Show Overlay
+  if (timelineOverlay) timelineOverlay.classList.remove('hidden');
+
+  // 2. Hide Standard UI
+  const nav = document.querySelector('.gallery-nav');
+  const details = document.querySelector('.artifact-details');
+  const headerMain = document.querySelector('.gallery-header');
+
+  if (nav) { nav.style.opacity = '0'; nav.style.pointerEvents = 'none'; }
+  if (details) details.style.opacity = '0';
+  if (headerMain) headerMain.style.opacity = '0';
+
+  // 3. Reset View
+  if (typeof isCompareMode !== 'undefined' && isCompareMode) {
+    // Force exit compare mode if we can access toggle
+    const toggle = document.getElementById('compare-toggle');
+    if (toggle) {
+      toggle.checked = false;
+      toggle.dispatchEvent(new Event('change'));
+    }
+  }
+
+  // 4. Start at beginning (Perceptron)
+  goToTimelineIndex(0);
+}
+
+function exitTimelineMode() {
+  if (timelineOverlay) timelineOverlay.classList.add('hidden');
+
+  // Restore UI
+  const nav = document.querySelector('.gallery-nav');
+  const details = document.querySelector('.artifact-details');
+  const headerMain = document.querySelector('.gallery-header');
+
+  if (nav) { nav.style.opacity = '1'; nav.style.pointerEvents = 'auto'; }
+  if (details) details.style.opacity = '1';
+  if (headerMain) headerMain.style.opacity = '1';
+
+  // Reset Camera?
+  if (mainViewer) mainViewer.resetView();
+}
+
+function goToTimelineIndex(index) {
+  currentIndex = index;
+  const model = timelineModels[index];
+  if (!model) return;
+  const crystal = model.crystals[0];
+
+  // 1. Update Active Node UI
+  document.querySelectorAll('.timeline-node').forEach(n => {
+    n.classList.remove('active');
+    if (parseInt(n.dataset.index) === index) {
+      n.classList.add('active');
+      n.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+    }
+  });
+
+  // 2. Update Info Text
+  // Animate Out
+  if (timelineTitle) timelineTitle.style.opacity = 0;
+  if (timelineDesc) timelineDesc.style.opacity = 0;
+  if (timelineYear) timelineYear.style.opacity = 0;
+
+  setTimeout(() => {
+    if (timelineYear) timelineYear.textContent = model.year;
+    if (timelineTitle) timelineTitle.textContent = model.name;
+    if (timelineDesc) timelineDesc.textContent = model.desc; // Use short desc
+
+    // Animate In
+    if (timelineTitle) timelineTitle.style.opacity = 1;
+    if (timelineDesc) timelineDesc.style.opacity = 1;
+    if (timelineYear) timelineYear.style.opacity = 1;
+  }, 200);
+
+  // 3. Load Crystal
+  const data = {
+    url: `./${crystal.file}`,
+    name: crystal.name,
+    type: model.type,
+    modelName: model.name,
+    desc: crystal.desc,
+    modelId: model.id
+  };
+
+  if (mainViewer) {
+    mainViewer.loadCrystal(data.url).then(() => {
+      // Optional: Auto-rotate faster?
+    }).catch(e => console.error(e));
+  }
+}
+
+// Add Timeline Button to Header (Dynamically)
+setTimeout(() => {
+  const headerStatus = document.querySelector('.status-indicator');
+  if (headerStatus) {
+    const btnTimeline = document.createElement('button');
+    btnTimeline.className = 'minimal-btn';
+    btnTimeline.textContent = "TIMELINE VIEW";
+    btnTimeline.style.border = "1px solid var(--color-accent)";
+    btnTimeline.style.color = "var(--color-accent)";
+    btnTimeline.style.fontWeight = "bold";
+    btnTimeline.style.boxShadow = "0 0 10px rgba(255, 0, 85, 0.2)";
+
+    btnTimeline.addEventListener('click', enterTimelineMode);
+
+    headerStatus.insertBefore(btnTimeline, headerStatus.firstChild);
+  }
+}, 1000); // Wait for DOM
+
+// Self-init timeline data independently to avoid scope issues
+fetch('./crystals/manifest.json').then(r => r.json()).then(models => {
+  setupTimelineMode(models);
+});

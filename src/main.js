@@ -1,3 +1,4 @@
+import { LightCycleArena } from './easterEgg.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
@@ -19,6 +20,10 @@ export class CrystalViewer {
       uTime: { value: 0 },
       uPulseEnabled: { value: 0.0 }
     };
+
+    // Easter Egg System
+    this.arena = null;
+
     this.uniforms = {
       uTime: { value: 0 },
       uSize: { value: 0.2 } // Super tiny (was 1.5, initially 8.0)
@@ -53,6 +58,10 @@ export class CrystalViewer {
 
       // Environment
       this.buildEnvironment();
+
+    // Init Arena (Start Disabled)
+    this.arena = new LightCycleArena(this.scene);
+    // this.arena.init(); // User must toggle
 
       // Resize Listener
       this.resizeObserver = new ResizeObserver(() => this.onResize());
@@ -170,10 +179,21 @@ export class CrystalViewer {
       this.customUniforms.uTime.value += 0.01;
     }
 
+    // Easter Egg
+    if (this.arena) this.arena.update();
+
     if (this.controls) this.controls.update();
     if (this.renderer && this.scene && this.camera) {
       this.renderer.render(this.scene, this.camera);
     }
+  }
+
+  toggleEasterEgg() {
+    if (this.arena) {
+      this.arena.toggle();
+      return this.arena.active;
+    }
+    return false;
   }
 
   parsePLY(buffer) {
