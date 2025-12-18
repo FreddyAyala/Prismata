@@ -1,0 +1,14 @@
+# Global Owner
+*       @freddyayala
+
+# Critical Infrastructure
+/.github/     @freddyayala
+/scripts/     @freddyayala
+/vite.config.js @freddyayala
+
+# Core Engine
+/src/archive/ @freddyayala
+/src/main.js  @freddyayala
+
+# Public Assets (Crystals)
+/public/crystals/ @freddyayala
