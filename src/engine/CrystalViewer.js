@@ -22,13 +22,42 @@ export class CrystalViewer {
     // Pulse Uniforms
     this.customUniforms = {
       uTime: { value: 0 },
-      uPulseEnabled: { value: 0.0 }
+      uPulseEnabled: { value: 0.0 },
+      // Advanced Uniforms (Setters will update these)
+      uNodeDensity: { value: 1.0 },
+      uLineDensity: { value: 1.0 },
+      uLineDist: { value: 200.0 }, // Default far (Infinite-ish)
+      uNodeDist: { value: 200.0 },
+      uThinning: { value: 0.0 },
+      uXorDensity: { value: 0.0 },
+      uLFO: { value: 0.0 }
     };
+
+    // LERP Targets for Smooth Transitions
+    this.targetUniforms = {
+      uNodeDensity: 1.0,
+      uLineDensity: 1.0,
+      uLineDist: 200.0, // Match above
+      uNodeDist: 200.0,
+      uThinning: 0.0,
+      uXorDensity: 0.0,
+      uLFO: 0.0
+    };
+
+    // FPS Tracking
+    this.fpsLastTime = performance.now();
+    this.fpsFrames = 0;
+    this.fpsElement = document.getElementById('fps-counter');
+
+    // Easter Egg System
+    this.arena = null;
 
     this.uniforms = {
       uTime: { value: 0 },
       uSize: { value: 0.2 }
     };
+
+    this.baseNodeSize = 0.15; // Default
 
     this.init();
   }
@@ -89,6 +118,12 @@ export class CrystalViewer {
       this.crystalGroup = meshResult;
       this.scene.add(this.crystalGroup);
 
+      // Apply Base Size
+      const points = this.crystalGroup.children.find(c => c.isPoints);
+      if (points && points.material) {
+        points.material.size = this.baseNodeSize;
+      }
+
       // TIGHT ZOOM Logic via Rig
       const box = new THREE.Box3().setFromObject(this.crystalGroup);
       this.rig.fitToBox(box);
@@ -118,9 +153,41 @@ export class CrystalViewer {
   animate() {
     this.animationId = requestAnimationFrame(() => this.animate());
 
-    // Update Pulse Uniforms
-    if (this.customUniforms) {
+    // 1. FPS Calculation
+    this.fpsFrames++;
+    const time = performance.now();
+    if (time >= this.fpsLastTime + 1000) {
+      const fps = Math.round((this.fpsFrames * 1000) / (time - this.fpsLastTime));
+      if (this.fpsElement) this.fpsElement.innerText = `FPS: ${fps}`;
+
+      // Dispatch Event for UI/Governor
+      window.dispatchEvent(new CustomEvent('fps-update', { detail: { fps } }));
+
+      this.fpsLastTime = time;
+      this.fpsFrames = 0;
+    }
+
+    // 2. Uniform LERP (Smooth Transitions)
+    if (this.customUniforms && this.targetUniforms) {
       this.customUniforms.uTime.value += 0.01;
+
+      // Lerp helper
+      const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+      const alpha = 0.05;
+
+      this.customUniforms.uNodeDensity.value = lerp(this.customUniforms.uNodeDensity.value, this.targetUniforms.uNodeDensity, alpha);
+      this.customUniforms.uLineDensity.value = lerp(this.customUniforms.uLineDensity.value, this.targetUniforms.uLineDensity, alpha);
+
+      // Missing LERPs added:
+      this.customUniforms.uLineDist.value = lerp(this.customUniforms.uLineDist.value, this.targetUniforms.uLineDist, alpha);
+      this.customUniforms.uNodeDist.value = lerp(this.customUniforms.uNodeDist.value, this.targetUniforms.uNodeDist, alpha);
+      this.customUniforms.uThinning.value = lerp(this.customUniforms.uThinning.value, this.targetUniforms.uThinning, alpha);
+      this.customUniforms.uXorDensity.value = lerp(this.customUniforms.uXorDensity.value, this.targetUniforms.uXorDensity, alpha);
+
+      // Pulse/LFO might be direct or lerped? 
+      if (this.customUniforms.uLFO && this.targetUniforms.uLFO !== undefined) {
+        this.customUniforms.uLFO.value = lerp(this.customUniforms.uLFO.value, this.targetUniforms.uLFO, alpha);
+      }
     }
 
     // Easter Egg
@@ -146,5 +213,89 @@ export class CrystalViewer {
     if (this.customUniforms) {
       this.customUniforms.uPulseEnabled.value = enabled ? 1.0 : 0.0;
     }
+  }
+
+  // Visual Setters for Governor/UI
+  setNodeDensity(val) {
+    if (this.targetUniforms) this.targetUniforms.uNodeDensity = val;
+  }
+
+  setLineDensity(val) {
+    if (this.targetUniforms) this.targetUniforms.uLineDensity = val;
+  }
+
+  setPanSpeed(val) {
+    if (this.rig) {
+      // Update both rig property and controls property if applicable
+      this.rig.panSpeed = val;
+      if (this.rig.controls) this.rig.controls.panSpeed = val;
+    }
+  }
+
+
+
+  toggleAutoPan(enabled) {
+    if (this.rig) {
+      this.rig.autoPan = enabled;
+    }
+  }
+
+  // --- Advanced Control Setters ---
+
+  setRotSpeed(val) {
+    if (this.rig && this.rig.controls) {
+      this.rig.controls.autoRotateSpeed = val;
+    }
+  }
+
+  setManualHeight(val) {
+    if (this.rig && this.rig.camera) {
+      // Offset camera Y relative to target
+      // This is tricky in OrbitControls, usually we move camera.position.y
+      // maintaining distance?
+      // Simple approach: Adjust Y directly.
+      this.rig.camera.position.y = val;
+      this.rig.controls.update();
+    }
+  }
+
+  setPanMin(val) {
+    if (this.rig) this.rig.panMin = val;
+  }
+
+  setPanMax(val) {
+    if (this.rig) this.rig.panMax = val;
+  }
+
+  setBaseSize(val) {
+    this.baseNodeSize = val;
+    if (this.crystalGroup) {
+      const points = this.crystalGroup.children.find(c => c.isPoints);
+      if (points && points.material) {
+        points.material.size = val;
+      }
+    }
+  }
+
+  setLFOAmount(val) {
+    if (this.targetUniforms) {
+      this.targetUniforms.uLFO = val;
+    }
+  }
+
+  setXorDensity(val) {
+    if (this.targetUniforms) this.targetUniforms.uXorDensity = val;
+  }
+
+  setLineDist(val) {
+    if (this.targetUniforms) this.targetUniforms.uLineDist = val;
+  }
+
+  setNodeDist(val) { // Maps to line-dist or separate? Controls.js has line-dist only? Controls loop has node-density/line-density.
+    if (this.targetUniforms) this.targetUniforms.uNodeDist = val;
+  }
+
+  setThinning(val) {
+    if (this.targetUniforms) this.targetUniforms.uThinning = val;
   }
 }

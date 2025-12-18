@@ -3,13 +3,124 @@ import { showToast, setActivePanelStyle, uiElements, handleLoadCrystal } from '.
 export function setupControls(context) {
   const { viewers, activeSlotGetter, setActiveSlotCallback } = context;
 
-  const btnSpin = document.getElementById('btn-spin');
-  const btnReset = document.getElementById('btn-reset');
-  const btnToggleInfo = document.getElementById('btn-toggle-info');
+  const replaceWithClone = (el) => {
+    if (!el) return null;
+    const newEl = el.cloneNode(true);
+    if (el.parentNode) el.parentNode.replaceChild(newEl, el);
+    return newEl;
+  };
+
+  const btnSpin = replaceWithClone(document.getElementById('btn-spin'));
+  const btnReset = replaceWithClone(document.getElementById('btn-reset'));
+  const btnToggleInfo = replaceWithClone(document.getElementById('btn-toggle-info'));
   const toggleCompare = document.getElementById('compare-toggle');
   const viewCompare = document.getElementById('view-compare');
   const viewerContainer = document.getElementById('viewer-container');
   const panelB = document.getElementById('panel-b');
+
+  // Helper to apply to active or both
+  const applyToViewers = (callback) => {
+    if (viewers.main) callback(viewers.main);
+    if (viewers.compare) callback(viewers.compare);
+  };
+
+  // --- ADVANCED SLIDERS ---
+  const bindSlider = (id, callback) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        applyToViewers(v => callback(v, val));
+      });
+    }
+  };
+
+  // Movement
+  bindSlider('pan-speed', (v, val) => v.setPanSpeed && v.setPanSpeed(val));
+  bindSlider('rot-speed', (v, val) => v.setRotSpeed && v.setRotSpeed(val));
+  bindSlider('view-height', (v, val) => v.setManualHeight && v.setManualHeight(val));
+
+  const panMin = document.getElementById('pan-min');
+  const panMax = document.getElementById('pan-max');
+  if (panMin && panMax) {
+    const updateLimits = () => {
+      const min = parseFloat(panMin.value);
+      const max = parseFloat(panMax.value);
+      applyToViewers(v => {
+        if (v.setPanMin) v.setPanMin(min);
+        if (v.setPanMax) v.setPanMax(max);
+      });
+    };
+    panMin.addEventListener('change', updateLimits);
+    panMax.addEventListener('change', updateLimits);
+  }
+
+  // Auto Pan Toggle
+  const btnPan = document.getElementById('btn-pan');
+  if (btnPan) {
+    btnPan.addEventListener('click', (e) => {
+      const isActive = e.target.classList.toggle('active');
+      applyToViewers(v => v.toggleAutoPan && v.toggleAutoPan(isActive));
+    });
+  }
+
+  // Auto FPS Governor Toggle
+  const autoFpsToggle = document.getElementById('auto-fps-toggle');
+  if (autoFpsToggle && context.governor) {
+    autoFpsToggle.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        context.governor.start();
+        showToast("FPS GOVERNOR: ENGAGED");
+      } else {
+        context.governor.stop();
+        showToast("FPS GOVERNOR: MANUAL OVERRIDE");
+      }
+    });
+  }
+
+  // Visuals
+  bindSlider('node-size', (v, val) => v.setBaseSize && v.setBaseSize(val));
+  bindSlider('lfo-amt', (v, val) => v.setLFOAmount && v.setLFOAmount(val)); // Needs logic in Viewer
+  bindSlider('xor-density', (v, val) => v.setXorDensity && v.setXorDensity(val));
+  bindSlider('line-dist', (v, val) => v.setLineDist && v.setLineDist(val));
+  bindSlider('line-density', (v, val) => v.setLineDensity && v.setLineDensity(val));
+  bindSlider('node-density', (v, val) => v.setNodeDensity && v.setNodeDensity(val));
+  bindSlider('thinning', (v, val) => v.setThinning && v.setThinning(val));
+
+
+  // --- ACCORDION LOGIC ---
+  const accordions = document.querySelectorAll('.accordion-toggle');
+  accordions.forEach(acc => {
+    acc.addEventListener('click', () => {
+      acc.classList.toggle('active');
+      const panel = acc.nextElementSibling;
+      if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+      } else {
+        panel.style.display = 'block';
+      }
+    });
+  });
+
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Deactivate all
+      tabBtns.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.control-group').forEach(g => g.classList.add('hidden'));
+
+      // Activate this
+      btn.classList.add('active');
+      const target = document.getElementById(btn.dataset.tab);
+      if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('active'); // ensure flex/block
+      }
+    });
+  });
+
+
+  // --- STANDARD CONTROLS ---
 
   // Shared View Controls
   if (btnReset) btnReset.addEventListener('click', () => {
@@ -19,23 +130,41 @@ export function setupControls(context) {
   });
 
   if (btnSpin) btnSpin.addEventListener('click', (e) => {
-    const isActive = e.target.classList.toggle('active');
+    e.target.blur(); // Remove focus
+
+    // Toggle class
+    const wasActive = e.target.classList.contains('active');
+    const newState = !wasActive;
+
+    if (newState) e.target.classList.add('active');
+    else e.target.classList.remove('active');
+
+    console.log(`[Controls] Spin Clicked. Was: ${wasActive}, New: ${newState}`);
+
     const slot = activeSlotGetter();
-    if (slot === 'main' && viewers.main) viewers.main.setAutoRotate(isActive);
-    else if (viewers.compare) viewers.compare.setAutoRotate(isActive);
+
+    // Explicitly set BOTH viewers if possible, or just active?
+    // Let's stick to logic: Shared controls usually affect active, but for "Auto" stuff maybe both?
+    // The previous code only affected active slot. Let's stick to that but be robust.
+
+    if (slot === 'main' && viewers.main) {
+      viewers.main.setAutoRotate(newState);
+      console.log("[Controls] Main AutoRotate Set To:", newState);
+    } else if (viewers.compare && viewers.compare) {
+      viewers.compare.setAutoRotate(newState);
+    }
   });
 
   // Info Toggle
   if (btnToggleInfo) {
     btnToggleInfo.addEventListener('click', () => {
       const panels = document.querySelectorAll('.artifact-details');
-      const isVisible = btnToggleInfo.textContent.includes('HIDE'); // Simple check
+      const isVisible = btnToggleInfo.textContent.includes('HIDE');
       const newState = !isVisible;
       
       panels.forEach(p => p.style.opacity = newState ? '1' : '0');
       btnToggleInfo.textContent = newState ? 'HIDE INFO' : 'SHOW INFO';
 
-      // Resize trigger
       setTimeout(() => {
         if (viewers.main) viewers.main.onResize();
         if (viewers.compare) viewers.compare.onResize();
@@ -64,8 +193,7 @@ export function setupControls(context) {
     btnPulse.addEventListener('click', () => {
       const isActive = btnPulse.classList.toggle('active');
       btnPulse.textContent = isActive ? "FLOW: ON" : "FLOW: OFF";
-      if (viewers.main) viewers.main.setPulse(isActive);
-      if (viewers.compare && viewers.compare.setPulse) viewers.compare.setPulse(isActive);
+      applyToViewers(v => v.setPulse && v.setPulse(isActive));
     });
   }
 
@@ -77,10 +205,9 @@ export function setupControls(context) {
       if (!file) return;
       const url = URL.createObjectURL(file);
       
-      setActiveSlotCallback('main'); // Force Main
+      setActiveSlotCallback('main'); 
       
       viewers.main.loadCrystal(url).then(stats => {
-          // Manually update UI via Panels helper or direct
           const ui = uiElements.main;
           if (ui.superTitle) ui.superTitle.textContent = "CUSTOM UPLOAD";
           ui.title.textContent = file.name.toUpperCase().replace('.PLY', '');
@@ -130,27 +257,71 @@ export function setupControls(context) {
         }
       });
   }
+  // --- Advanced Defaults Reset ---
+  const btnResetAdv = document.getElementById('btn-reset-advanced');
+  const resetAdvancedDefaults = () => {
+    // Defaults matching index.html
+    const defaults = {
+      'pan-speed': 0.5,
+      'pan-min': -5,
+      'pan-max': 10,
+      'view-height': 20,
+      'rot-speed': 2.0,
+      'node-size': 0.15,
+      'lfo-amt': 0.5,
+      'xor-density': 0.0,
+      'line-dist': 200,
+      'line-density': 1.0,
+      'node-density': 1.0,
+      'thinning': 0.0,
+      'auto-fps-toggle': true
+    };
+
+    Object.entries(defaults).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (el.type === 'checkbox') {
+          el.checked = val;
+          el.dispatchEvent(new Event('change'));
+        } else {
+          el.value = val;
+          el.dispatchEvent(new Event('input'));
+        }
+      }
+    });
+
+    if (btnResetAdv) {
+      btnResetAdv.innerText = "RESET COMPLETE";
+      setTimeout(() => {
+        if (btnResetAdv) btnResetAdv.innerText = "RESET DEFAULTS";
+      }, 1000);
+    }
+
+    // Reset Camera Position too
+    applyToViewers(v => v.resetView && v.resetView());
+  };
+
+  if (btnResetAdv) {
+    btnResetAdv.addEventListener('click', resetAdvancedDefaults);
+  }
 }
 
 function setupAboutModal() {
   const modal = document.getElementById('about-modal');
   const btnOpen = document.getElementById('btn-about');
-  const btnClose = document.getElementById('btn-close-modal'); // ID changed in some versions? usually 'btn-close-about' or 'btn-close-modal'
-  // logic in ui.js used 'btn-close-modal' (line 441) and 'btn-close-about' (line 584). 
-  // Wait, ui.js had TWO places for this? 
-  // Line 441: const btnCloseModal = document.getElementById('btn-close-modal');
-  // Line 584: const btnClose = document.getElementById('btn-close-about');
-  // I'll support both IDs to be safe.
+  const btnClose = document.getElementById('btn-close-modal');
+  const btnClose2 = document.getElementById('btn-close-about');
   
-  const closeBtns = [document.getElementById('btn-close-modal'), document.getElementById('btn-close-about')];
+  const closeBtns = [btnClose, btnClose2].filter(b => !!b);
 
   if (btnOpen && modal) {
     btnOpen.addEventListener('click', () => modal.classList.remove('hidden'));
     closeBtns.forEach(btn => {
-        if(btn) btn.addEventListener('click', () => modal.classList.add('hidden'));
+      btn.addEventListener('click', () => modal.classList.add('hidden'));
     });
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.add('hidden');
     });
   }
 }
+

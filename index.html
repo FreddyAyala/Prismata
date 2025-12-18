@@ -74,7 +74,8 @@
                     </div>
 
                     <div class="line-deco"></div>
-                </div>
+
+
                 <div id="model-list" class="scroll-container">
                     <!-- Populated by JS -->
                 </div>
@@ -160,10 +161,101 @@
                     </div>
                 </div>
 
+                <!-- ADVANCED CONTROLS (Accordion) -->
+                <div class="advanced-controls" style="margin-bottom: 4px; pointer-events: all;">
+                    <div class="accordion-toggle active">
+                        <span>ADVANCED CONTROLS</span>
+                        <svg class="chevron" viewBox="0 0 24 24" width="16" height="16">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="accordion-content" style="display:block; background: rgba(0,0,0,0.4);">
+                
+                        <!-- Sub Tabs -->
+                        <div class="tab-row">
+                            <button class="tab-btn active" data-tab="tab-move">MOVEMENT</button>
+                            <button class="tab-btn" data-tab="tab-perf">VISUALS</button>
+                        </div>
+                
+                        <!-- MOVEMENT TAB -->
+                        <div id="tab-move" class="control-group active">
+                
+                            <div class="control-row">
+                                <label>PAN SPEED</label>
+                                <input type="range" id="pan-speed" min="0" max="2" step="0.1" value="0.5">
+                            </div>
+                            <div class="control-row">
+                                <label>PAN LIMITS (Y)</label>
+                                <div class="dual-input-row">
+                                    <input type="number" id="pan-min" value="-5" step="1">
+                                    <input type="number" id="pan-max" value="10" step="1">
+                                </div>
+                            </div>
+                            <div class="control-row">
+                                <label>VIEW HEIGHT</label>
+                                <input type="range" id="view-height" min="-20" max="60" step="1" value="20">
+                            </div>
+                            <div class="control-row">
+                                <label>ROTATION SPEED</label>
+                                <input type="range" id="rot-speed" min="0" max="10" step="0.5" value="2.0">
+                            </div>
+                        </div>
+                
+                        <!-- PERFORMANCE/VISUALS TAB -->
+                        <div id="tab-perf" class="control-group hidden">
+                            <div class="control-row checkbox-row">
+                                <label class="gold-text">AUTO FPS GOVERNOR</label>
+                                <label class="toggle-switch small">
+                                    <input type="checkbox" id="auto-fps-toggle" checked>
+                                    <span class="slider gold"></span>
+                                </label>
+                            </div>
+                            <div class="separator-line"></div>
+                
+                            <div class="control-row">
+                                <label>NODE SIZE</label>
+                                <input type="range" id="node-size" min="0.01" max="1.0" step="0.01" value="0.15">
+                            </div>
+                            <div class="control-row">
+                                <label>PULSE AMOUNT</label>
+                                <input type="range" id="lfo-amt" min="0" max="1" step="0.1" value="0.5">
+                            </div>
+                            <div class="control-row">
+                                <label>XOR VISIBLE</label>
+                                <input type="range" id="xor-density" min="0" max="1" step="0.05" value="0.0">
+                            </div>
+                
+                            <div class="separator-line"></div>
+                
+                            <div class="control-row">
+                                <label>LINE DISTANCE</label>
+                                <input type="range" id="line-dist" min="0" max="200" step="1" value="200">
+                            </div>
+                            <div class="control-row">
+                                <label>LINE DENSITY</label>
+                                <input type="range" id="line-density" min="0" max="1" step="0.05" value="1.0">
+                            </div>
+                            <div class="control-row">
+                                <label>NODE DENSITY</label>
+                                <input type="range" id="node-density" min="0" max="1" step="0.05" value="1.0">
+                            </div>
+                            <div class="control-row">
+                                <label>THINNING</label>
+                                <input type="range" id="thinning" min="0" max="1" step="0.05" value="0.0">
+                            </div>
+                            <div class="separator-line"></div>
+                            <button id="btn-reset-advanced" class="cyber-btn small" style="width:100%; margin-top:8px;">RESET
+                                DEFAULTS</button>
+                        </div>
+                
+                    </div>
+                </div>
+
                 <!-- Shared Controls (Bottom) -->
                 <div class="glass-panel controls-panel">
                     <div class="controls">
                         <button id="btn-spin" class="cyber-btn active">AUTO-ROTATE</button>
+                        <button id="btn-pan" class="cyber-btn">AUTO-PAN</button>
                         <button id="btn-reset" class="cyber-btn">RESET VIEW</button>
                     </div>
                 </div>
@@ -173,6 +265,10 @@
                     <div class="spinner"></div>
                     <span class="loading-text">DECODING NEURAL LATTICE...</span>
                 </div>
+                <!-- FPS Counter -->
+                <div id="fps-counter"
+                    style="position: absolute; top: 10px; right: 10px; color: var(--color-primary); font-family: 'jetBrains Mono', monospace; font-size: 0.8rem; pointer-events: none; opacity: 0.7;">
+                    FPS: --</div>
             </aside>
 
             <!-- Footer: Timeline / scrubber could go here later -->

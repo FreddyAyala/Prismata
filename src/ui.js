@@ -30,12 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const models = await initGallery(getActiveSlot, viewers);
 
   if (models) {
-      // 4. Setup Controls
-      setupControls({
-        viewers,
-        activeSlotGetter: getActiveSlot,
-        setActiveSlotCallback: setActiveSlot
-      });
+
 
       // 5. Setup Modes
       const modeManager = new ModeManager({
@@ -48,6 +43,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 6. Init Timeline
       timelineManager.viewer = viewers.main;
       timelineManager.setup(models, () => modeManager.enterWorkbenchMode());
+
+    // 7. Init Performance Governor
+    const { PerformanceGovernor } = await import('./ui/PerformanceGovernor.js');
+    const governor = new PerformanceGovernor(viewers);
+    governor.start();
+
+    // 4. Setup Controls (Now with Governor)
+    setupControls({
+      viewers,
+      activeSlotGetter: getActiveSlot,
+      setActiveSlotCallback: setActiveSlot,
+      governor // Pass instance
+    });
+
 
       // Init Archive
       archiveManager.init('archive-root');
