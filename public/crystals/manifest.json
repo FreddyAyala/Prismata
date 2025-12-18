@@ -308,6 +308,22 @@
     ]
   },
   {
+    "id": "gan",
+    "name": "DCGAN",
+    "year": 2015,
+    "era": "The Creative Duel",
+    "type": "Generative",
+    "desc": "Generator vs Discriminator. The adversarial game that taught AI to dream.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Adversaries",
+        "file": "crystals/gan/structure.ply",
+        "desc": "Chaos (Generator) meets Order (Discriminator)."
+      }
+    ]
+  },
+  {
     "id": "lenet",
     "name": "LeNet-5",
     "year": 1998,
@@ -320,6 +336,54 @@
         "name": "The First Spark",
         "file": "crystals/lenet/structure.ply",
         "desc": "Hand-crafted layers. Simple, effective, beautiful."
+      }
+    ]
+  },
+  {
+    "id": "lstm",
+    "name": "LSTM",
+    "year": 1997,
+    "era": "The Memory Era",
+    "type": "RNN",
+    "desc": "Long Short-Term Memory. The first time neural networks could remember the past.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Memory Cell",
+        "file": "crystals/lstm/structure.ply",
+        "desc": "Feedback loops and gating mechanisms spiraling around a memory core."
+      }
+    ]
+  },
+  {
+    "id": "mlp",
+    "name": "Multi-Layer Perceptron",
+    "year": 1986,
+    "era": "The Awakening",
+    "type": "Dense",
+    "desc": "The breakthrough of Backpropagation. Conquering non-linearity (XOR) with hidden layers.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Hidden Layer",
+        "file": "crystals/mlp/structure.ply",
+        "desc": "Input, Hidden, Output. The fundamental triad."
+      }
+    ]
+  },
+  {
+    "id": "ai_winter",
+    "name": "The AI Winter",
+    "year": 1974,
+    "era": "The Void",
+    "type": "Void",
+    "desc": "A period of reduced funding and interest. Research froze, but the dream survived in the cold.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "Shattered Dreams",
+        "file": "crystals/ai_winter/structure.ply",
+        "desc": "Sparse, disconnected ideas floating in the void."
       }
     ]
   },

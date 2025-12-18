@@ -22,9 +22,11 @@ When you look at a Prismata crystal, you are not looking at random art. You are 
 *   **What it means:** You are seeing the **trajectory of a thought**. The path the data takes as it flows through the neural pathways, transforming from raw text into abstract understanding.
 
 ### ⚠️ Data Fidelity Disclaimer
-While Prismata strives for mathematical accuracy, some ultra-large scale or restricted models in this gallery (specifically **DeepSeek-V3** and **AlexNet**) are **Architectural Simulations**.
-*   **Real Weights:** Models like GPT-2, BERT, and ResNet are generated from the actual pre-trained Hugging Face weights.
-*   **Simulations:** Models like DeepSeek (671B params) use "Mock" weights to verify the *topology* (e.g., Sparsity/MoE structure) without requiring impractical downloads. These visualize the *concept* of the architecture rather than its trained personality.
+While Prismata strives for mathematical accuracy, some models in this gallery are **Architectural Simulations** designed for educational clarity.
+
+*   **Real Weights:** Models like **GPT-2, BERT, ResNet, and SmolLM** are generated from actual pre-trained Hugging Face weights.
+*   **Simulations:** Models like **DeepSeek-V3, GPT-4, and Gemini 3.0** use mock weights to verify *topology* (e.g., Sparsity/MoE structure) without requiring impractical downloads.
+*   **Historical/Conceptual:** Models like the **Perceptron, MLP, LSTM, and GAN** are synthesized to visualize the *concept* of their architecture. Raw weights from these eras often lack the clear visual structure needed to tell their story effectively.
 
 ---
 
@@ -32,12 +34,24 @@ While Prismata strives for mathematical accuracy, some ultra-large scale or rest
 
 Prismata acts as a timeline, showcasing the architectural evolution of AI:
 
-*   **1998 | LeNet-5 ("The First Spark")**: The tiny, hand-crafted ancestor of modern Deep Learning.
-*   **2015 | ResNet ("The Deep Pyramid")**: The CNN that solved depth, allowing networks to grow from 5 layers to 50+.
-*   **2017 | Transformer Era (BERT, GPT-2)**: The rise of Attention. Structures become complex helices (GPT) and pillars (BERT).
-*   **2024 | The Reasoning Era (Qwen, DeepSeek)**: Massive, dense structures capable of complex logic.
-*   **2024 | The Reasoning Era (Qwen, DeepSeek)**: Massive, dense structures capable of complex logic.
-*   **2025 | Edge AI (SmolLM)**: The return to efficiency—compact, highly optimized "pocket brains".
+*   **1958 | The Perceptron**: The single linear plane that started it all.
+*   **1974 | The AI Winter**: A void of shattered dreams and frozen funding.
+*   **1986 | Multi-Layer Perceptron**: The awakening. Backpropagation solves the XOR problem.
+*   **1997 | LSTM**: Memory. The first time neural networks could remember sequence and time.
+*   **1998 | LeNet-5**: The ancestor of Convolutional Neural Networks.
+*   **2012 | AlexNet**: The spark that ignited the Deep Learning revolution.
+*   **2013 | Word2Vec**: Teach machines the meaning of words.
+*   **2014 | VGG-16 & Inception**: The race for depth and complexity.
+*   **2014 | GAN (Generative Adversarial Networks)**: The creative duel. Two networks fighting to create reality.
+*   **2015 | ResNet-50**: Solving the vanishing gradient problem.
+*   **2018 | BERT & MobileNet**: Transformers for language and efficient vision.
+*   **2019 | GPT-2**: The dawn of generative language models.
+*   **2020 | T5**: The Universal Transformer (Text-to-Text).
+*   **2021 | CLIP**: Bridging Vision and Language.
+*   **2023 | GPT-4 & TinyLlama**: Massive scale meets compact efficiency.
+*   **2024 | Qwen 2.5 & Gemma 2**: The Reasoning Era begins.
+*   **2025 | DeepSeek-V3 & SmolLM2**: Sparse Mixtures of Experts and Edge AI.
+*   **2026 | Gemini 3.0**: The Omni Era – seeing, hearing, and speaking as one.
 
 ## 🚀 Features
 
@@ -56,6 +70,12 @@ A first-person 3D experience inspired by *Tron*.
 *   **Walk the Hall:** physically walk down the timeline of AI History.
 *   **Scale:** Experience the sheer scale of modern models.
 *   **Controls:** WASD to move, Mouse to look. ESC to exit.
+
+### 4. Operation Firewall (Defense Mode) 🛡️
+A hidden survival mode where you protect the crystals from corruption.
+*   **The Mission:** Defend the Gallery from waves of "Glitch Entities" trying to destabilize the neural topology.
+*   **Arsenal:** Procedural weaponry (Blaster, Shotgun, Plasma) generated from the model's own parameters.
+*   **Access:** Press **'P'** inside the Archive, or find the **Glitch Platform** (Coordinates: 10, 0, 20).
 
 
 ---
@@ -99,6 +119,14 @@ python scripts/prismata_make.py gpt2 --mode layers
 python scripts/prismata_make.py gpt2 --mode activation --text "Artificial General Intelligence is coming."
 ```
 The script outputs a `.ply` file (Point Cloud) which you can view in Prismata.
+
+---
+
+## 📜 Changelog
+
+*   **v1.2.0**: Added **Operation Firewall (Defense Mode)**.
+*   **v1.1.0**: Timeline Expansion (Gemini 3.0, DeepSeek-V3, Qwen 2.5, SmolLM, etc.).
+*   **v1.0.0**: Initial Release.
 
 ---
 
