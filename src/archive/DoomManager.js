@@ -189,9 +189,45 @@ export class DoomManager {
         // Tools
         this.raycaster = new THREE.Raycaster();
         this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        this.noiseBuffer = this.createNoiseBuffer(); // NEW: Pre-generated noise
+    }
 
-        // UI
-        this.hud = null;
+    createNoiseBuffer() {
+        if (!this.audioCtx) return null;
+        const bufferSize = this.audioCtx.sampleRate * 2.0; // 2 seconds of noise
+        const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        return buffer;
+    }
+
+    playNoise(duration, vol = 1.0, rate = 1.0, highpass = 0) {
+        if (!this.audioCtx || !this.noiseBuffer) return;
+        const src = this.audioCtx.createBufferSource();
+        src.buffer = this.noiseBuffer;
+        src.playbackRate.value = rate;
+
+        const gain = this.audioCtx.createGain();
+        gain.gain.setValueAtTime(vol, this.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
+
+        // Filter
+        let dest = gain;
+        if (highpass > 0) {
+            const filter = this.audioCtx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = highpass;
+            src.connect(filter);
+            filter.connect(gain);
+        } else {
+            src.connect(gain);
+        }
+
+        gain.connect(this.audioCtx.destination);
+        src.start();
+        src.stop(this.audioCtx.currentTime + duration);
     }
 
     activate() {
@@ -798,7 +834,9 @@ export class DoomManager {
 
                     if (p.isRocket) {
                         this.createExplosion(p.mesh.position, 0xff4400, true);
-                        this.playSound(200, 'square', 0.5, 0.5);
+                        // ROCKET IMPACT: Boom!
+                        this.playSound(50, 'square', 0.5, 0.8);
+                        this.playNoise(0.5, 1.0, 0.4); // Deep rumble noise
                     }
                     this.projectiles.splice(i, 1);
                 }
@@ -887,30 +925,44 @@ export class DoomManager {
     }
 
     playWeaponSound(type) {
+        if (!this.audioCtx) return;
+
         if (type === 'BLASTER') {
             this.playSound(800, 'sine', 0.1, 0.3);
             this.playSound(400, 'sawtooth', 0.05, 0.1);
         } else if (type === 'SHOTGUN') {
-            // Layered blast
-            this.playSound(100, 'sawtooth', 0.3, 0.5);
-            this.playSound(80, 'square', 0.2, 0.4, 10);
-            this.playSound(60, 'sawtooth', 0.4, 0.3, -10);
-            // Mechanical click
-            setTimeout(() => this.playSound(400, 'sine', 0.05, 0.1), 150);
+            // DOOM SHOTGUN: Boom + Snap + Rack
+            // 1. The Blast (Low Pulse)
+            this.playSound(60, 'square', 0.3, 0.6);
+            this.playSound(100, 'sawtooth', 0.2, 0.4, -1200);
+
+            // 2. The Snap (High Noise)
+            this.playNoise(0.3, 0.8, 1.5, 500); // Fast, high-pitch noise
+
+            // 3. The Rack (Mechanical Click) - Delayed
+            setTimeout(() => {
+                this.playNoise(0.1, 0.4, 2.0, 1000); // Click 1
+                setTimeout(() => this.playNoise(0.15, 0.3, 1.2, 200), 150); // Clunk 2
+            }, 500);
         } else if (type === 'LAUNCHER') {
-            // Deep thump
-            this.playSound(40, 'triangle', 0.6, 0.6);
-            this.playSound(60, 'sine', 0.4, 0.4);
-            // Low rumble boost
-            const low = this.audioCtx.createOscillator();
-            const lowG = this.audioCtx.createGain();
-            low.frequency.value = 30;
-            lowG.gain.value = 0.5;
-            lowG.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.5);
-            low.connect(lowG); lowG.connect(this.audioCtx.destination);
-            low.start(); low.stop(this.audioCtx.currentTime + 0.5);
+            // ROCKET LAUNCH: Whoosh + Thump
+            this.playSound(50, 'triangle', 0.5, 0.6); // Thump
+            this.playNoise(0.6, 0.5, 0.5, 200); // Whoosh drag
+
+            // Sliding whistle
+            const osc = this.audioCtx.createOscillator();
+            const g = this.audioCtx.createGain();
+            osc.frequency.setValueAtTime(400, this.audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, this.audioCtx.currentTime + 0.5);
+            g.gain.setValueAtTime(0.2, this.audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0, this.audioCtx.currentTime + 0.5);
+            osc.connect(g);
+            g.connect(this.audioCtx.destination);
+            osc.start();
+            osc.stop(this.audioCtx.currentTime + 0.5);
         }
     }
+
 
     playMusic() {
         if (!this.audioCtx) return;
