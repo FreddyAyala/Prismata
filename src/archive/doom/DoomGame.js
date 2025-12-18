@@ -40,7 +40,7 @@ export class DoomGame {
     this.raycaster = new THREE.Raycaster();
   }
 
-  activate(exhibits = null) {
+  activate(exhibits = null, skipIntro = false) {
     if (this.active) return;
     this.active = true;
     console.log("🛡️ DOOM GAME ACTIVATED");
@@ -52,7 +52,7 @@ export class DoomGame {
     // Must reset ammo to maxAmmo because the global WEAPONS array might be dirty/tainted with 0 ammo.
     this.weapons = WEAPONS.map(w => ({
       ...w,
-      ammo: w.maxAmmo
+      ammo: w.name === 'BLASTER' ? -1 : 0 // Start with 0 ammo for everything except Blaster
     }));
     this.currentWeaponIdx = 0;
     this.playerHealth = 100;
@@ -66,6 +66,10 @@ export class DoomGame {
 
     this.keyParams = { handler: (e) => this.handleKeys(e) };
     window.addEventListener('keydown', this.keyParams.handler);
+
+    this.lockParams = { handler: () => this.handlePointerLockChange() };
+    document.addEventListener('pointerlockchange', this.lockParams.handler);
+    document.addEventListener('mozpointerlockchange', this.lockParams.handler); // Firefox support
 
     if (!skipIntro) {
       this.showInstructions();
@@ -88,6 +92,11 @@ export class DoomGame {
     if (this.weaponMesh) { this.camera.remove(this.weaponMesh); this.weaponMesh = null; }
     if (this.clickParams) { document.removeEventListener('mousedown', this.clickParams.handler); this.clickParams = null; }
     if (this.keyParams) { window.removeEventListener('keydown', this.keyParams.handler); this.keyParams = null; }
+    if (this.lockParams) {
+      document.removeEventListener('pointerlockchange', this.lockParams.handler);
+      document.removeEventListener('mozpointerlockchange', this.lockParams.handler);
+      this.lockParams = null;
+    }
 
     if (this.spawnInterval) clearInterval(this.spawnInterval);
     if (this.pickupInterval) clearInterval(this.pickupInterval);
@@ -208,8 +217,9 @@ export class DoomGame {
     const roll = Math.random();
     // Wave 1+: Scouts
     if (this.wave >= 1 && roll < 0.2) type = 'scout';
-    // Wave 2+: Tanks
+    // Wave 2+: Tanks, Imps
     if (this.wave >= 2 && roll < 0.15) type = 'tank';
+    if (this.wave >= 2 && roll < 0.15 && roll >= 0.05) type = 'imp'; // Fireballer
     // Wave 3+: Berzerkers/Wraiths
     if (this.wave >= 3 && roll < 0.15) type = 'berzerker';
     if (this.wave >= 3 && roll < 0.1) type = 'wraith';
@@ -222,7 +232,9 @@ export class DoomGame {
     const spawnX = this.camera.position.x + Math.cos(angle) * radius;
     const spawnZ = this.camera.position.z + Math.sin(angle) * radius;
 
-    const enemy = new GlitchEnemy(this.scene, new THREE.Vector3(spawnX, 4, spawnZ), target, type);
+    const onShoot = (pos, dir) => this.fireEnemyProjectile(pos, dir);
+
+    const enemy = new GlitchEnemy(this.scene, new THREE.Vector3(spawnX, 4, spawnZ), target, type, onShoot);
 
     // Scaling Difficulty
     const multiplier = 1 + (this.wave - 1) * 0.15;
@@ -231,6 +243,25 @@ export class DoomGame {
     this.enemies.push(enemy);
     if (this.wave !== 5) this.enemiesToSpawn--;
     this.updateHUD();
+  }
+
+  fireEnemyProjectile(start, dir) {
+    const geo = new THREE.DodecahedronGeometry(0.5);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff4400, wireframe: false });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(start);
+    this.scene.add(mesh);
+
+    this.projectiles.push({
+      mesh,
+      velocity: dir.multiplyScalar(30), // Slower than player rockets
+      life: 5.0,
+      damage: 15,
+      isEnemy: true
+    });
+
+    // SFX
+    if (this.audio) this.audio.playSound(200, 'sawtooth', 0.2, 0.5);
   }
 
   updateEnemies(delta) {
@@ -309,17 +340,74 @@ export class DoomGame {
     else if (r2 > 0.85) { type = 'ammo_plasma'; color = 0x00ffff; } // 10% Plasma
     else if (r2 > 0.70) { type = 'ammo_launcher'; color = 0xff00ff; } // 15% Launcher
 
-    const geo = new THREE.BoxGeometry(2.0, 2.0, 2.0);
-    const mat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.9 });
-    const mesh = new THREE.Mesh(geo, mat);
+    else if (r2 > 0.85) { type = 'ammo_plasma'; color = 0x00ffff; } // 10% Plasma
+    else if (r2 > 0.70) { type = 'ammo_launcher'; color = 0xff00ff; } // 15% Launcher
+
+    const mesh = this.buildPickupVisual(type, color);
     mesh.position.copy(pos);
-    mesh.position.y = 2.0;
+    mesh.position.y = 2.0; // Hover
     this.scene.add(mesh);
-
-    const core = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: color }));
-    mesh.add(core);
-
     this.pickups.push({ mesh, type: type });
+  }
+
+  buildPickupVisual(type, color) {
+    const group = new THREE.Group();
+    const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.8 });
+    const solidMat = new THREE.MeshBasicMaterial({ color: color });
+
+    if (type === 'health') {
+      // Red Cross
+      const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.0, 0.6), solidMat);
+      const hBar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.6, 0.6), solidMat);
+      group.add(vBar, hBar);
+      // Add glow box/wireframe outer
+      const outer = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 2.5), new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, transparent: true, opacity: 0.3 }));
+      group.add(outer);
+    }
+    else if (type === 'ammo_shotgun') {
+      // Shell Box
+      const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.0, 1.0), wireMat);
+      group.add(box);
+      // Shells inside
+      const shell = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8), solidMat);
+      shell.rotation.x = Math.PI / 2;
+      shell.position.set(-0.3, 0, 0);
+      group.add(shell);
+      const s2 = shell.clone(); s2.position.set(0, 0, 0); group.add(s2);
+      const s3 = shell.clone(); s3.position.set(0.3, 0, 0); group.add(s3);
+    }
+    else if (type === 'ammo_launcher') {
+      // Rocket
+      const rocket = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), solidMat);
+      body.rotation.z = Math.PI / 2;
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.5), solidMat);
+      nose.rotation.z = -Math.PI / 2;
+      nose.position.x = 1.0;
+      rocket.add(body, nose);
+      group.add(rocket);
+    }
+    else if (type === 'ammo_plasma') {
+      // Battery Cell
+      const cell = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.5, 8), wireMat);
+      const core = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.3, 8), solidMat);
+      group.add(cell, core);
+    }
+    else if (type === 'ammo_bfg') {
+      // Glowing Orb
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), wireMat);
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), solidMat);
+      group.add(orb, core);
+    }
+    else {
+      // Fallback Box
+      const box = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), wireMat);
+      group.add(box);
+    }
+
+    // Animation Metadata
+    group.userData.rotateSpeed = 2.0;
+    return group;
   }
 
   updatePickups(delta) {
@@ -503,17 +591,40 @@ export class DoomGame {
 
       // Collision
       let hit = false;
-      // Check enemies
-      for (const e of this.enemies) {
-        if (p.mesh.position.distanceTo(e.mesh.position) < (e.scale / 2 + 1)) {
+
+      if (p.isEnemy) {
+        // 1. Check Player
+        if (p.mesh.position.distanceTo(this.camera.position) < 3.0) {
           hit = true;
-          e.takeDamage(p.damage);
-          break;
+          this.takePlayerDamage(p.damage);
+          this.createExplosion(this.camera.position, 0xff0000, true);
         }
-      }
-      if (this.boss && p.mesh.position.distanceTo(this.boss.mesh.position) < 10.0) {
-        hit = true;
-        this.boss.takeDamage(p.damage);
+        // 2. Check Crystal/Models
+        if (!hit) {
+          for (const c of this.crystals) {
+            if (c.mesh && c.mesh.visible && c.mesh.userData.health > 0) {
+              if (p.mesh.position.distanceTo(c.mesh.position) < 8.0) {
+                hit = true;
+                c.mesh.userData.health -= p.damage;
+                this.createExplosion(c.mesh.position, 0x00ffff, true);
+                break;
+              }
+            }
+          }
+        }
+      } else {
+        // Player Projectiles vs Enemies
+        for (const e of this.enemies) {
+          if (p.mesh.position.distanceTo(e.mesh.position) < (e.scale / 2 + 1)) {
+            hit = true;
+            e.takeDamage(p.damage);
+            break;
+          }
+        }
+        if (this.boss && p.mesh.position.distanceTo(this.boss.mesh.position) < 10.0) {
+          hit = true;
+          this.boss.takeDamage(p.damage);
+        }
       }
 
       if (hit || p.life <= 0) {
@@ -657,18 +768,12 @@ export class DoomGame {
 
   resetGame() {
     this.deactivate();
-    this.activate(true);
+    this.activate(this.exhibitsSource, true);
     this.score = 0;
     this.wave = 1;
     this.playerHealth = 100;
-    this.weapons.forEach(w => {
-      if (w.name !== 'BLASTER') w.ammo = w.maxAmmo === -1 ? -1 : 0;
-    });
-    // We need to re-init weapons logic specifically? 
-    // Weapons array is global, so we reset ammo manually.
-    const defaultWeapons = WEAPONS; // Revert
-    // Actually modifying the global import modifies it forever in session, so we should reset manually.
-    // For now, reset ammo is enough.
+
+    // Ammo reset is handled in activate() now (Full Ammo)
 
     this.isGameOver = false;
     this.startWave();
@@ -796,6 +901,13 @@ export class DoomGame {
     }
   }
 
+  handlePointerLockChange() {
+    if (!document.pointerLockElement && this.active && !this.isGameOver) {
+      // If user manually exited pointer lock (ESC), deactivate game
+      this.deactivate();
+    }
+  }
+
   // Stub methods for missing pieces from original DoomManager (Visuals)
   createWeaponMesh() {
     if (this.weaponMesh) this.camera.remove(this.weaponMesh);
@@ -892,9 +1004,7 @@ export class DoomGame {
     const x = this.camera.position.x + Math.cos(angle) * radius;
     const z = this.camera.position.z + Math.sin(angle) * radius;
 
-    const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true, transparent: true, opacity: 0.9 });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = this.buildPickupVisual('health', 0x00ff00);
     mesh.position.set(x, 2.0, z);
     this.scene.add(mesh);
     this.pickups.push({ mesh, type: 'health' });
