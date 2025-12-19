@@ -241,6 +241,8 @@ class ArchiveManager {
                 if (this.doomManager) this.doomManager.activate();
             }
         });
+        if (this.keyHandler) window.removeEventListener('keydown', this.keyHandler);
+        if (this.keyHandler) window.removeEventListener('keydown', this.keyHandler);
     }
 
     animate() {
@@ -252,10 +254,9 @@ class ArchiveManager {
             this.player.update(delta);
             this.checkProximity();
 
-            // CHECK DOOM TRIGGER
-            // Platform at (10, 0, 20). Player radius ~3.
+            // Perform Doom Trigger Check
             const p = this.camera.position;
-            // Check distance
+            // Check distance to platform (10, 0, 20)
             if (Math.abs(p.x - 10) < 4 && Math.abs(p.z - 20) < 4) {
                 if (!this.doomManager.active) {
                     this.doomManager.activate(this.exhibits);

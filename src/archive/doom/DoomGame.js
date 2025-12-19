@@ -512,7 +512,7 @@ export class DoomGame {
     this.raycaster.setFromCamera(coords, this.camera);
 
     // Calculate a point far down the ray for the "miss" tracer
-    const maxDist = (weapon.name === 'SHOTGUN') ? 40.0 : 500.0; // Hard cap for shotgun
+    const maxDist = (weapon.name === 'SHOTGUN') ? 100.0 : 500.0; // Fixed Shotgun Range (Was 40)
     const rayTarget = new THREE.Vector3();
     this.raycaster.ray.at(maxDist, rayTarget);
 
@@ -698,7 +698,7 @@ export class DoomGame {
           this.systems.createExplosion(p.mesh.position, p.mesh.material.color, true, isBFG ? 3.0 : 1.5);
 
           // Sound
-          if (this.audio) this.audio.playSound(100, 'noise', 1.0, 0.5);
+          if (this.audio) this.audio.playNoise(0.5, 0.5, 0.5);
 
           const radius = isBFG ? 60.0 : 50.0; // MASSIVE Splash Radius
           const dmg = isBFG ? 500 : 150; // MASSIVE Damage

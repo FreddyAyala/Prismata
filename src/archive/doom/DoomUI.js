@@ -94,8 +94,13 @@ export class DoomUI {
 
                 <button id="doom-start-btn" style="padding: 20px 60px; font-size:28px; background:#ff0033; color:white; border:none; cursor:pointer; 
                             box-shadow: 0 0 20px #ff0033; font-family:'Orbitron', sans-serif; transition: transform 0.2s;">
-                    INITIATE SEQUENCE
+                    PRESS ENTER TO INITIATE SEQUENCE
                 </button>
+                <div style="margin-top:20px;">
+                    <button id="doom-cancel-btn" style="background:transparent; border:1px solid #666; color:#888; padding:10px 20px; font-family:'Orbitron', sans-serif; cursor:pointer;">
+                        I'M SCARED, CANCEL (ESC)
+                    </button>
+                </div>
         `;
         this.hud.appendChild(div);
 
@@ -115,6 +120,17 @@ export class DoomUI {
 
         const btn = document.getElementById('doom-start-btn');
         if (btn) btn.onclick = start;
+
+        const cancelBtn = document.getElementById('doom-cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.onclick = () => {
+                div.remove();
+                window.removeEventListener('keydown', keyH);
+                if (this.game) this.game.deactivate();
+            };
+            cancelBtn.onmouseover = () => { cancelBtn.style.color = '#fff'; cancelBtn.style.borderColor = '#fff'; };
+            cancelBtn.onmouseout = () => { cancelBtn.style.color = '#888'; cancelBtn.style.borderColor = '#666'; };
+        }
     }
 
     showWaveTitle(text) {
