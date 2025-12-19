@@ -130,31 +130,94 @@ body {
     color: var(--color-primary);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 900px) {
     .gallery-header {
-        padding: 0 10px;
+        padding: 0 8px;
+            height: 60px;
+            align-items: center;
     }
 
     .logo-text h1 {
-        font-size: 1.2rem;
-        letter-spacing: 2px;
+        font-size: 1rem;
+            letter-spacing: 1px;
         white-space: nowrap;
+        margin-left: 5px;
     }
 
     .status-indicator {
-        gap: 2px;
+        position: relative;
+            /* REQUIRED for dropdown anchoring */
+            gap: 0;
+        }
+        
+        /* Hide text labels on small screens, keep icons/dots */
+        .status-text {
+            display: none;
     }
 
     .status-indicator .minimal-btn {
-        padding: 4px;
-        font-size: 0.55rem;
-        margin-right: 5px;
+        padding: 2px 5px;
+            font-size: 0.5rem;
+            margin-right: 2px;
     }
 
     .icon-btn {
-        transform: scale(0.9);
-        margin-right: 5px;
-    }
+        transform: scale(0.8);
+            margin-right: 2px;
+        }
+        
+        .status-indicator .desktop-controls {
+            display: none !important;
+        }
+        
+        .mobile-settings-btn {
+            display: block !important;
+            cursor: pointer;
+        }
+        
+        .mobile-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #030507;
+            border: 1px solid var(--color-primary);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+        
+        .mobile-dropdown.hidden {
+            display: none !important;
+        }
+        }
+        
+        .dropdown-item {
+            background: transparent;
+            border: none;
+            color: var(--color-primary);
+            padding: 12px;
+            font-family: var(--font-header);
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-align: right;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .dropdown-item:active,
+        .dropdown-item:hover {
+            background: rgba(0, 243, 255, 0.1);
+        }
+        
+        /* Desktop Defaults */
+        .desktop-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+.mobile-settings-btn {
+    display: none;
 }
 .status-dot {
     width: 8px;
@@ -765,12 +828,12 @@ input:checked+.slider:before {
     /* Right Sidebar: Bottom Sheet */
     .artifact-details {
         position: fixed;
-        bottom: 30px;
-        /* Above footer */
+        bottom: 0;
         left: 0;
         right: 0;
         width: 100%;
-        height: 45vh;
+        height: 30vh;
+            /* Reduced from 45vh */
         z-index: 90;
         background: rgba(3, 5, 7, 0.95);
         border-top: 1px solid var(--color-primary);
@@ -779,6 +842,7 @@ input:checked+.slider:before {
         transform: translateY(0);
         transition: transform 0.3s ease;
         padding-bottom: 20px;
+        padding-top: 10px;
     }
 
     /* Override Desktop Hiding */
@@ -789,20 +853,20 @@ input:checked+.slider:before {
 
     /* Adjust Controls */
     .controls-panel {
-        bottom: 45vh;
-        /* Move up with panel */
+        bottom: 31vh;
+            /* Move up with panel + gap */
         right: 10px;
-        left: auto;
+        left: 10px;
+            /* Center looks better */
+            width: calc(100% - 20px);
         transform: translateY(0);
         transition: bottom 0.3s ease;
     }
 
-    .ui-layer.no-details~.controls-panel,
-    .controls-panel {
-        /* If details hidden, controls go down */
-    }
-
-                /* Logic: If .ui-layer has .no-details, we need to push controls down */
+                                                                                                                                                                                                                                                                /* Shift controls down if details are hidden (e.g. no selection) 
+                                                                                                                                                                                                                                                                   But in mobile, 'no-details' means hide bottom sheet, so controls can go to bottom?
+                                                                                                                                                                                                                                                                   Actually, let's just stick to the fixed position for now to be safe.
+                                                                                                                                                                                                                                                                */
                 }
         /* Color Legend */
 .color-legend {

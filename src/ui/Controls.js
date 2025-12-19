@@ -170,10 +170,45 @@ export function setupControls(context) {
         if (viewers.compare) viewers.compare.onResize();
       }, 300);
     });
+
+    // Mobile Default: Hide Info
+    if (window.innerWidth < 900) {
+      // Trigger it to hide
+      btnToggleInfo.click();
+    }
   }
 
   // About Modal
   setupAboutModal();
+
+
+  // Mobile Settings Menu
+  const btnMobileSettings = document.getElementById('btn-mobile-settings');
+  const mobileDropdown = document.getElementById('mobile-dropdown');
+
+  if (btnMobileSettings && mobileDropdown) {
+    btnMobileSettings.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mobileDropdown.classList.toggle('hidden');
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+      // Check if click is inside dropdown OR inside the toggle button
+      if (!mobileDropdown.contains(e.target) && !btnMobileSettings.contains(e.target)) {
+        mobileDropdown.classList.add('hidden');
+      }
+    });
+
+    // Wire up Dropdown Items
+    const btnMobAbout = document.getElementById('mob-btn-about');
+    const btnMobInfo = document.getElementById('mob-btn-info');
+    const btnMobEgg = document.getElementById('mob-btn-egg');
+
+    if (btnMobAbout) btnMobAbout.onclick = () => document.getElementById('btn-about').click();
+    if (btnMobInfo) btnMobInfo.onclick = () => document.getElementById('btn-toggle-info').click();
+    if (btnMobEgg) btnMobEgg.onclick = () => document.getElementById('btn-easter-egg').click();
+  }
 
   // Easter Egg
   const btnEgg = document.getElementById('btn-easter-egg');
