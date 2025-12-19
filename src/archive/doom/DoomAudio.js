@@ -1,6 +1,8 @@
 export class DoomAudio {
     constructor() {
         this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.audioCtx.createGain();
+        this.masterGain.connect(this.audioCtx.destination);
         this.noiseBuffer = this.createNoiseBuffer();
     }
 
@@ -160,9 +162,41 @@ export class DoomAudio {
         gain.gain.setValueAtTime(0.3, now);
         gain.gain.linearRampToValueAtTime(0, now + 0.4);
 
-        osc.connect(gain);
         gain.connect(this.audioCtx.destination);
         osc.start();
         osc.stop(now + 0.4);
+    }
+
+    playBossDeath() {
+        if (!this.audioCtx) return;
+        const t = this.audioCtx.currentTime;
+
+        // 1. Descending "Moan"
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, t);
+        osc.frequency.exponentialRampToValueAtTime(50, t + 2.0); // Slow pitch down
+
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.linearRampToValueAtTime(0, t + 2.0);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain); // Use masterGain if available, or destination? 
+        // DoomAudio constructor doesn't show masterGain in view 681... 
+        // It shows `gain.connect(this.audioCtx.destination)` in playAlert.
+        // I should stick to destination if masterGain is not consistent.
+        // Actually, let's use destination relative to context.
+        gain.connect(this.audioCtx.destination);
+
+        osc.start();
+        osc.stop(t + 2.0);
+
+        // 2. Glitchy Noise Bursts
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                this.playNoise(0.2, 0.4, 0.2); // Random scratches
+            }, i * 400);
+        }
     }
 }

@@ -197,29 +197,57 @@ export class DoomUI {
         }, 100);
     }
 
-    triggerWin(onRestart) {
-        const hud = document.getElementById('doom-hud');
-        if (!hud) return;
-        if (document.pointerLockElement) document.exitPointerLock();
 
-        const div = document.createElement('div');
-        div.style.cssText = `position: absolute; top:0; left:0; width:100%; height:100%; 
-                        background:rgba(0,50,0,0.8); z-index:5000; pointer-events:auto;
-                        display:flex; flex-direction:column; justify-content:center; align-items:center;`;
-        div.innerHTML = `
-                <h1 style="font-size: 80px; color: #00ff88; text-shadow: 0 0 20px #00ff88; font-family:'Orbitron', sans-serif;">SYSTEM SECURED</h1>
-                <div style="font-size:32px; color:white; margin-bottom:20px;">FIREWALL INTEGRITY: 100%</div>
-                <button id="doom-win-btn" style="padding: 15px 40px; font-size: 30px; margin-top: 30px;
-                            border: 2px solid #00ff88; background: #002200; color: white; cursor: pointer; font-family:'Orbitron', sans-serif;">
-                    RETURN TO ARCHIVE
-                </button>
-        `;
-        hud.appendChild(div);
+    triggerWin(score, onRestart) {
+        if (this.hud) {
+            this.hud.style.display = 'none';
+            if (this.hud.parentNode) this.hud.parentNode.removeChild(this.hud);
+        }
 
-        setTimeout(() => {
-            const btn = document.getElementById('doom-win-btn');
-            if (btn) btn.onclick = onRestart;
-        }, 100);
+        // Create Victory Screen
+        const winDiv = document.createElement('div');
+        winDiv.style.cssText = `
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: black; color: #00ff00; font-family: 'Courier New', Courier, monospace;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        z-index: 5000; text-align: center;
+    `;
+
+        // 1. Victory Image (User Provided)
+        const img = document.createElement('img');
+        img.src = '/aibubbleburst.jpg'; // Correct file extension
+        img.style.cssText = "width: 400px; max-width: 80%; margin-bottom: 20px; border: 4px solid #00ff00; image-rendering: pixelated; object-fit: contain;";
+        winDiv.appendChild(img);
+
+        // 2. Text
+        const title = document.createElement('h1');
+        title.textContent = "CONGRATULATIONS!";
+        title.style.cssText = "font-size: 64px; margin: 10px 0; text-shadow: 0 0 10px #00ff00;";
+        winDiv.appendChild(title);
+
+        const sub = document.createElement('h2');
+        sub.textContent = "THE AI BUBBLE HAS BURST";
+        sub.style.cssText = "font-size: 32px; margin: 10px 0; color: #ccffcc;";
+        winDiv.appendChild(sub);
+
+        const scoreText = document.createElement('h3');
+        const safeScore = typeof score === 'number' ? score : 0;
+        scoreText.textContent = `FINAL SCORE: ${safeScore}`;
+        scoreText.style.cssText = "font-size: 48px; margin: 20px 0; color: #ffff00;";
+        winDiv.appendChild(scoreText);
+
+        const restartText = document.createElement('p');
+        restartText.textContent = "PRESS ENTER TO RESTART OR ESC TO EXIT";
+        restartText.style.cssText = "font-size: 24px; margin-top: 40px; animation: blink 1s infinite;";
+        winDiv.appendChild(restartText);
+
+        // Blink Animation style
+        const style = document.createElement('style');
+        style.textContent = `@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }`;
+        document.head.appendChild(style);
+
+        document.body.appendChild(winDiv);
+        winDiv.id = 'doom-win-screen';
     }
 
     initModelHealthBars(exhibitsSource) {

@@ -82,6 +82,7 @@ export class DoomGame {
     this.currentWeaponIdx = 0;
     this.playerHealth = 100;
     this.isGameOver = false;
+    this.isVictory = false;
     this.score = 0;
     this.wave = 1;
     this.enemiesToSpawn = 0;
@@ -344,7 +345,7 @@ export class DoomGame {
       } else if (result === 'damage_crystal') {
         const target = e.target;
         if (target && target.userData.health !== undefined) {
-          target.userData.health -= e.damage * delta * 0.5; // Half damage to crystals
+          target.userData.health -= e.damage * delta * 3.0; // Increased damage to make it visible/threatening
 
           // Dynamic Warning & Sound
           if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 2.0)) {
@@ -378,6 +379,9 @@ export class DoomGame {
 
           if (target.userData.health <= 0) {
             target.visible = false; // Destroyed
+            this.score = Math.max(0, this.score - 500);
+            this.ui.showWarning(`DATA NODE LOST! -500 PTS`);
+            this.ui.updateHUD(); // Ensure score updates
           }
         }
         // Throttled Visuals: 5% chance per frame, small explosion
@@ -410,6 +414,7 @@ export class DoomGame {
       this.systems.createExplosion(this.boss.mesh.position, 0xffaa00, true, 5.0);
       this.score += 5000;
       this.boss = null;
+      if (this.audio) this.audio.playBossDeath();
       setTimeout(() => this.triggerWin(), 2000);
     }
   }
@@ -537,7 +542,9 @@ export class DoomGame {
           // Pass 'target' (the specific mesh hit) to takeDamage for Weak Point detection
           if (enemy.takeDamage(weapon.damage, target)) {
             this.score += 100;
-            if (enemy.isBoss) this.score += 5000;
+            if (enemy.isBoss) {
+              // Boss damage logic handled in updateBoss
+            }
             this.ui.updateHUD();
             this.systems.createExplosion(enemy.mesh.position, 0xff0000, true);
           }
@@ -786,7 +793,8 @@ export class DoomGame {
   }
 
   triggerWin() {
-    this.ui.triggerWin(() => this.resetGame());
+    this.isVictory = true;
+    this.ui.triggerWin(this.score, () => this.resetGame());
   }
 
   resetGame() {
@@ -797,6 +805,11 @@ export class DoomGame {
   }
 
   handleKeys(e) {
+    if (this.isVictory) {
+      if (e.key === 'Enter') this.resetGame();
+      if (e.key === 'Escape') this.deactivate();
+      return;
+    }
     if (e.key === 'r') this.resetGame();
     if (e.key === '0') {
       console.log("DEBUG: Jumping to Boss Wave & Refilling Ammo");
