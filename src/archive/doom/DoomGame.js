@@ -221,17 +221,18 @@ export class DoomGame {
 
   startBossWave() {
     this.waveInProgress = true;
-    this.ui.showWaveTitle("FINAL PROTOCOL: TITAN");
-    const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 10, -80));
-    const onShoot = (pos, dir) => this.fireEnemyProjectile(pos, dir);
+    this.wave = 5; // Force wave to 5 if debug started
+    this.ui.showWaveTitle("THE AI BUBBLE: POP IT TO SAVE AI");
+    const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 5, -60)); // Lower and closer (Was 10, -80)
+    const onShoot = (pos, dir, isBoss) => this.fireEnemyProjectile(pos, dir, isBoss);
     this.boss = new GlitchBoss(this.scene, spawnPos, this.camera, onShoot);
 
     const bossHudContainer = document.createElement('div');
     bossHudContainer.id = 'boss-health-container';
-    bossHudContainer.style.cssText = "position:absolute; top:20px; left:50%; transform:translateX(-50%); width:60%; height:30px; border:2px solid #ff0000; background: rgba(50,0,0,0.5);";
+    bossHudContainer.style.cssText = "position:absolute; top:20px; left:50%; transform:translateX(-50%); width:60%; height:30px; border:2px solid #00ffff; background: rgba(0,50,50,0.5);";
     bossHudContainer.innerHTML = `
-        <div id="boss-health-bar" style="width:100%; height:100%; background:#ff4400; transition:width 0.2s;"></div>
-        <div style="position:absolute; top:5px; left:50%; transform:translateX(-50%); font-size:16px; color:white; font-weight:bold;">TITAN: FINAL PROTOCOL</div>
+        <div id="boss-health-bar" style="width:100%; height:100%; background:#00ffff; transition:width 0.2s;"></div>
+        <div style="position:absolute; top:5px; left:50%; transform:translateX(-50%); font-size:16px; color:white; font-weight:bold; text-shadow: 0 0 5px #00ffff;">THE AI BUBBLE</div>
     `;
     if (this.ui.hud) this.ui.hud.appendChild(bossHudContainer);
 
@@ -239,7 +240,7 @@ export class DoomGame {
     const spawnRate = 3000;
     this.spawnInterval = setInterval(() => {
       if (!this.active || this.isGameOver) return;
-      if (this.boss && this.enemies.length < 5) {
+      if (this.boss && this.enemies.length < 8) { // Increased minion cap for boss (was 5)
         this.spawnEnemy();
       }
     }, spawnRate);
@@ -292,21 +293,38 @@ export class DoomGame {
     this.enemiesToSpawn--;
   }
 
-  fireEnemyProjectile(start, dir) {
-    const geo = new THREE.DodecahedronGeometry(0.5);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xff4400, wireframe: false });
+  fireEnemyProjectile(start, dir, isBoss = false) {
+    let geo, mat, speed, damage;
+
+    if (isBoss) {
+      // Virus Orb (Purple, Spiky)
+      geo = new THREE.IcosahedronGeometry(0.6, 1);
+      mat = new THREE.MeshBasicMaterial({ color: 0xaa00ff, wireframe: true });
+      speed = 40;
+      damage = 25;
+    } else {
+      // Standard Projectile
+      geo = new THREE.DodecahedronGeometry(0.5);
+      mat = new THREE.MeshBasicMaterial({ color: 0xff4400, wireframe: false });
+      speed = 30;
+      damage = 15;
+    }
+
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(start);
     this.scene.add(mesh);
 
     this.projectiles.push({
       mesh,
-      velocity: dir.multiplyScalar(30),
+      velocity: dir.multiplyScalar(speed),
       life: 5.0,
-      damage: 15,
-      isEnemy: true
+      damage: damage,
+      isEnemy: true,
+      isBossProjectile: isBoss
     });
-    if (this.audio) this.audio.playSound(200, 'sawtooth', 0.2, 0.5);
+
+    const pitch = isBoss ? 100 : 200; // Lower pitch for boss
+    if (this.audio) this.audio.playSound(pitch, 'sawtooth', 0.2, 0.5);
   }
 
   updateEnemies(delta) {
@@ -516,7 +534,8 @@ export class DoomGame {
 
         if (enemy) {
           this.systems.createExplosion(hitPoint, 0x00ff00, false);
-          if (enemy.takeDamage(weapon.damage)) {
+          // Pass 'target' (the specific mesh hit) to takeDamage for Weak Point detection
+          if (enemy.takeDamage(weapon.damage, target)) {
             this.score += 100;
             if (enemy.isBoss) this.score += 5000;
             this.ui.updateHUD();
@@ -779,6 +798,21 @@ export class DoomGame {
 
   handleKeys(e) {
     if (e.key === 'r') this.resetGame();
+    if (e.key === '0') {
+      console.log("DEBUG: Jumping to Boss Wave & Refilling Ammo");
+      // Refill Ammo
+      this.weapons.forEach(w => w.ammo = w.maxAmmo);
+      this.ui.updateHUD();
+
+      // Clear current wave intervals
+      if (this.spawnInterval) clearInterval(this.spawnInterval);
+      if (this.pickupInterval) clearInterval(this.pickupInterval);
+      // Clear existing enemies
+      this.enemies.forEach(en => this.scene.remove(en.mesh));
+      this.enemies = [];
+      this.startBossWave();
+      return;
+    }
     const idx = parseInt(e.key) - 1;
     if (idx >= 0 && idx < this.weapons.length) {
       this.currentWeaponIdx = idx;

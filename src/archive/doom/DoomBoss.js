@@ -10,8 +10,8 @@ export class GlitchBoss {
         this.isBoss = true;
 
         // Boss Stats
-        this.life = 2000;
-        this.maxLife = 2000;
+        this.life = 1500; // Reduced from 2000
+        this.maxLife = 1500;
         this.speed = 4;
         this.damage = 100;
         this.scale = 20.0;
@@ -49,12 +49,81 @@ export class GlitchBoss {
             this.chunks.push({ mesh: chunk, speed: Math.random() * 2 + 1, offset: Math.random() * 100 });
         }
 
+        this.createWeakPoints();
         this.mesh.scale.set(this.scale, this.scale, this.scale);
         this.scene.add(this.mesh);
+
+        // Start Weak Point Cycle
+        this.cycleTimer = 0;
+        this.cycleWeakPoint();
+    }
+
+    createWeakPoints() {
+        // Deprecated: Using existing chunks as weak points
+    }
+
+    cycleWeakPoint() {
+        // Reset all to Blue
+        this.chunks.forEach(c => c.mesh.material.color.setHex(0x0088ff));
+        this.activeWeakPoints = [];
+
+        // Pick 3 random
+        if (this.chunks.length > 0) {
+            const indices = new Set();
+            while (indices.size < 3 && indices.size < this.chunks.length) {
+                indices.add(Math.floor(Math.random() * this.chunks.length));
+            }
+
+            indices.forEach(idx => {
+                const chunk = this.chunks[idx];
+                chunk.mesh.material.color.setHex(0xffff00); // GOLD
+                this.activeWeakPoints.push(chunk);
+            });
+        }
+    }
+
+    spawnDollarSign(pos) {
+        if (!GlitchBoss.dollarMat) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#00ff00';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('$', 32, 32);
+            const tex = new THREE.CanvasTexture(canvas);
+            GlitchBoss.dollarMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+        }
+
+        const s = new THREE.Sprite(GlitchBoss.dollarMat);
+        const worldPos = new THREE.Vector3();
+        pos.getWorldPosition(worldPos);
+        s.position.copy(worldPos);
+        // Random spread
+        s.position.add(new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5));
+        s.scale.set(8, 8, 1); // MUCH BIGGER
+        this.scene.add(s);
+
+        // Simple animation handled by game or just fire and forget loop? 
+        // We don't have a central particle manager for these custom ones easily accessible here without passing 'game'
+        // Let's hack it: attach an update function to the sprite and let DoomGame clean it up? 
+        // No, let's just make them "Debris" in DoomSystems if possible.
+        // Actually, just pushing to this.chunks for now (abuse orbit) or better, let's not leak memory.
+        // We will just animate them here in update since we have this.active check.
+        if (!this.effects) this.effects = [];
+        this.effects.push({ mesh: s, life: 1.5, vel: new THREE.Vector3(0, 15, 0) });
     }
 
     update(delta, playerPos) {
         if (!this.active) return 'remove';
+
+        // Weak Point Cycling
+        this.cycleTimer += delta;
+        if (this.cycleTimer > 5.0) { // Extended to 5s
+            this.cycleTimer = 0;
+            this.cycleWeakPoint();
+        }
 
         // Visual Animation
         this.bubble.rotation.y += delta * 0.2;
@@ -66,41 +135,55 @@ export class GlitchBoss {
         this.chunks.forEach((c) => {
             c.mesh.rotation.x += delta * c.speed;
             c.mesh.rotation.y += delta * c.speed;
-            // Orbit calculation
             const time = Date.now() * 0.001 + c.offset;
             c.mesh.position.y += Math.sin(time) * 0.02;
         });
 
+        // Effects Update
+        if (this.effects) {
+            for (let i = this.effects.length - 1; i >= 0; i--) {
+                const e = this.effects[i];
+                e.mesh.position.add(e.vel.clone().multiplyScalar(delta));
+                e.life -= delta;
+                e.mesh.material.opacity = e.life;
+                if (e.life <= 0) {
+                    this.scene.remove(e.mesh);
+                    this.effects.splice(i, 1);
+                }
+            }
+        }
+
         // AI Logic
         const targetPos = playerPos; 
-        const distSq = this.mesh.position.distanceToSquared(targetPos); // FIXED: Defined distSq
+        const distSq = this.mesh.position.distanceToSquared(targetPos); 
 
-        // Move towards player
         const dir = new THREE.Vector3().subVectors(targetPos, this.mesh.position).normalize();
         this.mesh.position.add(dir.multiplyScalar(this.speed * delta));
-
-        // Face player
         this.mesh.lookAt(targetPos);
 
-        if (distSq < 100.0) { // Large Hitbox
+        if (distSq < 100.0) { 
              return 'damage_player_boss';
         }
 
-        // Projectile Attack
         this.shootTimer += delta;
-        if (this.shootTimer > 1.5) {
+        if (this.shootTimer > 2.0) { // Slower fire rate for big attack
             this.shootTimer = 0;
+            console.log("DEBUG: Boss Casting Virus Fan");
             if (this.onShoot) {
                 const start = this.mesh.position.clone().add(new THREE.Vector3(0, 5, 0));
-                const dir = new THREE.Vector3().subVectors(targetPos, start).normalize();
-                // Burst attack
-                for (let i = 0; i < 5; i++) { // Increased burst count
-                    setTimeout(() => {
-                        if (this.active) {
-                            const variation = new THREE.Vector3((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3);
-                            this.onShoot(start, dir.clone().add(variation).normalize());
-                        }
-                    }, i * 100);
+                const baseDir = new THREE.Vector3().subVectors(targetPos, start).normalize();
+
+                // Fan Attack: 5 Projectiles in a horizontal spread
+                const spreadAngle = 0.2; // roughly 12 degrees
+                for (let i = -2; i <= 2; i++) {
+                    const dir = baseDir.clone();
+                    // Rotate around Y axis (approximate)
+                    dir.x += Math.cos(Date.now() * 0.001) * 0.05; // Slight wobble
+                    dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), i * spreadAngle);
+                    dir.normalize();
+
+                    // Pass 'true' for isBoss
+                    this.onShoot(start, dir, true);
                 }
             }
         }
@@ -108,18 +191,42 @@ export class GlitchBoss {
         return 'move';
     }
 
-    takeDamage(amount) {
-        this.life -= amount;
+    takeDamage(amount, hitObject = null) {
+        let actualDamage = amount;
+        let isCrit = false;
+
+        // Weak Point Hit
+        // Check if hitObject matches any active activeWeakPoint mesh
+        if (this.activeWeakPoints && hitObject) {
+            const hitWeak = this.activeWeakPoints.find(wp => wp.mesh === hitObject);
+            if (hitWeak) {
+                actualDamage *= 5; // 5x Damage (BUFFED)
+                isCrit = true;
+                console.log("DEBUG: CRITICAL HIT! 5x");
+            }
+        }
+
+        this.life -= actualDamage;
         
         // Flash
-        this.core.material.color.setHex(0xffffff);
+        this.core.material.color.setHex(isCrit ? 0xffff00 : 0xffffff);
+        this.bubble.material.opacity = 0.8;
         setTimeout(() => { 
-            if(this.active) this.core.material.color.setHex(0xff0000); 
+            if (this.active) {
+                this.core.material.color.setHex(0xffffff); // Core white
+                this.bubble.material.opacity = 0.3;
+            }
         }, 50);
+
+        // Spawn Dollars
+        const particleCount = isCrit ? 20 : 5;
+        for (let i = 0; i < particleCount; i++) this.spawnDollarSign(hitObject || this.core);
 
         if (this.life <= 0) {
             this.active = false;
             this.scene.remove(this.mesh);
+            // Clean effects
+            if (this.effects) this.effects.forEach(e => this.scene.remove(e.mesh));
             return true;
         }
         return false;
