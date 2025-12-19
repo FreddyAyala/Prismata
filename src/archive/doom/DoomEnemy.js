@@ -123,10 +123,16 @@ export class GlitchEnemy {
     let targetPos = null;
 
     // Default: Target the assigned crystal/model if it exists (removed .visible check)
-    if (this.target && this.target.userData.health > 0) {
+    // Default: Target the assigned crystal/model if it exists and is alive
+    const isTargetAlive = this.target && this.target.userData && (this.target.userData.health > 0);
+
+    if (isTargetAlive) {
       targetPos = this.target.position;
-    } else if (this.role === 'destroyer' && this.onFindTarget) {
-      // Dynamic Retargeting: Current target dead? Find a new one instantly.
+    }
+
+    // RETARGETING: If target dead OR if Destroyer is targeting Player (Fallback)
+    // We want Destroyers to switch back to crystals ASAP if they get distracted
+    if ((!isTargetAlive || (this.role === 'destroyer' && this.target === playerPos)) && this.onFindTarget) {
       const newTarget = this.onFindTarget(this.mesh.position);
       if (newTarget) {
         this.target = newTarget;

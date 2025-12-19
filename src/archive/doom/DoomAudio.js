@@ -121,7 +121,7 @@ export class DoomAudio {
         } else if (type === 'PLASMA') {
             this.playSound(1200, 'sawtooth', 0.1, 0.15);
             this.playSound(2000, 'square', 0.05, 0.1);
-        } else if (type === 'BFG 9000') {
+        } else if (type === 'BIG FREAKING GEMINI') {
             this.playSound(100, 'sawtooth', 2.0, 0.8);
             this.playNoise(2.0, 0.5, 0.2, 50);
             const osc = this.audioCtx.createOscillator();
@@ -235,11 +235,26 @@ export class DoomAudio {
                 // Snare punch
                 if (beat % 4 === 2) this.playNoise(0.1, 0.5, 2.0, 600);
             } 
-            // Phase 3: Boss
+                // Phase 3: Boss (Industrial Chaos)
             else if (this.musicPhase === 3) {
                 const note = bossRiff[beat % bossRiff.length];
+
+                // Layer 1: Heavy Sawtooth
                 this.playSimpleGuitar(note, 0.1);
-                if (beat % 2 === 1) this.playNoise(0.1, 0.5, 2.5, 500); 
+
+                // Layer 2: Sub-Bass (Rumble)
+                if (beat % 2 === 0) this.playSound(note * 0.5, 'sine', 0.2, 0.8);
+
+                // Layer 3: Chaos Arp (High Tension)
+                if (beat % 4 === 0) {
+                    const arp = [523.25, 622.25, 698.46, 783.99, 932.33]; // C5 Pentatonic Diminished-ish
+                    const aNote = arp[beat % arp.length];
+                    this.playSound(aNote, 'sawtooth', 0.05, 0.15, Math.random() * 100);
+                }
+
+                // Heavy Industrial Drums
+                if (beat % 2 === 0) this.playNoise(0.1, 0.8, 1.0); // Kick
+                if (beat % 2 === 1) this.playNoise(0.1, 0.6, 2.5, 800); // Snare/Clang
             }
 
             beat++;
@@ -322,5 +337,59 @@ export class DoomAudio {
 
         osc.start();
         osc.stop(t + 0.3);
+    }
+
+    playPickup() {
+        if (!this.audioCtx) return;
+        const t = this.audioCtx.currentTime;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+
+        // High Pitch Chime (Coin/Powerup style)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, t);
+        osc.frequency.linearRampToValueAtTime(1800, t + 0.1); // Quick Zip Up
+
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.2);
+
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start();
+        osc.stop(t + 0.2);
+    }
+    playVictorySong() {
+        if (!this.audioCtx) return;
+        // Stops background music if running
+        // Note: Music loop is handled in DoomGame, but we can override here if needed or just play on top.
+        // Triumphant Fanfare (C Major)
+        const C4 = 261.63;
+        const E4 = 329.63;
+        const G4 = 392.00;
+        const C5 = 523.25;
+
+        const melody = [
+            { f: C4, d: 0.15, t: 0 },
+            { f: E4, d: 0.15, t: 0.15 },
+            { f: G4, d: 0.15, t: 0.30 },
+            { f: C5, d: 0.4, t: 0.45 },
+            { f: G4, d: 0.15, t: 0.85 },
+            { f: C5, d: 0.8, t: 1.0 }
+        ];
+
+        melody.forEach(note => {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.type = 'square'; // 8-bit NES style
+            osc.frequency.setValueAtTime(note.f, this.audioCtx.currentTime + note.t);
+
+            gain.gain.setValueAtTime(0.2, this.audioCtx.currentTime + note.t);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + note.t + note.d);
+
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            osc.start(this.audioCtx.currentTime + note.t);
+            osc.stop(this.audioCtx.currentTime + note.t + note.d);
+        });
     }
 }

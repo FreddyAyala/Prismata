@@ -35,6 +35,7 @@ export class DoomUI {
             <div id="doom-hp" style="font-size:40px; color:#00ff00; text-shadow:0 0 10px #00ff00;">HP: 100</div>
             <div id="doom-score" style="font-size:24px; color:#0088ff;">SCORE: 0</div>
             <div id="doom-wave" style="font-size:24px; color:#ffaa00;">WAVE: 1/5</div>
+            <div id="doom-enemies" style="font-size:24px; color:#ff0033;">ENEMIES: 0</div>
             <div id="doom-ammo" style="font-size:24px; color:#ffffff;">BLASTER [∞]</div>
         `;
         this.hud.appendChild(stats);
@@ -61,9 +62,15 @@ export class DoomUI {
         if (scoreEl) scoreEl.innerText = `SCORE: ${this.game.score}`;
         if (waveEl) waveEl.innerText = `WAVE: ${this.game.wave}/5`;
 
+        const enemiesEl = document.getElementById('doom-enemies');
+        if (enemiesEl) {
+            const count = this.game.enemies.length + (this.game.enemiesToSpawn || 0) + (this.game.boss ? 1 : 0);
+            enemiesEl.innerText = `THREATS: ${count}`;
+        }
+
         if (ammoEl) {
             const w = this.game.weapons[this.game.currentWeaponIdx];
-            const name = w.name;
+            const name = w.name; // Uses full name e.g. "BFG 9000"
             const ammo = w.ammo === -1 ? '∞' : w.ammo;
             ammoEl.innerText = `${name} [${ammo}]`;
         }
@@ -227,7 +234,7 @@ export class DoomUI {
                 const oldColor = obj.material.color.getHex();
                 obj.material = new THREE.MeshStandardMaterial({
                     color: oldColor,
-                    wireframe: false, // Force SOLID
+                    wireframe: true, // Restore Wireframe for Threat Database
                     transparent: false,
                     opacity: 1.0,
                     roughness: 0.4,
@@ -284,6 +291,31 @@ export class DoomUI {
         setTimeout(() => { if (div.parentElement) div.remove(); }, 3000);
     }
 
+    showStatus(text) {
+        if (!this.hud) return;
+        // Avoid duplicates if same message
+        const existing = document.getElementById('doom-status');
+        if (existing) existing.remove();
+
+        const div = document.createElement('div');
+        div.id = 'doom-status';
+        div.innerText = text;
+        div.style.cssText = `position:absolute; bottom:15%; left:50%; transform:translate(-50%, -50%); 
+                    font-size:30px; color:#00ffff; font-weight:bold; text-shadow:0 0 10px #00ffff; 
+                    opacity:0; transition:opacity 0.2s; pointer-events:none;`;
+
+        this.hud.appendChild(div);
+
+        // Fade In
+        requestAnimationFrame(() => div.style.opacity = 1);
+
+        // Remove after 2s
+        setTimeout(() => {
+            if (div.style) div.style.opacity = 0;
+            setTimeout(() => { if (div.parentElement) div.remove(); }, 500);
+        }, 2000);
+    }
+
     triggerGameOver(onRestart) {
         const hud = document.getElementById('doom-hud');
         if (!hud) return;
@@ -332,13 +364,20 @@ export class DoomUI {
         // Try to load from assets if possible, else text
 
         div.innerHTML = `
-            <img src="/assets/AIBUBBLEBURST.jpg" style="max-width:80%; max-height:50vh; border:2px solid #00ff00; margin-bottom:20px; box-shadow:0 0 50px #00ff00;" onerror="this.style.display='none'">
+            <img src="/aibubbleburst.jpg" style="max-width:80%; max-height:50vh; border:2px solid #00ff00; margin-bottom:20px; box-shadow:0 0 50px #00ff00;" onerror="this.style.display='none'">
             <h1 style="font-size:80px; color:#00ff00; margin-bottom:10px; font-family:'Orbitron', sans-serif;">THREAT NEUTRALIZED</h1>
             <div style="font-size:40px; color:white; margin-bottom:30px;">FINAL SCORE: ${score}</div>
             <div style="color:#888; margin-bottom:20px;">PRESS ENTER TO REBOOT SYSTEM or ESC TO EXIT</div>
             <button id="doom-restart-win" style="padding: 20px 40px; font-size:30px; background:#00ff00; color:black; border:none; cursor:pointer;">REBOOT (ENTER)</button>
         `;
         hud.appendChild(div);
+
+        // Hide Boss Bar if visible
+        this.updateBossHealth(0, 100);
+        const bbar = document.getElementById('doom-boss-bar-v2');
+        if (bbar) bbar.remove();
+        const ghost = document.getElementById('doom-boss-bar');
+        if (ghost) ghost.remove();
 
         const restart = () => {
             div.remove();
@@ -355,6 +394,37 @@ export class DoomUI {
             }
         };
         window.addEventListener('keydown', keyH);
+    }
+
+    updateBossHealth(current, max) {
+        // cleanup legacy ghost bars
+        const ghosts = ['doom-boss-bar', 'boss-health-bar', 'boss-health-container'];
+        ghosts.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
+
+        let bar = document.getElementById('doom-boss-bar-v2');
+        if (current <= 0 && bar) {
+            bar.style.display = 'none';
+            return;
+        }
+        if (current > 0 && !bar) {
+            bar = document.createElement('div');
+            bar.id = 'doom-boss-bar-v2';
+            bar.style.cssText = `position:absolute; top:10%; left:50%; transform:translateX(-50%); width:600px; height:30px; border:2px solid #ff00ff; background:rgba(0,0,0,0.5); z-index:4000;`;
+            bar.innerHTML = `
+                <div id="doom-boss-fill-v2" style="width:100%; height:100%; background:#ff00ff; transition:width 0.2s;"></div>
+                <div style="position:absolute; top:-25px; left:0; width:100%; text-align:center; color:#ff00ff; font-family:'Orbitron', sans-serif; font-weight:bold; font-size:20px;">THE AI BUBBLE</div>
+            `;
+            this.hud.appendChild(bar);
+        }
+        if (bar) {
+            bar.style.display = 'block';
+            const pct = Math.max(0, (current / max) * 100);
+            const fill = document.getElementById('doom-boss-fill-v2');
+            if (fill) fill.style.width = `${pct}%`;
+        }
     }
 
     initModelHealthBars(exhibits) {

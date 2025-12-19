@@ -38,7 +38,7 @@ export class GlitchBoss {
         for (let i = 0; i < 12; i++) {
             const chunk = new THREE.Mesh(
                 new THREE.BoxGeometry(0.3, 0.3, 0.3),
-                new THREE.MeshBasicMaterial({ color: 0x0088ff, wireframe: false })
+                new THREE.MeshStandardMaterial({ color: 0x0088ff, wireframe: false, roughness: 0.2, metalness: 0.8 })
             );
             chunk.position.set(
                 (Math.random() - 0.5) * 3.5,
@@ -64,7 +64,12 @@ export class GlitchBoss {
 
     cycleWeakPoint() {
         // Reset all to Blue
-        this.chunks.forEach(c => c.mesh.material.color.setHex(0x0088ff));
+        this.chunks.forEach(c => {
+            if (c.mesh && c.mesh.material && c.mesh.material.color) {
+                c.mesh.material.color.setHex(0x0088ff);
+                if (c.mesh.material.emissive) c.mesh.material.emissive.setHex(0x000000);
+            }
+        });
         this.activeWeakPoints = [];
 
         // Pick 3 random
@@ -76,8 +81,11 @@ export class GlitchBoss {
 
             indices.forEach(idx => {
                 const chunk = this.chunks[idx];
-                chunk.mesh.material.color.setHex(0xffff00); // GOLD
-                this.activeWeakPoints.push(chunk);
+                if (chunk && chunk.mesh && chunk.mesh.material && chunk.mesh.material.color) {
+                    chunk.mesh.material.color.setHex(0xffff00); // YELLOW (GPU OVERHEATING)
+                    if (chunk.mesh.material.emissive) chunk.mesh.material.emissive.setHex(0xffaa00);
+                    this.activeWeakPoints.push(chunk);
+                }
             });
         }
     }
@@ -85,13 +93,13 @@ export class GlitchBoss {
     spawnDollarSign(pos) {
         if (!GlitchBoss.dollarMat) {
             const canvas = document.createElement('canvas');
-            canvas.width = 64; canvas.height = 64;
+            canvas.width = 128; canvas.height = 128; // Higher res
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#00ff00';
-            ctx.font = 'bold 48px Arial';
+            ctx.font = 'bold 100px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('$', 32, 32);
+            ctx.fillText('$', 64, 64);
             const tex = new THREE.CanvasTexture(canvas);
             GlitchBoss.dollarMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
         }
@@ -102,17 +110,11 @@ export class GlitchBoss {
         s.position.copy(worldPos);
         // Random spread
         s.position.add(new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5));
-        s.scale.set(8, 8, 1); // MUCH BIGGER
+        s.scale.set(20, 20, 1); // HUGE DOLLAR SIGNS
         this.scene.add(s);
 
-        // Simple animation handled by game or just fire and forget loop? 
-        // We don't have a central particle manager for these custom ones easily accessible here without passing 'game'
-        // Let's hack it: attach an update function to the sprite and let DoomGame clean it up? 
-        // No, let's just make them "Debris" in DoomSystems if possible.
-        // Actually, just pushing to this.chunks for now (abuse orbit) or better, let's not leak memory.
-        // We will just animate them here in update since we have this.active check.
         if (!this.effects) this.effects = [];
-        this.effects.push({ mesh: s, life: 1.5, vel: new THREE.Vector3(0, 15, 0) });
+        this.effects.push({ mesh: s, life: 2.0, vel: new THREE.Vector3(0, 25, 0) });
     }
 
     update(delta, playerPos) {

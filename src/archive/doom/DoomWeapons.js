@@ -18,5 +18,5 @@ export const WEAPONS = [
     new Weapon("LAUNCHER", 750, 40, 0xff0000, 'projectile', 4),
     // NEW WEAPONS
     new Weapon("PLASMA", 25, 6, 0x00ffff, 'projectile_fast', 100), // Fast but moderate damage
-    new Weapon("BFG 9000", 1250, 200, 0x00ff00, 'bfg', 5) // Screen wipe
+    new Weapon("BIG FREAKING GEMINI", 1250, 200, 0x00ff00, 'bfg', 5) // Screen wipe
 ];

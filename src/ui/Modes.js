@@ -79,7 +79,7 @@ export class ModeManager {
     document.querySelector('.ui-layer').classList.remove('hidden');
 
     timelineManager.exit();
-    archiveManager.exitArchive();
+    if (archiveManager.active) archiveManager.exitArchive();
 
     if (window.updateModeUI) window.updateModeUI('workbench');
     if (viewers.main) viewers.main.onResize();
