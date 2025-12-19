@@ -39,9 +39,40 @@ export class DoomAudio {
             src.connect(gain);
         }
 
-        gain.connect(this.audioCtx.destination);
+        gain.connect(this.masterGain ? this.masterGain : this.audioCtx.destination);
         src.start();
         src.stop(this.audioCtx.currentTime + duration);
+    }
+
+    // Original Simple Sawtooth "Guitar" (from the version you liked)
+    playSimpleGuitar(freq, duration) {
+        if (!this.audioCtx) return;
+        const o = this.audioCtx.createOscillator();
+        const g = this.audioCtx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+
+        const filter = this.audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000; // The "Original" crunch frequency
+
+        g.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
+
+        o.connect(filter);
+        filter.connect(g);
+        g.connect(this.masterGain ? this.masterGain : this.audioCtx.destination);
+
+        o.start();
+        o.stop(this.audioCtx.currentTime + duration);
+    }
+
+    playMonsterPain(type) {
+        const pitch = type === 'imp' ? 600 : (type === 'tank' ? 100 : 300);
+        const wave = type === 'wraith' ? 'sine' : 'sawtooth';
+
+        this.playSound(pitch, wave, 0.3, 0.4, type === 'imp' ? -500 : 0);
+        this.playNoise(0.2, 0.5, 0.8);
     }
 
     playSound(freq, type, duration, vol, detune = 0) {
@@ -89,15 +120,11 @@ export class DoomAudio {
             osc.start();
             osc.stop(this.audioCtx.currentTime + 0.5);
         } else if (type === 'PLASMA') {
-            // High pitch digital zap
             this.playSound(1200, 'sawtooth', 0.1, 0.15);
             this.playSound(2000, 'square', 0.05, 0.1);
         } else if (type === 'BFG 9000') {
-            // Massive buildup sound
             this.playSound(100, 'sawtooth', 2.0, 0.8);
             this.playNoise(2.0, 0.5, 0.2, 50);
-
-            // Rising pitch
             const osc = this.audioCtx.createOscillator();
             const g = this.audioCtx.createGain();
             osc.type = 'sawtooth';
@@ -115,36 +142,108 @@ export class DoomAudio {
     playMusic(activeCheck) {
         if (!this.audioCtx) return null;
 
-        let noteIdx = 0;
-        const notes = [110, 110, 220, 110, 110, 196, 110, 110, 185, 110, 110, 174, 110, 110, 164, 155];
+        // 0: Chill (Menu/Intermission), 1: E1M1 (Wave 1), 2: Sandy's City (Wave 2+), 3: Boss
+        this.musicPhase = 0;
+        let beat = 0;
 
-        const playNote = () => {
+        // PHASE 1: "At Doom's Gate" (E1M1) - Original A-Key Version
+        // The user liked the "original" code which used A2 (110Hz) base
+        const A2 = 110;
+        const A3 = 220;
+        const G3 = 196;
+        const Fs3 = 185;
+        const F3 = 174;
+        const E3 = 164;
+        const Eb3 = 155;
+
+        // Main Riff Steps (16)
+        // A A A' A A G A A F# A A F A A E Eb
+        const mainRiff = [
+            A2, A2, A3, A2, A2, G3, A2, A2, Fs3, A2, A2, F3, A2, A2, E3, Eb3
+        ];
+
+        // Part B: Move to D (IV)
+        // D is 146.8 (D3)
+        const D3 = 146.8;
+        const D4 = 293.7;
+        const C4 = 261.6;
+        const B3 = 246.9;
+        const Bb3 = 233.1;
+        const A3_ = 220.0;
+        const Ab3 = 207.7;
+
+        const dRiff = [
+            D3, D3, D4, D3, D3, C4, D3, D3, B3, D3, D3, Bb3, D3, D3, A3_, Ab3
+        ];
+
+        // Part C: Move to F (bVI) -> D (IV)
+        // F3 Base = 174.6
+        // This is usually a chord stab section in the real song, but adapting to riff style:
+        // F Riff approx
+        const F_Base = 174.6;
+        const F_Oct = 349.2;
+        const fRiff = [
+            F_Base, F_Base, F_Oct, F_Base, F_Base, 311, F_Base, F_Base, 293, F_Base, F_Base, 277, F_Base, F_Base, 261, 246
+        ];
+
+        // Full "Song" Sequence:
+        // Main x 2 -> D Riff x 1 -> Main x 1 -> F Riff x 1 -> D Riff x 1 -> Main x 1
+        const fullE1M1 = [
+            ...mainRiff, ...mainRiff,
+            ...dRiff,
+            ...mainRiff,
+            ...fRiff,
+            ...dRiff,
+            ...mainRiff
+        ];
+
+        // Boss Phase 3
+        const bossRiff = [65.4, 65.4, 110.0, 65.4, 65.4, 123.5, 65.4, 98.0];
+
+        const tick = () => {
             if (!activeCheck()) return;
 
-            const freq = notes[noteIdx];
-            noteIdx = (noteIdx + 1) % notes.length;
+            // Phase 0: Chill
+            if (this.musicPhase === 0) {
+                if (beat % 32 === 0) this.playSound(55, 'sine', 3.0, 0.2);
+            }
+            // Phase 1: E1M1 (Original A-Key Tone)
+            else if (this.musicPhase === 1) {
+                const step = beat % fullE1M1.length;
+                const note = fullE1M1[step];
 
-            const osc = this.audioCtx.createOscillator();
-            const gain = this.audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+                // Use the Simple Guitar (Saw + Lowpass @ 1000)
+                this.playSimpleGuitar(note, 0.12);
 
-            const filter = this.audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 1000;
+                // Drums (Original style was simple, let's keep it rock)
+                if (beat % 4 === 0) this.playNoise(0.1, 0.6, 0.8);
+                if (beat % 4 === 2) this.playNoise(0.15, 0.5, 1.5, 600);
+            }
+            // Phase 2: Sandy's City (Keeping mapped for Wave 2+)
+            else if (this.musicPhase === 2) {
+                const bassNote = beat % 64 < 16 ? 73.4 : 69.3;
+                if (beat % 8 === 0) this.playSimpleGuitar(bassNote, 0.2);
+                if (beat % 4 === 2) this.playNoise(0.05, 0.1, 0.8, 2000);
+            }
+            // Phase 3: Boss
+            else if (this.musicPhase === 3) {
+                const note = bossRiff[beat % bossRiff.length];
+                this.playSimpleGuitar(note, 0.1);
+                if (beat % 2 === 1) this.playNoise(0.1, 0.5, 2.5, 500);
+            }
 
-            gain.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.15);
-
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.audioCtx.destination);
-
-            osc.start();
-            osc.stop(this.audioCtx.currentTime + 0.15);
+            beat++;
+            // 0: Chill, 1: E1M1 (150ms Original), 2: Sandy (200), 3: Boss (100)
+            const interval = this.musicPhase === 3 ? 100 : (this.musicPhase === 1 ? 150 : (this.musicPhase === 2 ? 200 : 300));
+            this.musicLoopOffset = setTimeout(tick, interval);
         };
 
-        return setInterval(playNote, 150);
+        tick();
+        return { stop: () => { if (this.musicLoopOffset) clearTimeout(this.musicLoopOffset); } };
+    }
+
+    setMusicPhase(phase) {
+        this.musicPhase = phase;
     }
 
     playAlert() {
@@ -170,32 +269,20 @@ export class DoomAudio {
     playBossDeath() {
         if (!this.audioCtx) return;
         const t = this.audioCtx.currentTime;
-
-        // 1. Descending "Moan"
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(300, t);
-        osc.frequency.exponentialRampToValueAtTime(50, t + 2.0); // Slow pitch down
-
+        osc.frequency.exponentialRampToValueAtTime(50, t + 2.0);
         gain.gain.setValueAtTime(0.3, t);
         gain.gain.linearRampToValueAtTime(0, t + 2.0);
-
         osc.connect(gain);
-        gain.connect(this.masterGain); // Use masterGain if available, or destination? 
-        // DoomAudio constructor doesn't show masterGain in view 681... 
-        // It shows `gain.connect(this.audioCtx.destination)` in playAlert.
-        // I should stick to destination if masterGain is not consistent.
-        // Actually, let's use destination relative to context.
         gain.connect(this.audioCtx.destination);
-
         osc.start();
         osc.stop(t + 2.0);
-
-        // 2. Glitchy Noise Bursts
         for (let i = 0; i < 5; i++) {
             setTimeout(() => {
-                this.playNoise(0.2, 0.4, 0.2); // Random scratches
+                this.playNoise(0.2, 0.4, 0.2); 
             }, i * 400);
         }
     }

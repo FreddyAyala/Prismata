@@ -68,8 +68,8 @@ export class DoomGame {
       document.body.requestPointerLock();
     }
 
-    if (this.audio.audioCtx && this.audio.audioCtx.state === 'suspended') {
-      this.audio.audioCtx.resume();
+    if (this.audio) {
+      if (this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
     }
   }
 
@@ -89,21 +89,26 @@ export class DoomGame {
     this.waveInProgress = false;
 
     // Create World
-    this.arena.create(this.exhibitsSource); 
+    this.arena.create(this.exhibitsSource);
     this.createWeaponMesh();
     this.ui.initModelHealthBars(this.exhibitsSource);
 
     // Go
+    // Start Music FIRST so startWave can set the correct phase (1)
+    if (this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
+    if (this.audio) {
+      this.musicHandle = this.audio.playMusic(() => this.active && !this.isGameOver);
+    }
+
     this.startWave();
     this.startPickups();
-    this.musicInterval = this.audio.playMusic(() => this.active && !this.isGameOver);
   }
 
   setupInputs() {
     this.mousedownHandler = (e) => {
       if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
       this.isFiring = true;
-      this.shoot(e); 
+      this.shoot(e);
     };
     this.mouseupHandler = () => { this.isFiring = false; };
     document.addEventListener('mousedown', this.mousedownHandler);
@@ -145,7 +150,7 @@ export class DoomGame {
 
     if (this.spawnInterval) clearInterval(this.spawnInterval);
     if (this.pickupInterval) clearInterval(this.pickupInterval);
-    if (this.musicInterval) clearInterval(this.musicInterval);
+    if (this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
 
     // Clear Entities
     this.enemies.forEach(e => this.scene.remove(e.mesh));
@@ -169,6 +174,7 @@ export class DoomGame {
       this.waveInProgress = false;
       this.wave++;
       this.audio.playSound(600, 'sine', 1.0, 0.5);
+      if (this.audio.setMusicPhase) this.audio.setMusicPhase(0); // Chill between waves
       setTimeout(() => this.startWave(), 3000);
     }
 
@@ -209,6 +215,12 @@ export class DoomGame {
     const spawnRate = Math.max(500, 2500 - (this.wave * 300));
 
     this.ui.showWaveTitle(`WAVE ${this.wave}`);
+    this.ui.showWaveTitle(`WAVE ${this.wave}`);
+    // Phase 1: E1M1 (Wave 1 Only)
+    // Phase 2: Sandy's City (Wave 2+)
+    if (this.audio.setMusicPhase) {
+      this.audio.setMusicPhase(this.wave === 1 ? 1 : 2);
+    }
 
     this.spawnInterval = setInterval(() => {
       if (!this.active || this.isGameOver) return;
@@ -224,6 +236,8 @@ export class DoomGame {
     this.waveInProgress = true;
     this.wave = 5; // Force wave to 5 if debug started
     this.ui.showWaveTitle("THE AI BUBBLE: POP IT TO SAVE AI");
+    this.ui.showWaveTitle("THE AI BUBBLE: POP IT TO SAVE AI");
+    if (this.audio.setMusicPhase) this.audio.setMusicPhase(3); // Boss Music (Phase 3)
     const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 5, -60)); // Lower and closer (Was 10, -80)
     const onShoot = (pos, dir, isBoss) => this.fireEnemyProjectile(pos, dir, isBoss);
     this.boss = new GlitchBoss(this.scene, spawnPos, this.camera, onShoot);
@@ -541,6 +555,7 @@ export class DoomGame {
           this.systems.createExplosion(hitPoint, 0x00ff00, false);
           // Pass 'target' (the specific mesh hit) to takeDamage for Weak Point detection
           if (enemy.takeDamage(weapon.damage, target)) {
+            if (this.audio.playMonsterPain) this.audio.playMonsterPain(enemy.type);
             this.score += 100;
             if (enemy.isBoss) {
               // Boss damage logic handled in updateBoss
@@ -617,7 +632,7 @@ export class DoomGame {
     this.projectiles.push({
       mesh,
       velocity: velocityDir.multiplyScalar(weapon.type === 'projectile_fast' ? 300 : 80),
-      life: 5.0, 
+      life: 5.0,
       damage: weapon.damage,
       isRocket: weapon.name === 'LAUNCHER',
       isPlasma: weapon.name === 'PLASMA'
@@ -733,6 +748,7 @@ export class DoomGame {
           this.enemies.forEach(e => {
             if (e.mesh.position.distanceTo(p.mesh.position) < radius) {
               e.takeDamage(dmg);
+              if (this.audio.playMonsterPain) this.audio.playMonsterPain(e.type);
               hitCount++;
             }
           });
@@ -764,7 +780,7 @@ export class DoomGame {
       // Preferred: Use the actual Muzzle Position
       this.muzzleLight.getWorldPosition(start);
     } else {
-    // Fallback: Use Camera World Position + Relative Offset
+      // Fallback: Use Camera World Position + Relative Offset
       const offset = new THREE.Vector3(0.2, -0.2, -0.5); // Right, Down, Forward
       offset.applyQuaternion(this.camera.quaternion);
       start = this.camera.position.clone().add(offset);
@@ -798,6 +814,7 @@ export class DoomGame {
   }
 
   resetGame() {
+    if (this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
     this.cleanupLevel();
     // Re-start game logic without toggling 'active' state to avoid ArchiveManager interference
     this.startGame();
