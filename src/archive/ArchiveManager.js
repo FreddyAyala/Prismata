@@ -111,7 +111,7 @@ class ArchiveManager {
         this.environment.build(Math.max(200, this.models.length * 50));
 
         this.player = new FirstPersonController(this.camera, document.body); // Bind to body for pointer lock
-        this.doomManager = new DoomGame(this.scene, this.camera);
+        this.doomManager = new DoomGame(this.scene, this.camera, this.player);
 
         // Unlock Listener to Show Menu
         this.player.controls.addEventListener('unlock', () => {

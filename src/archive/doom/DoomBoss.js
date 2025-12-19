@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 
 export class GlitchBoss {
-    constructor(scene, position, target) {
+    constructor(scene, position, target, onShoot = null) {
         this.scene = scene;
         this.target = target;
+        this.onShoot = onShoot;
+        this.shootTimer = 0;
         this.active = true;
         this.isBoss = true;
 
@@ -86,9 +88,27 @@ export class GlitchBoss {
         // Face player
         this.mesh.lookAt(targetPos);
 
-        const distSq = this.mesh.position.distanceToSquared(targetPos);
         if (distSq < 100.0) { // Large Hitbox
              return 'damage_player_boss';
+        }
+
+        // Projectile Attack
+        this.shootTimer += delta;
+        if (this.shootTimer > 1.5) {
+            this.shootTimer = 0;
+            if (this.onShoot) {
+                const start = this.mesh.position.clone().add(new THREE.Vector3(0, 5, 0));
+                const dir = new THREE.Vector3().subVectors(targetPos, start).normalize();
+                // Burst attack
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        if (this.active) {
+                            const variation = new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2);
+                            this.onShoot(start, dir.clone().add(variation).normalize());
+                        }
+                    }, i * 200);
+                }
+            }
         }
 
         return 'move';

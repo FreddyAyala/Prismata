@@ -5,9 +5,10 @@ import { GlitchBoss } from './DoomBoss.js';
 import { WEAPONS } from './DoomWeapons.js';
 
 export class DoomGame {
-  constructor(scene, camera) {
+  constructor(scene, camera, player = null) {
     this.scene = scene;
     this.camera = camera;
+    this.player = player;
     this.active = false;
 
     // Systems
@@ -22,6 +23,8 @@ export class DoomGame {
     this.particles = [];
     this.pickups = [];
     this.boss = null;
+    this.explosionPool = []; // For performance: pool of particle systems
+    this.maxPoolSize = 30; // Maximum number of explosion objects to keep in memory
 
     this.gameInterval = null;
     this.spawnInterval = null;
@@ -183,7 +186,20 @@ export class DoomGame {
     this.showWaveTitle("FINAL PROTOCOL: TITAN");
     // Spawn Boss at (0, 20, -100) relative
     const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 10, -80));
-    this.boss = new GlitchBoss(this.scene, spawnPos, this.camera);
+    const onShoot = (pos, dir) => this.fireEnemyProjectile(pos, dir);
+    this.boss = new GlitchBoss(this.scene, spawnPos, this.camera, onShoot);
+
+    // Create Boss Health Bar HUD
+    if (this.hud) {
+      const bossHud = document.createElement('div');
+      bossHud.id = 'boss-health-container';
+      bossHud.style.cssText = "position:absolute; top:20px; left:50%; transform:translateX(-50%); width:60%; height:30px; border:2px solid #ff0000; background: rgba(50,0,0,0.5);";
+      bossHud.innerHTML = `
+            <div id="boss-health-bar" style="width:100%; height:100%; background:#ff4400; transition:width 0.2s;"></div>
+            <div style="position:absolute; top:5px; left:50%; transform:translateX(-50%); font-size:16px; color:white; font-weight:bold;">TITAN: FINAL PROTOCOL</div>
+        `;
+      this.hud.appendChild(bossHud);
+    }
 
     // Still spawn minions?
     this.enemiesToSpawn = 50; // Infinite fodder?
@@ -226,9 +242,9 @@ export class DoomGame {
     // Wave 4+: Chaos
     if (this.wave >= 4 && roll < 0.25) type = 'berzerker';
 
-    // Position
+    // Position - Further away to give player time to react (120 - 180 units)
     const angle = Math.random() * Math.PI * 2;
-    const radius = 60 + Math.random() * 40;
+    const radius = 120 + Math.random() * 60;
     const spawnX = this.camera.position.x + Math.cos(angle) * radius;
     const spawnZ = this.camera.position.z + Math.sin(angle) * radius;
 
@@ -303,7 +319,17 @@ export class DoomGame {
       this.takePlayerDamage(50 * delta); // Constant burn near boss
     }
 
+    // Update Boss HUD
+    const bar = document.getElementById('boss-health-bar');
+    if (bar) {
+      const pct = (this.boss.life / this.boss.maxLife) * 100;
+      bar.style.width = pct + '%';
+    }
+
     if (!this.boss.active) {
+      // Remove Boss HUD
+      const bossHud = document.getElementById('boss-health-container');
+      if (bossHud) bossHud.remove();
       // Boss Dead
       this.createExplosion(this.boss.mesh.position, 0xffaa00, true, 5.0); // Massive explosion
       this.score += 5000;
@@ -329,23 +355,29 @@ export class DoomGame {
 
   spawnDrop(pos) {
     const roll = Math.random();
-    if (roll > 0.8) return; // 80% chance of drop (up from 40%)
+    if (roll > 0.8) return; // 80% chance of drop
 
-    // Weighted Drops
     let type = 'ammo_shotgun';
     let color = 0xffaa00;
 
     const r2 = Math.random();
-    if (r2 > 0.95) { type = 'ammo_bfg'; color = 0x00ff00; } // 5% BFG
-    else if (r2 > 0.85) { type = 'ammo_plasma'; color = 0x00ffff; } // 10% Plasma
-    else if (r2 > 0.70) { type = 'ammo_launcher'; color = 0xff00ff; } // 15% Launcher
+    const waveHealthBonus = (this.wave - 1) * 0.1;
 
-    else if (r2 > 0.85) { type = 'ammo_plasma'; color = 0x00ffff; } // 10% Plasma
-    else if (r2 > 0.70) { type = 'ammo_launcher'; color = 0xff00ff; } // 15% Launcher
+    if (r2 < 0.15 + waveHealthBonus) {
+      type = 'health';
+      color = 0xff0000;
+    } else {
+      // Ammo Weighted
+      const ar = Math.random();
+      if (ar > 0.92) { type = 'ammo_bfg'; color = 0x00ff00; }
+      else if (ar > 0.80) { type = 'ammo_plasma'; color = 0x00ffff; }
+      else if (ar > 0.60) { type = 'ammo_launcher'; color = 0xff00ff; }
+      else { type = 'ammo_shotgun'; color = 0xffaa00; }
+    }
 
     const mesh = this.buildPickupVisual(type, color);
     mesh.position.copy(pos);
-    mesh.position.y = 2.0; // Hover
+    mesh.position.y = 2.0;
     this.scene.add(mesh);
     this.pickups.push({ mesh, type: type });
   }
@@ -417,7 +449,7 @@ export class DoomGame {
       const dist = p.mesh.position.distanceTo(this.camera.position);
 
       if (dist < 15.0) {
-        if (p.type === 'health') this.playerHealth = Math.min(100, this.playerHealth + 30);
+        if (p.type === 'health') this.playerHealth = Math.min(100, this.playerHealth + 50); // Buffed health recovery
 
         // Ammo Pickups
         const addAmmo = (name, amount) => {
@@ -427,7 +459,7 @@ export class DoomGame {
 
         if (p.type === 'ammo_shotgun') addAmmo('SHOTGUN', 8);
         if (p.type === 'ammo_launcher') addAmmo('LAUNCHER', 4);
-        if (p.type === 'ammo_plasma') addAmmo('PLASMA', 20);
+        if (p.type === 'ammo_plasma') addAmmo('PLASMA', 40); // Buffed plasma ammo drop
         if (p.type === 'ammo_bfg') addAmmo('BFG 9000', 1);
 
         this.audio.playSound(400, 'sine', 0.1, 0.2);
@@ -531,7 +563,7 @@ export class DoomGame {
     this.camera.getWorldDirection(dir);
 
     const geo = new THREE.IcosahedronGeometry(weapon.type === 'projectile_fast' ? 0.2 : 0.5, 0);
-    const mat = new THREE.MeshBasicMaterial({ color: weapon.color, wireframe: true });
+    const mat = new THREE.MeshBasicMaterial({ color: weapon.color, wireframe: false }); // Solid now
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(start);
     this.scene.add(mesh);
@@ -630,10 +662,11 @@ export class DoomGame {
       if (hit || p.life <= 0) {
         // EXPLODE
         if (p.isRocket || p.isBFG) {
-          this.createExplosion(p.mesh.position, p.mesh.material.color, true, p.isBFG ? 2.0 : 1.0);
+          const isBFG = p.isBFG;
+          this.createExplosion(p.mesh.position, p.mesh.material.color, true, isBFG ? 3.0 : 1.5);
           // Splash
-          const radius = p.isBFG ? 40.0 : 10.0;
-          const dmg = p.isBFG ? 9999 : 20;
+          const radius = isBFG ? 60.0 : 25.0; // Buffed radius
+          const dmg = isBFG ? 500 : 80; // Buffed damage
 
           this.enemies.forEach(e => {
             if (e.mesh.position.distanceTo(p.mesh.position) < radius) {
@@ -665,27 +698,66 @@ export class DoomGame {
         z: (Math.random() - 0.5) * 10 * spread
       });
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({ color, size: isBig ? 1.5 : 0.3, transparent: true });
-    const ps = new THREE.Points(geo, mat);
-    this.scene.add(ps);
+    let ps;
+    if (this.explosionPool.length > 0) {
+      ps = this.explosionPool.pop();
+      ps.visible = true;
+      // Safety check: ensure it's actually Points before using as one
+      if (ps.isPoints) {
+        ps.geometry.attributes.position.array.set(positions);
+        ps.material.color.set(color);
+        ps.material.opacity = 1.0;
+        ps.material.size = isBig ? 1.5 : 0.3;
+        ps.geometry.attributes.position.needsUpdate = true;
+      } else {
+        // If we somehow got a non-Points object, remove it and create a new one
+        this.scene.remove(ps);
+        const mat = new THREE.PointsMaterial({ color, size: isBig ? 1.5 : 0.3, transparent: true });
+        ps = new THREE.Points(geo, mat);
+        this.scene.add(ps);
+      }
+    } else {
+      const mat = new THREE.PointsMaterial({ color, size: isBig ? 1.5 : 0.3, transparent: true });
+      ps = new THREE.Points(geo, mat);
+      this.scene.add(ps);
+    }
     this.particles.push({ mesh: ps, velocities, life });
   }
 
   updateParticles(delta) {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      const pos = p.mesh.geometry.attributes.position.array;
-      for (let j = 0; j < p.velocities.length; j++) {
-        pos[j * 3] += p.velocities[j].x * delta;
-        pos[j * 3 + 1] += p.velocities[j].y * delta;
-        pos[j * 3 + 2] += p.velocities[j].z * delta;
+
+      // Update Physics for Points only
+      if (p.mesh.isPoints && p.velocities && p.velocities.length > 0) {
+        const posAttr = p.mesh.geometry.attributes.position;
+        if (posAttr) {
+          const pos = posAttr.array;
+          for (let j = 0; j < p.velocities.length; j++) {
+            pos[j * 3] += p.velocities[j].x * delta;
+            pos[j * 3 + 1] += p.velocities[j].y * delta;
+            pos[j * 3 + 2] += p.velocities[j].z * delta;
+          }
+          posAttr.needsUpdate = true;
+        }
       }
-      p.mesh.geometry.attributes.position.needsUpdate = true;
+
       p.life -= delta;
-      p.mesh.material.opacity = p.life < 0 ? 0 : p.life;
+
+      // Visual fade if transparent
+      if (p.mesh.material && p.mesh.material.transparent) {
+        p.mesh.material.opacity = Math.max(0, p.life * 2); // Faster fade
+      }
+
       if (p.life <= 0) {
-        this.scene.remove(p.mesh);
+        p.mesh.visible = false;
+        if (p.mesh.isPoints && this.explosionPool.length < this.maxPoolSize) {
+          this.explosionPool.push(p.mesh);
+        } else {
+          this.scene.remove(p.mesh);
+          if (p.mesh.geometry) p.mesh.geometry.dispose();
+          if (p.mesh.material) p.mesh.material.dispose();
+        }
         this.particles.splice(i, 1);
       }
     }
@@ -702,13 +774,19 @@ export class DoomGame {
     }
 
     const dist = start.distanceTo(target);
-    const geo = new THREE.BoxGeometry(0.05, 0.05, dist);
-    const mat = new THREE.MeshBasicMaterial({ color: color });
+    const thickness = 0.2; // Even thicker
+    const geo = new THREE.BoxGeometry(thickness, thickness, dist);
+    // Solid MeshBasicMaterial for maximum visibility (Glow-like effect via color)
+    const mat = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 1.0
+    });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(start).lerp(target, 0.5);
     mesh.lookAt(target);
     this.scene.add(mesh);
-    this.particles.push({ mesh, velocities: [], life: 0.1 }); // Treat as particle for cleanup
+    this.particles.push({ mesh, velocities: [], life: 0.2, initialLife: 0.2 }); // Corrected life to 0.2s
   }
 
   // --- UI & STATE ---
@@ -794,7 +872,20 @@ export class DoomGame {
                 <div style="font-size:32px; color:#00ff88; margin-bottom:10px;">HP: <span id="doom-hp">100</span></div>
                 <div>SCORE: <span id="doom-score">0</span></div>
                 <div>WAVE: <span id="doom-wave">1</span>/5</div>
-                <div style="margin-top:10px; font-size:18px;">WEAPON: <span id="doom-weapon">BLASTER</span></div>
+
+                <div style="margin-top:15px; width:150px; height:10px; border:1px solid #00f3ff; position:relative;">
+                    <div id="doom-stamina-bar" style="width:100%; height:100%; background:#00f3ff; transition:width 0.1s;"></div>
+                    <div style="position:absolute; top:-18px; left:0; font-size:12px; color:#00f3ff;">STAMINA</div>
+                </div>
+
+                <div style="margin-top:15px; font-size:18px;">WEAPON: <span id="doom-weapon">BLASTER</span></div>
+            </div>
+
+            <!-- CROSSHAIR -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+                <div style="width: 20px; height: 2px; background: #00ff88; position: absolute; left: -10px; top: 0; box-shadow: 0 0 5px #00ff88;"></div>
+                <div style="width: 2px; height: 20px; background: #00ff88; position: absolute; left: 0; top: -10px; box-shadow: 0 0 5px #00ff88;"></div>
+                <div style="width: 4px; height: 4px; background: #00ff88; border-radius: 50%; position: absolute; left: -1px; top: -1px; box-shadow: 0 0 5px #00ff88;"></div>
             </div>
         `;
     document.body.appendChild(this.hud);
@@ -810,6 +901,18 @@ export class DoomGame {
 
     document.getElementById('doom-score').innerText = this.score;
     document.getElementById('doom-wave').innerText = this.wave + "/5";
+
+    // Stamina HUD Update
+    if (this.player) {
+      const elStamina = document.getElementById('doom-stamina-bar');
+      if (elStamina) {
+        const pct = (this.player.stamina / this.player.maxStamina) * 100;
+        elStamina.style.width = pct + '%';
+        // Color transition
+        if (pct < 30) elStamina.style.background = '#ff0033';
+        else elStamina.style.background = '#00f3ff';
+      }
+    }
 
     const elWep = document.getElementById('doom-weapon');
     if (elWep) {

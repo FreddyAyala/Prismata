@@ -17,6 +17,6 @@ export const WEAPONS = [
     new Weapon("SHOTGUN", 1000, 1, 0xffaa00, 'spread', 12),
     new Weapon("LAUNCHER", 1500, 20, 0xff0000, 'projectile', 4),
     // NEW WEAPONS
-    new Weapon("PLASMA", 100, 5, 0x00ffff, 'projectile_fast', 50),
-    new Weapon("BFG 9000", 2000, 100, 0x00ff00, 'bfg', 3)
+    new Weapon("PLASMA", 50, 8, 0x00ffff, 'projectile_fast', 100), // Rapid fire machine gun style, more ammo
+    new Weapon("BFG 9000", 2500, 200, 0x00ff00, 'bfg', 5) // Slower but more devastating
 ];
