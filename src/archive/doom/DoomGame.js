@@ -362,7 +362,7 @@ export class DoomGame {
     if (w.type === 'hitscan') this.fireHitscan(w);
     else if (w.type === 'spread') {
       this.fireHitscan(w, 0);
-      for (let i = 0; i < 24; i++) this.fireHitscan(w, 0.22); // More pellets, wider spread
+      for (let i = 0; i < 24; i++) this.fireHitscan(w, 0.14); // Tighter spread (was 0.22) for better range
     }
     else if (w.type === 'projectile' || w.type === 'projectile_fast') this.fireProjectile(w);
     else if (w.type === 'bfg') this.fireBFG(w);
