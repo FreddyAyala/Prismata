@@ -25,23 +25,34 @@ export class DoomSystems {
             });
         }
         let ps;
-        if (this.explosionPool.length > 0) {
-            ps = this.explosionPool.pop();
-            ps.visible = true;
-            if (ps.isPoints) {
-                ps.geometry.attributes.position.array.set(positions);
-                ps.material.color.set(color);
-                ps.material.opacity = 1.0;
-                ps.material.size = isBig ? 1.5 : 0.3;
-                ps.geometry.attributes.position.needsUpdate = true;
-            } else {
-                this.scene.remove(ps);
-                const mat = new THREE.PointsMaterial({ color, size: isBig ? 1.5 : 0.3, transparent: true });
-                ps = new THREE.Points(geo, mat);
-                this.scene.add(ps);
+        // Verify pool has compatible mesh
+        let foundIdx = -1;
+        for (let i = 0; i < this.explosionPool.length; i++) {
+            if (this.explosionPool[i].geometry.attributes.position.count === count) {
+                foundIdx = i;
+                break;
             }
+        }
+
+        if (foundIdx !== -1) {
+            ps = this.explosionPool.splice(foundIdx, 1)[0];
+            ps.visible = true;
+            ps.geometry.attributes.position.array.set(positions);
+            ps.material.color.set(color);
+            ps.material.opacity = 1.0;
+            ps.material.size = isBig ? 5.0 : 0.5; // BIGGER
+            ps.material.blending = THREE.AdditiveBlending; // Ensure glow
+            ps.geometry.attributes.position.needsUpdate = true;
         } else {
-            const mat = new THREE.PointsMaterial({ color, size: isBig ? 1.5 : 0.3, transparent: true });
+            // No suitable pooled mesh, create new
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({
+                color,
+                size: isBig ? 5.0 : 0.5,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
             ps = new THREE.Points(geo, mat);
             this.scene.add(ps);
         }

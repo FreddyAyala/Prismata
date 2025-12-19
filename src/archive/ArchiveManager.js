@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { ArchiveEnvironment } from './ArchiveEnvironment.js';
 import { FirstPersonController } from './FirstPersonController.js';
 import { DoomGame } from './doom/DoomGame.js';
+// HMR FORCE UPDATE - DOOM V8 (WIDTH 150)
+console.log("ArchiveManager Loaded - Force Update V8");
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 
 class ArchiveManager {

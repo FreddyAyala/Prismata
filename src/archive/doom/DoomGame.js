@@ -40,12 +40,17 @@ export class DoomGame {
     this.weaponRecoil = 0;
     this.raycaster = new THREE.Raycaster();
     this.isFiring = false;
+
+    // Arena
+    this.arenaSize = 200; // 400x400 - Safe Size covering everything
+    this.arenaMesh = null;
   }
 
   activate(exhibits = null, skipIntro = false) {
     if (this.active) return;
+    // alert("DOOM V5 DEBUG: UPDATED CODE LOADED"); // Force user attention
+    console.log("🛡️ DOOM GAME ACTIVATED - V5 PURPLE");
     this.active = true;
-    console.log("🛡️ DOOM GAME ACTIVATED");
 
     this.ui.createHUD();
     this.exhibitsSource = exhibits || [];
@@ -57,6 +62,8 @@ export class DoomGame {
     }));
     this.currentWeaponIdx = 0;
     this.playerHealth = 100;
+
+    this.createArena(); // Build the Kill Box
 
     this.createWeaponMesh();
     this.ui.initModelHealthBars(this.exhibitsSource);
@@ -92,6 +99,7 @@ export class DoomGame {
 
     // Cleanup
     if (this.weaponMesh) { this.camera.remove(this.weaponMesh); this.weaponMesh = null; }
+    if (this.arenaMesh) { this.scene.remove(this.arenaMesh); this.arenaMesh = null; } // Cleanup Arena
     if (this.mousedownHandler) { document.removeEventListener('mousedown', this.mousedownHandler); this.mousedownHandler = null; }
     if (this.mouseupHandler) { document.removeEventListener('mouseup', this.mouseupHandler); this.mouseupHandler = null; }
     this.isFiring = false;
@@ -122,6 +130,27 @@ export class DoomGame {
     if (!this.active || this.isGameOver) return;
 
     if (this.audio.audioCtx && this.audio.audioCtx.state === 'suspended') this.audio.audioCtx.resume();
+
+    // Enforce Arena Bounds (Player)
+    if (this.camera) {
+      const b = this.arenaBounds;
+      const buffer = 2.0;
+      if (b) {
+        if (this.camera.position.x < b.minX + buffer) this.camera.position.x = b.minX + buffer;
+        if (this.camera.position.x > b.maxX - buffer) this.camera.position.x = b.maxX - buffer;
+        if (this.camera.position.z < b.minZ + buffer) this.camera.position.z = b.minZ + buffer;
+        if (this.camera.position.z > b.maxZ - buffer) this.camera.position.z = b.maxZ - buffer;
+      } else {
+        // Fallback legacy
+        const s = this.arenaSize - 2;
+        if (this.camera.position.x < -s) this.camera.position.x = -s;
+        if (this.camera.position.x > s) this.camera.position.x = s;
+        if (this.camera.position.z < -s) this.camera.position.z = -s;
+        if (this.camera.position.z > s) this.camera.position.z = s;
+      }
+      // Also keep above floor?
+      if (this.camera.position.y < 2) this.camera.position.y = 2; // Floor is 0
+    }
 
     // Wave Logic
     if (this.waveInProgress && this.enemiesToSpawn === 0 && this.enemies.length === 0 && !this.boss) {
@@ -205,6 +234,97 @@ export class DoomGame {
     }, spawnRate);
   }
 
+  // NOTE: The createArena method is not present in the provided code snippet.
+  // If it were, the wallHeight update would be applied there.
+  createArena() {
+    if (this.arenaMesh) this.scene.remove(this.arenaMesh);
+    this.arenaMesh = new THREE.Group();
+
+    // 1. WALLS ONLY - V8 (WIDTH 150 & REAL LENGTH)
+    console.log("🚀 DOOM ARENA V8: WIDTH 150 & FIXED LENGTH");
+
+    let minX = -75, maxX = 75; // WIDTH 150 (Huge)
+    let maxZ = 25;
+    let minZ = -250;
+
+    this.scene.traverse(obj => {
+      if (obj.type === 'GridHelper') obj.visible = false;
+    });
+
+    if (this.exhibitsSource && this.exhibitsSource.length > 0) {
+      // FIX: Use e.position.z directly (ArchiveManager format)
+      const zValues = this.exhibitsSource.map(e => e.position ? e.position.z : (e.mesh ? e.mesh.position.z : 0));
+      const furthestZ = Math.min(...zValues);
+
+      // Extend 100 units past for safety
+      if (furthestZ < minZ) minZ = furthestZ - 100;
+      console.log("📏 V8 LENGTH CALC -> Furthest:", furthestZ, "-> Arena MinZ:", minZ);
+    } else {
+      console.warn("⚠️ No exhibits found for Arena sizing (V8), using default.");
+    }
+
+    this.arenaBounds = { minX, maxX, minZ, maxZ };
+    console.log("🏟️ ARENA BOUNDS:", this.arenaBounds);
+
+    const width = maxX - minX;
+    const depth = maxZ - minZ;
+
+    // Add Grid Lines - PURPLE
+    const gridGroup = new THREE.Group();
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xff00ff, opacity: 0.8 }); // PURPLE & BRIGHT
+
+    // Z-Lines (along depth)
+    const step = 10;
+    for (let x = minX; x <= maxX; x += step) {
+      // Floor lines
+      const pts = [new THREE.Vector3(x, 0.3, minZ), new THREE.Vector3(x, 0.3, maxZ)];
+      gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
+    }
+    // X-Lines
+    for (let z = minZ; z <= maxZ; z += step) {
+      const pts = [new THREE.Vector3(minX, 0.3, z), new THREE.Vector3(maxX, 0.3, z)];
+      gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
+    }
+    this.arenaMesh.add(gridGroup);
+
+    // Add Walls (Visible semi-transparent walls)
+    const wallHeight = 40; // Ensure Width 40
+    const wallMat = new THREE.MeshBasicMaterial({
+      color: 0xff00ff, // PURPLE
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.1,
+      depthWrite: false
+    });
+
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minZ + maxZ) / 2;
+
+    // Left Wall
+    const wLeft = new THREE.Mesh(new THREE.PlaneGeometry(depth, wallHeight), wallMat);
+    wLeft.position.set(minX, wallHeight / 2, centerZ);
+    wLeft.rotation.y = Math.PI / 2;
+    this.arenaMesh.add(wLeft);
+
+    // Right Wall
+    const wRight = new THREE.Mesh(new THREE.PlaneGeometry(depth, wallHeight), wallMat);
+    wRight.position.set(maxX, wallHeight / 2, centerZ);
+    wRight.rotation.y = Math.PI / 2;
+    this.arenaMesh.add(wRight);
+
+    // Front Wall
+    const wFront = new THREE.Mesh(new THREE.PlaneGeometry(width, wallHeight), wallMat);
+    wFront.position.set(centerX, wallHeight / 2, maxZ);
+    this.arenaMesh.add(wFront);
+
+    // Back Wall
+    const wBack = new THREE.Mesh(new THREE.PlaneGeometry(width, wallHeight), wallMat);
+    wBack.position.set(centerX, wallHeight / 2, minZ);
+    this.arenaMesh.add(wBack);
+
+    this.scene.add(this.arenaMesh);
+  }
+
   spawnEnemy() {
     if (!this.active) return;
     const validTargets = this.ui.crystals.filter(c => c.mesh && c.mesh.visible && c.mesh.userData.health > 0).map(c => c.mesh);
@@ -222,10 +342,29 @@ export class DoomGame {
     if (this.wave >= 3 && roll < 0.1) type = 'wraith';
     if (this.wave >= 4 && roll < 0.25) type = 'berzerker';
 
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 120 + Math.random() * 60;
-    const spawnX = this.camera.position.x + Math.cos(angle) * radius;
-    const spawnZ = this.camera.position.z + Math.sin(angle) * radius;
+    // Spawn on perimeter of arena bounds
+    let b = this.arenaBounds;
+    if (!b) b = { minX: -20, maxX: 20, minZ: -200, maxZ: 20 }; // Fallback
+
+    let spawnX, spawnZ;
+
+    // Pick a side: 0=North, 1=South, 2=East, 3=West
+    const side = Math.floor(Math.random() * 4);
+    const buffer = 2; // spawn sightly inside? or outside? Inside to avoid clamping issues.
+
+    if (side === 0) { // MinZ side (Far back)
+      spawnZ = b.minZ - buffer;
+      spawnX = b.minX + Math.random() * (b.maxX - b.minX);
+    } else if (side === 1) { // MaxZ side (Front)
+      spawnZ = b.maxZ + buffer;
+      spawnX = b.minX + Math.random() * (b.maxX - b.minX);
+    } else if (side === 2) { // MinX side (Left)
+      spawnX = b.minX - buffer;
+      spawnZ = b.minZ + Math.random() * (b.maxZ - b.minZ);
+    } else { // MaxX side (Right)
+      spawnX = b.maxX + buffer;
+      spawnZ = b.minZ + Math.random() * (b.maxZ - b.minZ);
+    }
 
     const onShoot = (pos, dir) => this.fireEnemyProjectile(pos, dir);
     const enemy = new GlitchEnemy(this.scene, new THREE.Vector3(spawnX, 4, spawnZ), target, type, onShoot);
@@ -362,7 +501,7 @@ export class DoomGame {
     if (w.type === 'hitscan') this.fireHitscan(w);
     else if (w.type === 'spread') {
       this.fireHitscan(w, 0);
-      for (let i = 0; i < 24; i++) this.fireHitscan(w, 0.14); // Tighter spread (was 0.22) for better range
+      for (let i = 0; i < 24; i++) this.fireHitscan(w, 0.35); // Super Wide spread (Point Blank Only)
     }
     else if (w.type === 'projectile' || w.type === 'projectile_fast') this.fireProjectile(w);
     else if (w.type === 'bfg') this.fireBFG(w);
@@ -373,8 +512,9 @@ export class DoomGame {
     this.raycaster.setFromCamera(coords, this.camera);
 
     // Calculate a point far down the ray for the "miss" tracer
+    const maxDist = (weapon.name === 'SHOTGUN') ? 40.0 : 500.0; // Hard cap for shotgun
     const rayTarget = new THREE.Vector3();
-    this.raycaster.ray.at(500, rayTarget);
+    this.raycaster.ray.at(maxDist, rayTarget);
 
     // OPTIMIZED: Raycast only against simplified hitboxes to prevent CPU lag
     const objects = this.enemies.map(e => e.hitbox).filter(h => h);
@@ -387,7 +527,9 @@ export class DoomGame {
 
     // use recursive=true ONLY for boss (who is a Group without a singular hitbox yet)
     // For enemies, the hitbox is a simple Mesh, so recursion is cheap/unnecessary but harmless
+    this.raycaster.far = maxDist; // Apply limit to raycaster
     const intersections = this.raycaster.intersectObjects(validObjects, true);
+    this.raycaster.far = Infinity; // Reset for others
     let hitPoint = null;
     let target = null;
 
@@ -532,12 +674,34 @@ export class DoomGame {
         }
       }
 
+      // Rocket Floor & Wall Collision
+      if (p.isRocket) {
+        if (p.mesh.position.y < 0.5) {
+          hit = true;
+          p.mesh.position.y = 0.5;
+        }
+        // Wall checks (Dynamic Rect)
+        const b = this.arenaBounds;
+        if (b) {
+          if (p.mesh.position.x < b.minX || p.mesh.position.x > b.maxX ||
+            p.mesh.position.z < b.minZ || p.mesh.position.z > b.maxZ) {
+            hit = true;
+          }
+        } else if (Math.abs(p.mesh.position.x) > this.arenaSize - 1 || Math.abs(p.mesh.position.z) > this.arenaSize - 1) {
+          hit = true;
+        }
+      }
+
       if (hit || p.life <= 0) {
         if (p.isRocket || p.isBFG) {
           const isBFG = p.isBFG;
           this.systems.createExplosion(p.mesh.position, p.mesh.material.color, true, isBFG ? 3.0 : 1.5);
-          const radius = isBFG ? 60.0 : 25.0;
-          const dmg = isBFG ? 500 : 80;
+
+          // Sound
+          if (this.audio) this.audio.playSound(100, 'noise', 1.0, 0.5);
+
+          const radius = isBFG ? 60.0 : 50.0; // MASSIVE Splash Radius
+          const dmg = isBFG ? 500 : 150; // MASSIVE Damage
           this.enemies.forEach(e => { if (e.mesh.position.distanceTo(p.mesh.position) < radius) e.takeDamage(dmg); });
           if (this.boss && this.boss.mesh.position.distanceTo(p.mesh.position) < radius) this.boss.takeDamage(dmg);
         }
@@ -614,6 +778,24 @@ export class DoomGame {
 
   handlePointerLockChange() {
     if (!document.pointerLockElement && this.active && !this.isGameOver) this.deactivate();
+  }
+
+
+
+
+  gameOver() {
+    this.isGameOver = true;
+    this.active = false;
+    this.scene.remove(this.arenaMesh);
+
+    // Restore Grid
+    this.scene.traverse(obj => {
+      if (obj.type === 'GridHelper') obj.visible = true;
+    });
+
+    if (this.ui.hud) {
+      if (this.ui.hud.parentNode) this.ui.hud.parentNode.removeChild(this.ui.hud);
+    }
   }
 
   createWeaponMesh() {
@@ -704,6 +886,9 @@ export class DoomGame {
 
   startPickups() {
     if (this.pickupInterval) clearInterval(this.pickupInterval);
-    this.pickupInterval = setInterval(() => { if (this.active && !this.isGameOver) this.systems.spawnHealthPickup(this.camera.position); }, 15000);
+    this.pickupInterval = setInterval(() => {
+      if (!this.active || this.isGameOver) return;
+      this.systems.spawnHealthPickup(this.arenaSize);
+    }, 15000);
   }
 }
