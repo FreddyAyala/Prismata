@@ -3,14 +3,16 @@ import * as THREE from 'three';
 export class GlitchEnemy {
   static tempDir = new THREE.Vector3();
 
-  constructor(scene, position, target, type = 'normal', role = 'hunter', onShoot = null) {
+  constructor(scene, position, target, type = 'normal', role = 'hunter', onShoot = null, onFindTarget = null) {
     this.scene = scene;
     this.target = target;
     this.type = type;
     this.role = role; // 'hunter' or 'destroyer'
     this.isWraith = (type === 'wraith');
     this.onShoot = onShoot; // Callback
+    this.onFindTarget = onFindTarget; // Callback for retargeting
     this.shootTimer = 0;
+    this.retaliationTimer = 0; // New: For "Only attack if attacked" logic
     this.active = true;
 
     // Base Stats
@@ -27,14 +29,15 @@ export class GlitchEnemy {
       this.color = 0xffff00; 
       this.scale = 3.5;
     } else if (type === 'tank') {
-      this.life = 80;
-      this.speed = 14; 
-      this.damage = 50;
+      this.speed = 4; // Buffed (was 3)
+      this.life = 60;
+      this.damage = 25;
       this.color = 0x3366ff;
       this.scale = 8.0; 
     } else if (type === 'wraith') {
-      this.life = 12;
-      this.speed = 24; 
+      this.speed = 7; // Buffed (was 5)
+      this.life = 20;
+      this.damage = 15;
       this.color = 0x00ffff;
       this.scale = 5.0;
     } else if (type === 'berzerker') {
@@ -106,27 +109,41 @@ export class GlitchEnemy {
 
   update(delta, playerPos) {
     if (!this.active) return 'remove';
+    if (this.retaliationTimer > 0) this.retaliationTimer -= delta;
 
     // TARGETING LOGIC
     let targetPos = null;
 
     // Default: Target the assigned crystal/model if it exists
-    if (this.target && this.target.visible) {
+    if (this.target && this.target.visible && this.target.userData.health > 0) {
       targetPos = this.target.position;
+    } else if (this.role === 'destroyer' && this.onFindTarget) {
+      // Dynamic Retargeting: Current target dead? Find a new one instantly.
+      const newTarget = this.onFindTarget(this.mesh.position);
+      if (newTarget) {
+        this.target = newTarget;
+        targetPos = this.target.position;
+      }
     }
 
     this.isTargetingPlayer = false;
 
-    // Aggro Overrides: Hunt Player if close
+    // Aggro Overrides: Hunt Player if close OR Retaliating
     if (!this.isWraith && playerPos) {
       const distSq = this.mesh.position.distanceToSquared(playerPos);
       let aggroRadiusSq = 5625; // Default Hunter: 75u
 
+      // STRICT DESTROYER LOGIC
       if (this.role === 'destroyer') {
-        aggroRadiusSq = 25; // Destroyer: 5u (Self defense only)
+        // Only target player if Retaliating
+        if (this.retaliationTimer > 0) {
+          aggroRadiusSq = 10000; // Infinite/Large range when angry
+        } else {
+          aggroRadiusSq = 0; // Ignore player completely if not angry
+        }
       }
 
-      if (distSq < aggroRadiusSq) { 
+      if (aggroRadiusSq > 0 && distSq < aggroRadiusSq) { 
         targetPos = playerPos;
         this.isTargetingPlayer = true;
       }
@@ -171,6 +188,7 @@ export class GlitchEnemy {
     }
 
     if (attackDistSq < 16.0) {
+      if (this.type === 'berzerker') return 'explode'; // KAMIKAZE
       return this.isTargetingPlayer ? 'damage_player' : 'damage_crystal';
     }
     return 'move';
@@ -362,6 +380,7 @@ export class GlitchEnemy {
 
   takeDamage(amount) {
     this.life -= amount;
+    this.retaliationTimer = 4.0; // AGGRO for 4 seconds
     this.updateHealthBar();
 
     // Flash

@@ -97,6 +97,15 @@ export class DoomGame {
 
     // Create World
     this.arena.create(this.exhibitsSource);
+
+    // Fix: Initialize Crystal Health so enemies can target them
+    this.exhibitsSource.forEach(ex => {
+      if (ex.mesh) {
+        ex.mesh.userData.health = 100;
+        ex.mesh.userData.name = ex.title || "DATA NODE";
+      }
+    });
+
     this.createWeaponMesh();
     this.ui.initModelHealthBars(this.exhibitsSource);
 
@@ -219,7 +228,7 @@ export class DoomGame {
 
     this.waveInProgress = true;
     this.enemiesToSpawn = 15 + (this.wave * 8); // Buffed (was 10 + 5*wave)
-    const spawnRate = Math.max(500, 2500 - (this.wave * 300));
+    const spawnRate = Math.max(300, 2500 - (this.wave * 300)); // Cap at 300ms (was 500)
 
     this.ui.showWaveTitle(`WAVE ${this.wave}`);
     this.ui.showWaveTitle(`WAVE ${this.wave}`);
@@ -289,7 +298,7 @@ export class DoomGame {
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
     // Role Assignment
-    const role = Math.random() < 0.4 ? 'destroyer' : 'hunter'; // 40% Destroyers
+    const role = Math.random() < 0.6 ? 'destroyer' : 'hunter'; // 60% Destroyers (was 40%)
 
     if (validTargets.length > 0) {
       if (role === 'destroyer') {
@@ -1006,16 +1015,14 @@ export class DoomGame {
     let count = 0;
     for (const enemy of this.enemies) {
       if (enemy.target === crystalMesh) continue; // Already targeting
-      if (enemy.isWraith) continue; // Wraiths do what they want
 
       const distSq = enemy.mesh.position.distanceToSquared(crystalMesh.position);
-      if (distSq < 6400) { // 80 units
-        // 50% chance to join the swarm if close
-        if (Math.random() < 0.5) {
-          enemy.target = crystalMesh;
-          enemy.role = 'destroyer'; // Enforce crystal focus
-          count++;
-        }
+      if (distSq < 22500) { // 150 units (Aggressive pull)
+        // 100% chance to join the swarm
+        enemy.target = crystalMesh;
+        enemy.role = 'destroyer'; // Enforce crystal focus
+        enemy.retaliationTimer = 0; // Stop chasing player immediately
+        count++;
       }
     }
     if (count > 0) console.log(`DEBUG: Swarm Triggered! ${count} enemies diverted to crystal.`);
