@@ -144,4 +144,25 @@ export class DoomAudio {
 
         return setInterval(playNote, 150);
     }
+
+    playAlert() {
+        if (!this.audioCtx) return;
+        const now = this.audioCtx.currentTime;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+        osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.3);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.4);
+
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start();
+        osc.stop(now + 0.4);
+    }
 }

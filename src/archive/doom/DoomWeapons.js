@@ -13,7 +13,7 @@ export class Weapon {
 }
 
 export const WEAPONS = [
-    new Weapon("BLASTER", 90, 4, 0x00ff00, 'hitscan', -1), // Weak "Pea Shooter" (3 hits to kill)
+    new Weapon("BLASTER", 90, 1.8, 0x00ff00, 'hitscan', -1), // Fast Thrill: 11 shots/sec, Low Dmg
     new Weapon("SHOTGUN", 600, 2.5, 0xffaa00, 'spread', 12), // Heavy Hitter (Max ~62 dmg)
     new Weapon("LAUNCHER", 750, 40, 0xff0000, 'projectile', 4),
     // NEW WEAPONS

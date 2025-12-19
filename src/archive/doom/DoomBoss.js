@@ -20,36 +20,33 @@ export class GlitchBoss {
         this.mesh = new THREE.Group();
         this.mesh.position.copy(position);
 
-        // --- VISUALS ---
-        // 1. Core (Pulsing Heart)
-        const coreGeo = new THREE.IcosahedronGeometry(1.0, 1);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+        // --- VISUALS: THE AI BUBBLE ---
+        // 1. The Bubble (Outer Shell)
+        const bubbleGeo = new THREE.SphereGeometry(1.5, 32, 32);
+        const bubbleMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.3 });
+        this.bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
+        this.mesh.add(this.bubble);
+
+        // 2. The Core (Inner Data)
+        const coreGeo = new THREE.IcosahedronGeometry(0.8, 2);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
         this.core = new THREE.Mesh(coreGeo, coreMat);
         this.mesh.add(this.core);
 
-        // 2. Spinning Rings
-        const ringGeo = new THREE.TorusGeometry(2.0, 0.1, 8, 32);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe:true });
-        this.ring1 = new THREE.Mesh(ringGeo, ringMat);
-        this.ring2 = new THREE.Mesh(ringGeo, ringMat);
-        this.ring2.rotation.x = Math.PI / 2;
-        this.mesh.add(this.ring1);
-        this.mesh.add(this.ring2);
-
-        // 3. Floating Chunks
+        // 3. Floating Data Packets
         this.chunks = [];
-        for(let i=0; i<8; i++) {
+        for (let i = 0; i < 12; i++) {
             const chunk = new THREE.Mesh(
-                new THREE.BoxGeometry(0.5, 0.5, 0.5),
-                new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true })
+                new THREE.BoxGeometry(0.3, 0.3, 0.3),
+                new THREE.MeshBasicMaterial({ color: 0x0088ff, wireframe: false })
             );
             chunk.position.set(
-                (Math.random()-0.5)*4,
-                (Math.random()-0.5)*4,
-                (Math.random()-0.5)*4
+                (Math.random() - 0.5) * 3.5,
+                (Math.random() - 0.5) * 3.5,
+                (Math.random() - 0.5) * 3.5
             );
             this.mesh.add(chunk);
-            this.chunks.push(chunk);
+            this.chunks.push({ mesh: chunk, speed: Math.random() * 2 + 1, offset: Math.random() * 100 });
         }
 
         this.mesh.scale.set(this.scale, this.scale, this.scale);
@@ -60,26 +57,23 @@ export class GlitchBoss {
         if (!this.active) return 'remove';
 
         // Visual Animation
-        this.core.rotation.y += delta;
-        this.core.scale.setScalar(1.0 + Math.sin(Date.now()*0.005)*0.2);
-        
-        this.ring1.rotation.y -= delta * 2;
-        this.ring1.rotation.z += delta;
+        this.bubble.rotation.y += delta * 0.2;
+        this.bubble.scale.setScalar(1.0 + Math.sin(Date.now() * 0.002) * 0.05);
 
-        this.ring2.rotation.x -= delta * 2;
-        this.ring2.rotation.z -= delta;
+        this.core.rotation.x -= delta;
+        this.core.rotation.y -= delta;
 
-        this.chunks.forEach((c, i) => {
-            c.rotation.x += delta;
-            c.rotation.y += delta;
-            // Orbit?
-            c.position.y += Math.sin(Date.now()*0.005 + i)*0.01;
+        this.chunks.forEach((c) => {
+            c.mesh.rotation.x += delta * c.speed;
+            c.mesh.rotation.y += delta * c.speed;
+            // Orbit calculation
+            const time = Date.now() * 0.001 + c.offset;
+            c.mesh.position.y += Math.sin(time) * 0.02;
         });
 
         // AI Logic
-        // Phase 1: Slow Approach
-        // Phase 2: Enraged (Handled by game logic spawning minions?) for now just approach
         const targetPos = playerPos; 
+        const distSq = this.mesh.position.distanceToSquared(targetPos); // FIXED: Defined distSq
 
         // Move towards player
         const dir = new THREE.Vector3().subVectors(targetPos, this.mesh.position).normalize();
@@ -100,13 +94,13 @@ export class GlitchBoss {
                 const start = this.mesh.position.clone().add(new THREE.Vector3(0, 5, 0));
                 const dir = new THREE.Vector3().subVectors(targetPos, start).normalize();
                 // Burst attack
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 5; i++) { // Increased burst count
                     setTimeout(() => {
                         if (this.active) {
-                            const variation = new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2);
+                            const variation = new THREE.Vector3((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3);
                             this.onShoot(start, dir.clone().add(variation).normalize());
                         }
-                    }, i * 200);
+                    }, i * 100);
                 }
             }
         }

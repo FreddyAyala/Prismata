@@ -3,10 +3,11 @@ import * as THREE from 'three';
 export class GlitchEnemy {
   static tempDir = new THREE.Vector3();
 
-  constructor(scene, position, target, type = 'normal', onShoot = null) {
+  constructor(scene, position, target, type = 'normal', role = 'hunter', onShoot = null) {
     this.scene = scene;
     this.target = target;
     this.type = type;
+    this.role = role; // 'hunter' or 'destroyer'
     this.isWraith = (type === 'wraith');
     this.onShoot = onShoot; // Callback
     this.shootTimer = 0;
@@ -14,7 +15,7 @@ export class GlitchEnemy {
 
     // Base Stats
     this.life = 10;
-    this.speed = 16;
+    this.speed = 22; 
     this.damage = 10;
     this.color = 0xff0000;
     this.scale = 6.0;
@@ -22,31 +23,31 @@ export class GlitchEnemy {
     // Specialized Variants
     if (type === 'scout') {
       this.life = 5;
-      this.speed = 28;
+      this.speed = 35;
       this.color = 0xffff00; 
       this.scale = 3.5;
     } else if (type === 'tank') {
-      this.life = 50;
-      this.speed = 9;
+      this.life = 80;
+      this.speed = 14; 
       this.damage = 50;
       this.color = 0x3366ff;
       this.scale = 8.0; 
     } else if (type === 'wraith') {
       this.life = 12;
-      this.speed = 18;
+      this.speed = 24; 
       this.color = 0x00ffff;
       this.scale = 5.0;
     } else if (type === 'berzerker') {
       this.life = 8;
-      this.speed = 40;
+      this.speed = 50;
       this.damage = 25;
       this.color = 0xff00ff; 
       this.scale = 4.5;
     } else if (type === 'imp') {
       this.life = 10;
-      this.speed = 12; // Slower, ranged
+      this.speed = 18;
       this.damage = 15;
-      this.color = 0xff4400; // Orange Red
+      this.color = 0xff4400; 
       this.scale = 4.0;
     }
 
@@ -107,16 +108,34 @@ export class GlitchEnemy {
     if (!this.active) return 'remove';
 
     // TARGETING LOGIC
-    let targetPos = this.target ? this.target.position : null;
+    let targetPos = null;
+
+    // Default: Target the assigned crystal/model if it exists
+    if (this.target && this.target.visible) {
+      targetPos = this.target.position;
+    }
+
     this.isTargetingPlayer = false;
 
-    // Non-wraiths will hunt the player if they are close
+    // Aggro Overrides: Hunt Player if close
     if (!this.isWraith && playerPos) {
       const distSq = this.mesh.position.distanceToSquared(playerPos);
-      if (distSq < 625) { // 25 units squared (Reduced from 100)
+      let aggroRadiusSq = 5625; // Default Hunter: 75u
+
+      if (this.role === 'destroyer') {
+        aggroRadiusSq = 25; // Destroyer: 5u (Self defense only)
+      }
+
+      if (distSq < aggroRadiusSq) { 
         targetPos = playerPos;
         this.isTargetingPlayer = true;
       }
+    }
+
+    // Safety: If no target (crystal dead and player far), wander or hunt player anyway
+    if (!targetPos && playerPos) {
+      targetPos = playerPos; // Fallback to player
+      this.isTargetingPlayer = true;
     }
 
     if (!targetPos) return 'remove';
@@ -134,11 +153,14 @@ export class GlitchEnemy {
     // Attack Reach & Shooting
     const attackDistSq = this.mesh.position.distanceToSquared(targetPos);
 
-    // SHOOTING LOGIC (Imp)
-    if (this.type === 'imp') {
+    // SHOOTING LOGIC (Imp & Scout)
+    if (this.type === 'imp' || this.type === 'scout') {
       this.shootTimer += delta;
-      // Shoot if within 60 units but > 10 units (don't shoot point blank?)
-      if (attackDistSq < 3600 && attackDistSq > 100 && this.shootTimer > 2.0) {
+
+      const fireRate = this.type === 'scout' ? 1.5 : 2.0; // Scouts fire faster
+      const maxDist = this.type === 'scout' ? 8100 : 6400; // Scouts shoot from further (90u vs 80u)
+
+      if (attackDistSq < maxDist && attackDistSq > 100 && this.shootTimer > fireRate) {
         this.shootTimer = 0;
         if (this.onShoot) {
           // Determine direction

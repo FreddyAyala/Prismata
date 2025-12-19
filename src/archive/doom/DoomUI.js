@@ -151,6 +151,27 @@ export class DoomUI {
         setTimeout(() => { div.style.opacity = 0; setTimeout(() => div.remove(), 500); }, 3000);
     }
 
+    showWarning(text) {
+        if (!this.hud) return;
+        // avoid spamming
+        if (document.getElementById('doom-warning')) return;
+
+        const div = document.createElement('div');
+        div.id = 'doom-warning';
+        div.innerText = text;
+        div.style.cssText = `position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); 
+                    font-size:50px; color:#ff0033; font-weight:bold; text-shadow:0 0 20px red; 
+                    animation: blink 0.5s infinite alternate; pointer-events:none;`;
+
+        // Add Blink Keyframes if valid
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes blink { from { opacity: 1; } to { opacity: 0.2; } }`;
+        div.appendChild(style);
+
+        this.hud.appendChild(div);
+        setTimeout(() => { if (div.parentElement) div.remove(); }, 3000);
+    }
+
     triggerGameOver(onRestart) {
         const hud = document.getElementById('doom-hud');
         if (!hud) return;

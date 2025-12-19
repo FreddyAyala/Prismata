@@ -47,12 +47,33 @@ export class DoomGame {
   activate(exhibits = null, skipIntro = false) {
     if (this.active) return;
     console.log("🛡️ DOOM GAME ACTIVATED - V5 PURPLE (REFACTORED)");
-    console.log("DEBUG: activate called with skipIntro =", skipIntro);
     this.active = true;
 
     this.ui.createHUD();
     this.exhibitsSource = exhibits || [];
 
+    // Setup input listeners early
+    this.setupInputs();
+
+    if (!skipIntro) {
+      console.log("DEBUG: Showing Instructions...");
+      // DO NOT create arena yet. Wait for user.
+      this.ui.showInstructions(() => {
+        console.log("DEBUG: Instructions 'Enter' callback triggered. Starting Game...");
+        this.startGame();
+      });
+    } else {
+      console.log("DEBUG: Skipping Intro. Starting Game...");
+      this.startGame();
+      document.body.requestPointerLock();
+    }
+
+    if (this.audio.audioCtx && this.audio.audioCtx.state === 'suspended') {
+      this.audio.audioCtx.resume();
+    }
+  }
+
+  startGame() {
     // RESET WEAPONS & STATE
     this.weapons = WEAPONS.map(w => ({
       ...w,
@@ -60,17 +81,28 @@ export class DoomGame {
     }));
     this.currentWeaponIdx = 0;
     this.playerHealth = 100;
+    this.isGameOver = false;
+    this.score = 0;
+    this.wave = 1;
+    this.enemiesToSpawn = 0;
+    this.waveInProgress = false;
 
+    // Create World
     this.arena.create(this.exhibitsSource); 
-
     this.createWeaponMesh();
     this.ui.initModelHealthBars(this.exhibitsSource);
 
-    // Input
+    // Go
+    this.startWave();
+    this.startPickups();
+    this.musicInterval = this.audio.playMusic(() => this.active && !this.isGameOver);
+  }
+
+  setupInputs() {
     this.mousedownHandler = (e) => {
       if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
       this.isFiring = true;
-      this.shoot(e);
+      this.shoot(e); 
     };
     this.mouseupHandler = () => { this.isFiring = false; };
     document.addEventListener('mousedown', this.mousedownHandler);
@@ -81,21 +113,6 @@ export class DoomGame {
 
     this.lockParams = { handler: () => this.handlePointerLockChange() };
     document.addEventListener('pointerlockchange', this.lockParams.handler);
-
-    if (!skipIntro) {
-      console.log("DEBUG: Showing Instructions...");
-      this.ui.showInstructions(() => {
-        console.log("DEBUG: Instructions 'Enter' callback triggered. Resetting game...");
-        this.resetGame();
-      });
-    } else {
-      console.log("DEBUG: Skipping Intro, Requesting Pointer Lock...");
-      document.body.requestPointerLock();
-    }
-
-    if (this.audio.audioCtx && this.audio.audioCtx.state === 'suspended') {
-      this.audio.audioCtx.resume();
-    }
   }
 
   deactivate() {
@@ -105,9 +122,7 @@ export class DoomGame {
     if (document.pointerLockElement) document.exitPointerLock();
 
     // Cleanup
-    if (this.weaponMesh) { this.camera.remove(this.weaponMesh); this.weaponMesh = null; }
-
-    this.arena.cleanup();
+    this.cleanupLevel();
 
     if (this.mousedownHandler) { document.removeEventListener('mousedown', this.mousedownHandler); this.mousedownHandler = null; }
     if (this.mouseupHandler) { document.removeEventListener('mouseup', this.mouseupHandler); this.mouseupHandler = null; }
@@ -119,12 +134,17 @@ export class DoomGame {
       this.lockParams = null;
     }
 
+    this.ui.removeHUD();
+    this.systems.clear();
+  }
+
+  cleanupLevel() {
+    if (this.weaponMesh) { this.camera.remove(this.weaponMesh); this.weaponMesh = null; }
+    this.arena.cleanup();
+
     if (this.spawnInterval) clearInterval(this.spawnInterval);
     if (this.pickupInterval) clearInterval(this.pickupInterval);
     if (this.musicInterval) clearInterval(this.musicInterval);
-
-    this.ui.removeHUD();
-    this.systems.clear();
 
     // Clear Entities
     this.enemies.forEach(e => this.scene.remove(e.mesh));
@@ -228,31 +248,48 @@ export class DoomGame {
   spawnEnemy() {
     if (!this.active) return;
     const validTargets = this.ui.crystals.filter(c => c.mesh && c.mesh.visible && c.mesh.userData.health > 0).map(c => c.mesh);
+
+    // Spawn Logic: Prefer closer points
+    let spawnPoint = this.arena.getRandomSpawnPoint();
+    for (let i = 0; i < 5; i++) {
+      const potential = this.arena.getRandomSpawnPoint();
+      const dist = potential.distanceTo(this.camera.position);
+      // We want them close (thrill) but not ON TOP (min 20) and not miles away (max 110)
+      if (dist > 20 && dist < 110) {
+        spawnPoint = potential;
+        break;
+      }
+    }
+
     let target = this.camera;
-    if (validTargets.length > 0 && Math.random() < 0.7) {
-      target = validTargets[Math.floor(Math.random() * validTargets.length)];
+    // Helper to pick random
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    // Role Assignment
+    const role = Math.random() < 0.4 ? 'destroyer' : 'hunter'; // 40% Destroyers
+
+    if (validTargets.length > 0) {
+      if (role === 'destroyer') {
+        target = pick(validTargets);
+      } else {
+        // Hunter prefers player usually, but can target crystal if close
+        // We pass 'target' as default, but Hunter logic in Enemy.js overrides to player if close
+        target = pick(validTargets);
+      }
     }
 
     let type = 'normal';
-    const roll = Math.random();
-    if (this.wave >= 1 && roll < 0.2) type = 'scout';
-    if (this.wave >= 2 && roll < 0.15) type = 'tank';
-    if (this.wave >= 2 && roll < 0.15 && roll >= 0.05) type = 'imp';
-    if (this.wave >= 3 && roll < 0.15) type = 'berzerker';
-    if (this.wave >= 3 && roll < 0.1) type = 'wraith';
-    if (this.wave >= 4 && roll < 0.25) type = 'berzerker';
+    if (this.wave > 1 && Math.random() < 0.3) type = 'imp';
+    if (this.wave > 2 && Math.random() < 0.2) type = 'wraith';
+    if (this.wave > 3 && Math.random() < 0.15) type = 'tank';
+    if (this.wave > 4 && Math.random() < 0.1) type = 'berzerker';
+    if (this.wave > 2 && Math.random() < 0.1) type = 'scout';
 
-    // Use Arena for spawn point
-    const spawnPos = this.arena.getRandomSpawnPoint();
-
-    const onShoot = (pos, dir) => this.fireEnemyProjectile(pos, dir);
-    const enemy = new GlitchEnemy(this.scene, spawnPos, target, type, onShoot);
-
-    const multiplier = 1 + (this.wave - 1) * 0.15;
-    enemy.life *= multiplier;
+    const enemy = new GlitchEnemy(this.scene, spawnPoint, target, type, role, (pos, dir) => {
+      this.fireEnemyProjectile(pos, dir);
+    });
     this.enemies.push(enemy);
-    if (this.wave !== 5) this.enemiesToSpawn--;
-    this.ui.updateHUD();
+    this.enemiesToSpawn--;
   }
 
   fireEnemyProjectile(start, dir) {
@@ -287,12 +324,48 @@ export class DoomGame {
         this.systems.createExplosion(e.mesh.position, 0xff0000, true);
         this.takePlayerDamage(15);
       } else if (result === 'damage_crystal') {
-        if (e.target) {
-          e.target.userData.health -= 20;
-          if (e.target.userData.health <= 0) e.target.visible = false;
+        const target = e.target;
+        if (target && target.userData.health !== undefined) {
+          target.userData.health -= e.damage * delta * 0.5; // Half damage to crystals
+
+          // Dynamic Warning & Sound
+          if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 2.0)) {
+            this.lastAlertTime = this.audio.audioCtx ? this.audio.audioCtx.currentTime : Date.now();
+            this.audio.playAlert();
+
+            // Direction Calculation
+            let dirText = "";
+            if (target.position) {
+              const toTarget = new THREE.Vector3().subVectors(target.position, this.camera.position).normalize();
+              const forward = new THREE.Vector3();
+              this.camera.getWorldDirection(forward);
+              forward.y = 0; toTarget.y = 0; forward.normalize(); toTarget.normalize();
+
+              const dot = forward.dot(toTarget);
+              const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0));
+              const dotRight = right.dot(toTarget);
+
+              if (dot < -0.5) dirText = "(BEHIND)";
+              else if (dotRight > 0.5) dirText = "(RIGHT)";
+              else if (dotRight < -0.5) dirText = "(LEFT)";
+              else dirText = "(AHEAD)";
+            }
+
+            const name = target.userData.name || "SYSTEM";
+            this.ui.showWarning(`${name} ${dirText} UNDER ATTACK!`);
+
+            // SWARM MECHANIC
+            this.swarmCrystal(target);
+          }
+
+          if (target.userData.health <= 0) {
+            target.visible = false; // Destroyed
+          }
         }
-        e.takeDamage(999);
-        this.systems.createExplosion(e.mesh.position, 0x00ffff, true);
+        // Throttled Visuals: 5% chance per frame, small explosion
+        if (Math.random() < 0.05) {
+          this.systems.createExplosion(e.mesh.position, 0x00ffff, false);
+        }
       }
 
       if (!e.active) {
@@ -698,15 +771,9 @@ export class DoomGame {
   }
 
   resetGame() {
-    this.deactivate();
-    this.activate(this.exhibitsSource, true);
-    this.score = 0;
-    this.wave = 1;
-    this.playerHealth = 100;
-    this.isGameOver = false;
-    this.startWave();
-    this.startPickups();
-    this.musicInterval = this.audio.playMusic(() => this.active && !this.isGameOver);
+    this.cleanupLevel();
+    // Re-start game logic without toggling 'active' state to avoid ArchiveManager interference
+    this.startGame();
     document.body.requestPointerLock();
   }
 
@@ -834,5 +901,26 @@ export class DoomGame {
       if (!this.active || this.isGameOver) return;
       this.systems.spawnHealthPickup(this.camera.position);
     }, 15000);
+  }
+
+  swarmCrystal(crystalMesh) {
+    // Force nearby enemies to switch target to this crystal
+    if (!crystalMesh) return;
+    let count = 0;
+    for (const enemy of this.enemies) {
+      if (enemy.target === crystalMesh) continue; // Already targeting
+      if (enemy.isWraith) continue; // Wraiths do what they want
+
+      const distSq = enemy.mesh.position.distanceToSquared(crystalMesh.position);
+      if (distSq < 6400) { // 80 units
+        // 50% chance to join the swarm if close
+        if (Math.random() < 0.5) {
+          enemy.target = crystalMesh;
+          enemy.role = 'destroyer'; // Enforce crystal focus
+          count++;
+        }
+      }
+    }
+    if (count > 0) console.log(`DEBUG: Swarm Triggered! ${count} enemies diverted to crystal.`);
   }
 }
