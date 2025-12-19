@@ -10,8 +10,8 @@ export class GlitchBoss {
         this.isBoss = true;
 
         // Boss Stats
-        this.life = 3000; // Buffed from 1500
-        this.maxLife = 3000;
+        this.life = 5000; // Buffed to 5000 (Tougher)
+        this.maxLife = 5000;
         this.speed = 4;
         this.damage = 100;
         this.scale = 20.0;
@@ -226,11 +226,39 @@ export class GlitchBoss {
 
         if (this.life <= 0) {
             this.active = false;
-            this.scene.remove(this.mesh);
-            // Clean effects
-            if (this.effects) this.effects.forEach(e => this.scene.remove(e.mesh));
+            // DEATH ANIMATION: BURST
+            // We want it to "Pop"
+            this.explode();
             return true;
         }
         return false;
+    }
+
+    explode() {
+        console.log("DEBUG: Boss Bursting!");
+        // Visual Pop - Scale up rapidly then vanish
+        const startScale = this.mesh.scale.x;
+        const startTime = Date.now();
+
+        const animateDeath = () => {
+            const now = Date.now();
+            const progress = (now - startTime) / 500; // 0.5s burst
+            if (progress >= 1.0) {
+                this.scene.remove(this.mesh);
+                if (this.effects) this.effects.forEach(e => this.scene.remove(e.mesh));
+                return;
+            }
+            const s = startScale * (1.0 + progress * 2.0); // Expand to 300%
+            this.mesh.scale.set(s, s, s);
+            this.mesh.rotation.y += 0.5;
+            this.bubble.material.opacity = 0.3 * (1.0 - progress);
+            requestAnimationFrame(animateDeath);
+        };
+        animateDeath();
+
+        // Massive Particle Explosion
+        for (let i = 0; i < 50; i++) {
+            this.spawnDollarSign(this.core);
+        }
     }
 }
