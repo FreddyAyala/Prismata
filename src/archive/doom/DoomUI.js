@@ -11,7 +11,7 @@ export class DoomUI {
         if (document.getElementById('doom-hud')) return;
         this.hud = document.createElement('div');
         this.hud.id = 'doom-hud';
-        this.hud.style.cssText = "position:absolute; bottom:20px; left:20px; width:100vw; height:100vh; pointer-events:none; color:#ff0033; font-family:'Orbitron', sans-serif; font-size:24px; text-shadow:0 0 10px #ff0000; z-index:4000;";
+        this.hud.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; color:#ff0033; font-family:'Orbitron', sans-serif; font-size:24px; text-shadow:0 0 10px #ff0000; z-index:4000;";
         this.hud.innerHTML = `
             <div style="position:absolute; bottom:20px; left:20px; pointer-events:none;">
                 <div style="font-size:32px; color:#00ff88; margin-bottom:10px;">HP: <span id="doom-hp">100</span></div>
@@ -106,6 +106,7 @@ export class DoomUI {
 
         let started = false;
         const start = () => {
+            console.log("DEBUG: DoomUI.start called. started =", started);
             if (started) return;
             started = true;
             div.remove();
@@ -114,12 +115,18 @@ export class DoomUI {
         };
 
         const keyH = (e) => {
-            if (e.key === 'Enter') start();
+            if (e.key === 'Enter') {
+                console.log("DEBUG: Enter key pressed in Instructions");
+                start();
+            }
         };
         window.addEventListener('keydown', keyH);
 
         const btn = document.getElementById('doom-start-btn');
-        if (btn) btn.onclick = start;
+        if (btn) btn.onclick = () => {
+            console.log("DEBUG: Start Button Clicked");
+            start();
+        };
 
         const cancelBtn = document.getElementById('doom-cancel-btn');
         if (cancelBtn) {

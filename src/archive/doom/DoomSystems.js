@@ -11,89 +11,96 @@ export class DoomSystems {
     }
 
     createExplosion(pos, color, isBig, life = 0.5) {
-        const count = isBig ? 100 : 15;
-        const spread = isBig ? 8.0 : 0.5;
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-        const velocities = [];
+        const count = isBig ? 20 : 8; // Fewer but bigger chunks
+        const spread = isBig ? 8.0 : 1.5;
+
+        // Use a shared geometry for debris
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: color, wireframe: false });
+
         for (let i = 0; i < count; i++) {
-            positions[i * 3] = pos.x; positions[i * 3 + 1] = pos.y; positions[i * 3 + 2] = pos.z;
-            velocities.push({
-                x: (Math.random() - 0.5) * 10 * spread,
-                y: (Math.random() - 0.5) * 10 * spread,
-                z: (Math.random() - 0.5) * 10 * spread
+            const mesh = new THREE.Mesh(geometry, material.clone()); // Clone mat for opacity
+            mesh.position.copy(pos);
+
+            // Random Offset
+            mesh.position.x += (Math.random() - 0.5) * 2.0;
+            mesh.position.y += (Math.random() - 0.5) * 2.0;
+            mesh.position.z += (Math.random() - 0.5) * 2.0;
+
+            const scale = isBig ? 1.0 + Math.random() * 2.0 : 0.3 + Math.random() * 0.4;
+            mesh.scale.set(scale, scale, scale);
+
+            this.scene.add(mesh);
+
+            const velocity = {
+                x: (Math.random() - 0.5) * 15 * spread,
+                y: (Math.random() - 0.5) * 15 * spread,
+                z: (Math.random() - 0.5) * 15 * spread
+            };
+
+            this.particles.push({
+                mesh,
+                velocity,
+                life,
+                initialLife: life,
+                rotSpeed: { x: Math.random() * 5, y: Math.random() * 5 } 
             });
-        }
-        let ps;
-        // Verify pool has compatible mesh
-        let foundIdx = -1;
-        for (let i = 0; i < this.explosionPool.length; i++) {
-            if (this.explosionPool[i].geometry.attributes.position.count === count) {
-                foundIdx = i;
-                break;
-            }
         }
 
-        if (foundIdx !== -1) {
-            ps = this.explosionPool.splice(foundIdx, 1)[0];
-            ps.visible = true;
-            ps.geometry.attributes.position.array.set(positions);
-            ps.material.color.set(color);
-            ps.material.opacity = 1.0;
-            ps.material.size = isBig ? 5.0 : 0.5; // BIGGER
-            ps.material.blending = THREE.AdditiveBlending; // Ensure glow
-            ps.geometry.attributes.position.needsUpdate = true;
-        } else {
-            // No suitable pooled mesh, create new
-            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const mat = new THREE.PointsMaterial({
-                color,
-                size: isBig ? 5.0 : 0.5,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-            ps = new THREE.Points(geo, mat);
-            this.scene.add(ps);
-        }
-        this.particles.push({ mesh: ps, velocities, life, initialLife: life });
+        // Add a central flash sphere
+        const flashGeo = new THREE.SphereGeometry(isBig ? 4.0 : 1.0, 8, 8);
+        const flashMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 });
+        const flash = new THREE.Mesh(flashGeo, flashMat);
+        flash.position.copy(pos);
+        this.scene.add(flash);
+        this.particles.push({ mesh: flash, life: 0.2, initialLife: 0.2, isFlash: true });
     }
 
     updateParticles(delta) {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
 
-            if (p.mesh.isPoints && p.velocities && p.velocities.length > 0 && !p.isTracer) {
-                const posAttr = p.mesh.geometry.attributes.position;
-                if (posAttr) {
-                    const pos = posAttr.array;
-                    for (let j = 0; j < p.velocities.length; j++) {
-                        pos[j * 3] += p.velocities[j].x * delta;
-                        pos[j * 3 + 1] += p.velocities[j].y * delta;
-                        pos[j * 3 + 2] += p.velocities[j].z * delta;
-                    }
-                    posAttr.needsUpdate = true;
+            if (p.mesh) {
+                // Movement
+                if (p.velocity) {
+                    p.mesh.position.x += p.velocity.x * delta;
+                    p.mesh.position.y += p.velocity.y * delta;
+                    p.mesh.position.z += p.velocity.z * delta;
+                    // Gravity
+                    p.velocity.y -= 25.0 * delta;
+                }
+
+                // Rotation
+                if (p.rotSpeed) {
+                    p.mesh.rotation.x += p.rotSpeed.x * delta;
+                    p.mesh.rotation.y += p.rotSpeed.y * delta;
+                }
+
+                // Flash expansion
+                if (p.isFlash) {
+                    const s = p.mesh.scale.x + delta * 15.0;
+                    p.mesh.scale.set(s, s, s);
                 }
             }
 
             p.life -= delta;
 
-            if (p.mesh.material && p.mesh.material.transparent && !p.isTracer) {
-                const initialLife = p.initialLife || 0.5;
-                const lifePct = Math.max(0, p.life / initialLife);
-                p.mesh.material.opacity = lifePct > 0.3 ? 1.0 : (lifePct / 0.3);
+            if (p.mesh && p.mesh.material) {
+                const lifePct = Math.max(0, p.life / p.initialLife);
+                if (p.mesh.material.transparent || p.isFlash) {
+                    p.mesh.material.opacity = lifePct;
+                }
+                // Blink out debris
+                if (!p.isFlash && lifePct < 0.2) {
+                    p.mesh.visible = Math.random() > 0.5;
+                }
             }
 
             if (p.life <= 0) {
-                p.mesh.visible = false;
-                if (p.mesh.isPoints && this.explosionPool.length < this.maxPoolSize) {
-                    this.explosionPool.push(p.mesh);
-                } else {
+                if (p.mesh) {
                     this.scene.remove(p.mesh);
-                    if (!p.isTracer) {
-                        if (p.mesh.geometry) p.mesh.geometry.dispose();
-                        if (p.mesh.material) p.mesh.material.dispose();
-                    }
+                    if (p.mesh.geometry) p.mesh.geometry.dispose();
+                    if (p.mesh.material) p.mesh.material.dispose();
                 }
                 this.particles.splice(i, 1);
             }
