@@ -77,7 +77,8 @@ export class GlitchEnemy {
       visible: false,
       transparent: true,
       opacity: 0,
-      depthWrite: false
+      depthWrite: false,
+      side: THREE.DoubleSide // Ensure Raycast hits from inside (Point Blank)
     });
     this.hitbox = new THREE.Mesh(hitGeo, hitMat);
     this.hitbox.name = 'enemy_hitbox';

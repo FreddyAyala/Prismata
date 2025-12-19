@@ -477,6 +477,10 @@ export class DoomGame {
       this.ui.hud.appendChild(flash);
       setTimeout(() => flash.remove(), 100);
     }
+
+    // Play Pain Sound (Grunt)
+    if (this.audio && this.audio.playPlayerPain) this.audio.playPlayerPain();
+
     if (this.playerHealth <= 0) this.triggerGameOver();
     this.ui.updateHUD();
   }

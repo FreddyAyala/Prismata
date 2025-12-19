@@ -296,4 +296,31 @@ export class DoomAudio {
             }, i * 400);
         }
     }
+
+    playPlayerPain() {
+        if (!this.audioCtx) return;
+        // DOOM GRUNT: Low pitch descending sawtooth with lowpass
+        const t = this.audioCtx.currentTime;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        const filter = this.audioCtx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, t);
+        osc.frequency.exponentialRampToValueAtTime(80, t + 0.3);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(500, t);
+        filter.Q.value = 1;
+
+        gain.gain.setValueAtTime(0.8, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.audioCtx.destination);
+
+        osc.start();
+        osc.stop(t + 0.3);
+    }
 }
