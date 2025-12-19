@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { DoomAudio } from './DoomAudio.js';
-import { GlitchEnemy } from './DoomEnemy.js';
-import { GlitchBoss } from './DoomBoss.js';
-import { WEAPONS } from './DoomWeapons.js';
-import { DoomUI } from './DoomUI.js';
-import { DoomSystems } from './DoomSystems.js';
-import { DoomArena } from './DoomArena.js';
-import { DoomProjectiles } from './DoomProjectiles.js';
+import { GoomAudio } from './GoomAudio.js';
+import { GlitchEnemy } from './GoomEnemy.js';
+import { GlitchBoss } from './GoomBoss.js';
+import { WEAPONS } from './GoomWeapons.js';
+import { GoomUI } from './GoomUI.js';
+import { GoomSystems } from './GoomSystems.js';
+import { GoomArena } from './GoomArena.js';
+import { GoomProjectiles } from './GoomProjectiles.js';
 
-export class DoomGame {
+export class GoomGame {
   constructor(scene, camera, player = null) {
     this.scene = scene;
     this.camera = camera;
@@ -16,11 +16,11 @@ export class DoomGame {
     this.active = false;
 
     // Systems
-    this.audio = new DoomAudio();
-    this.ui = new DoomUI(this);
-    this.systems = new DoomSystems(this);
-    this.arena = new DoomArena(scene);
-    this.projectiles = new DoomProjectiles(this); // New Module
+    this.audio = new GoomAudio();
+    this.ui = new GoomUI(this);
+    this.systems = new GoomSystems(this);
+    this.arena = new GoomArena(scene);
+    this.projectiles = new GoomProjectiles(this); // New Module
 
     // Game State
     this.score = 0;
@@ -51,7 +51,7 @@ export class DoomGame {
 
   activate(exhibits = null, skipIntro = false) {
     if (this.active) return;
-    console.log("🛡️ DOOM GAME ACTIVATED - V6 (MODULAR)");
+    console.log("🛡️ GOOM GAME ACTIVATED - V6 (MODULAR)");
     this.active = true;
 
     this.ui.createHUD();

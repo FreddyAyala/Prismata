@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { ArchiveEnvironment } from './ArchiveEnvironment.js';
 import { FirstPersonController } from './FirstPersonController.js';
-import { DoomGame } from './doom/DoomGame.js';
+import { GoomGame } from './goom/GoomGame.js';
 // HMR FORCE UPDATE - DOOM V8 (WIDTH 150)
-console.log("ArchiveManager Loaded - Force Update V8");
+console.log("ArchiveManager Loaded - Force Update V8 (GOOM)");
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 
 class ArchiveManager {
@@ -85,8 +85,8 @@ class ArchiveManager {
 
         if (this.player) this.player.unlock();
 
-        if (this.doomManager) {
-            this.doomManager.deactivate();
+        if (this.goomManager) {
+            this.goomManager.deactivate();
         }
 
         // Clean up WebGL to save memory
@@ -113,12 +113,12 @@ class ArchiveManager {
         this.environment.build(Math.max(200, this.models.length * 50));
 
         this.player = new FirstPersonController(this.camera, document.body); // Bind to body for pointer lock
-        this.doomManager = new DoomGame(this.scene, this.camera, this.player);
+        this.goomManager = new GoomGame(this.scene, this.camera, this.player);
 
         // Unlock Listener to Show Menu
         this.player.controls.addEventListener('unlock', () => {
-            // DO NOT show pause menu if Doom Mode is Active
-            if (this.doomManager && this.doomManager.active) return;
+            // DO NOT show pause menu if Goom Mode is Active
+            if (this.goomManager && this.goomManager.active) return;
 
             const ui = document.getElementById('archive-ui');
             if (ui) {
@@ -238,7 +238,7 @@ class ArchiveManager {
         // Remove keydown listener for 'p'
         window.removeEventListener('keydown', (e) => {
             if (e.key.toLowerCase() === 'p') {
-                if (this.doomManager) this.doomManager.activate();
+                if (this.goomManager) this.goomManager.activate();
             }
         });
         if (this.keyHandler) window.removeEventListener('keydown', this.keyHandler);
@@ -254,21 +254,21 @@ class ArchiveManager {
             this.player.update(delta);
             this.checkProximity();
 
-            // Perform Doom Trigger Check
+            // Perform Goom Trigger Check
             const p = this.camera.position;
             // Check distance to platform (10, 0, 20)
             if (Math.abs(p.x - 10) < 4 && Math.abs(p.z - 20) < 4) {
-                if (!this.doomManager.active) {
-                    this.doomManager.activate(this.exhibits);
+                if (!this.goomManager.active) {
+                    this.goomManager.activate(this.exhibits);
                 }
             }
         }
 
-        if (this.doomManager) {
+        if (this.goomManager) {
             try {
-                this.doomManager.update(delta);
+                this.goomManager.update(delta);
             } catch (e) {
-                console.error("DoomManager update error:", e);
+                console.error("GoomManager update error:", e);
             }
         }
 
