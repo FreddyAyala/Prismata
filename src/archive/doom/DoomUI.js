@@ -380,7 +380,7 @@ export class DoomUI {
         // Let's assume full health for visualization if not tracked, OR hook into userData.
 
         this.crystals.forEach(c => {
-            if (!c.mesh.visible) {
+            if (!c.mesh.visible || (c.mesh.userData.health !== undefined && c.mesh.userData.health <= 0)) {
                 c.bar.style.display = 'none';
                 return;
             }

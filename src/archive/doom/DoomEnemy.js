@@ -17,41 +17,41 @@ export class GlitchEnemy {
 
     // Base Stats
     this.life = 10;
-    this.speed = 22; 
+    this.speed = 27; // Buffed (was 22)
     this.damage = 10;
     this.color = 0xff0000;
-    this.scale = 6.0;
+    this.scale = 8.6; // Buffed (was 7.2)
 
     // Specialized Variants
     if (type === 'scout') {
       this.life = 5;
-      this.speed = 35;
+      this.speed = 42; // Buffed (was 35)
       this.color = 0xffff00; 
-      this.scale = 3.5;
+      this.scale = 5.0; // Buffed (was 4.2)
     } else if (type === 'tank') {
       this.speed = 4; // Buffed (was 3)
       this.life = 60;
       this.damage = 25;
       this.color = 0x3366ff;
-      this.scale = 8.0; 
+      this.scale = 11.5; // Buffed (was 9.6) 
     } else if (type === 'wraith') {
       this.speed = 7; // Buffed (was 5)
       this.life = 20;
       this.damage = 15;
       this.color = 0x00ffff;
-      this.scale = 5.0;
+      this.scale = 7.2; // Buffed (was 6.0)
     } else if (type === 'berzerker') {
       this.life = 8;
       this.speed = 50;
       this.damage = 25;
       this.color = 0xff00ff; 
-      this.scale = 4.5;
+      this.scale = 6.5; // Buffed (was 5.4)
     } else if (type === 'imp') {
       this.life = 10;
       this.speed = 18;
       this.damage = 15;
       this.color = 0xff4400; 
-      this.scale = 4.0;
+      this.scale = 5.8; // Buffed (was 4.8)
     }
 
     this.mesh = new THREE.Group();
@@ -69,10 +69,17 @@ export class GlitchEnemy {
   createHitbox() {
     // Add an invisible sphere that acts as the primary collision target
     // This makes it MUCH easier to hit wireframe enemies
-    const geo = new THREE.SphereGeometry(3.0, 8, 8); // Increased from 1.5 for easier hits
-    // Use opacity 0 instead of visible: false to ensure Raycaster definitely hits it
-    const mat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0, depthWrite: false });
-    this.hitbox = new THREE.Mesh(geo, mat);
+    // Hitbox (Invisible for Raycasting)
+    const hitGeo = new THREE.SphereGeometry(this.scale * 0.15, 8, 8); // Scaled
+    // Redundant safety: Visible False, Transparent, Opacity 0, DepthWrite False, Black Color
+    const hitMat = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      visible: false,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    });
+    this.hitbox = new THREE.Mesh(hitGeo, hitMat);
     this.hitbox.name = 'enemy_hitbox';
     this.hitbox.userData.enemy = this;
     this.mesh.add(this.hitbox);
@@ -114,8 +121,8 @@ export class GlitchEnemy {
     // TARGETING LOGIC
     let targetPos = null;
 
-    // Default: Target the assigned crystal/model if it exists
-    if (this.target && this.target.visible && this.target.userData.health > 0) {
+    // Default: Target the assigned crystal/model if it exists (removed .visible check)
+    if (this.target && this.target.userData.health > 0) {
       targetPos = this.target.position;
     } else if (this.role === 'destroyer' && this.onFindTarget) {
       // Dynamic Retargeting: Current target dead? Find a new one instantly.
@@ -167,6 +174,9 @@ export class GlitchEnemy {
       this.mesh.rotation.z += delta * 10;
     }
 
+    // Safety: Ensure Hitbox never renders
+    if (this.hitbox && this.hitbox.visible === true) this.hitbox.visible = false;
+
     // Attack Reach & Shooting
     const attackDistSq = this.mesh.position.distanceToSquared(targetPos);
 
@@ -174,7 +184,7 @@ export class GlitchEnemy {
     if (this.type === 'imp' || this.type === 'scout') {
       this.shootTimer += delta;
 
-      const fireRate = this.type === 'scout' ? 1.5 : 2.0; // Scouts fire faster
+      const fireRate = this.type === 'scout' ? 0.8 : 2.0; // Scout buff (0.8s)
       const maxDist = this.type === 'scout' ? 8100 : 6400; // Scouts shoot from further (90u vs 80u)
 
       if (attackDistSq < maxDist && attackDistSq > 100 && this.shootTimer > fireRate) {
@@ -182,7 +192,7 @@ export class GlitchEnemy {
         if (this.onShoot) {
           // Determine direction
           const dir = new THREE.Vector3().subVectors(targetPos, this.mesh.position).normalize();
-          this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), dir);
+          this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), dir, this.type); // Pass type
         }
       }
     }
@@ -385,6 +395,9 @@ export class GlitchEnemy {
 
     // Flash
     this.mesh.children.forEach(c => {
+      // Fix: Exclude Hitbox and HealthBar from flashing
+      if (c.name === 'enemy_hitbox' || c.isSprite) return;
+
       if (c.material) {
         c.material.color.setHex(0xffffff);
         setTimeout(() => {

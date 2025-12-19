@@ -178,7 +178,14 @@ export class DoomGame {
   }
 
   update(delta) {
-    if (!this.active || this.isGameOver) return;
+    if (!this.active) return; // Only check active state here
+
+    this.systems.updateParticles(delta);
+
+    // Integrity Check
+    this.checkCrystalHealth();
+
+    if (this.isVictory || this.isGameOver) return;
 
     if (this.audio.audioCtx && this.audio.audioCtx.state === 'suspended') this.audio.audioCtx.resume();
 
@@ -255,7 +262,7 @@ export class DoomGame {
     this.ui.showWaveTitle("THE AI BUBBLE: POP IT TO SAVE AI");
     if (this.audio.setMusicPhase) this.audio.setMusicPhase(3); // Boss Music (Phase 3)
     const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 5, -60)); // Lower and closer (Was 10, -80)
-    const onShoot = (pos, dir, isBoss) => this.fireEnemyProjectile(pos, dir, isBoss);
+    const onShoot = (pos, dir, type) => this.fireEnemyProjectile(pos, dir, type); // Pass type
     this.boss = new GlitchBoss(this.scene, spawnPos, this.camera, onShoot);
 
     const bossHudContainer = document.createElement('div');
@@ -317,15 +324,18 @@ export class DoomGame {
     if (this.wave > 4 && Math.random() < 0.1) type = 'berzerker';
     if (this.wave > 2 && Math.random() < 0.1) type = 'scout';
 
-    const enemy = new GlitchEnemy(this.scene, spawnPoint, target, type, role, (pos, dir) => {
-      this.fireEnemyProjectile(pos, dir);
-    });
+    // Pass onFindTarget callback
+    const onFindTarget = (pos) => this.findNearestCrystal(pos);
+    const enemy = new GlitchEnemy(this.scene, spawnPoint, target, type, role, (pos, dir, enemyType) => {
+      this.fireEnemyProjectile(pos, dir, enemyType);
+    }, onFindTarget);
     this.enemies.push(enemy);
     this.enemiesToSpawn--;
   }
 
-  fireEnemyProjectile(start, dir, isBoss = false) {
+  fireEnemyProjectile(start, dir, type = 'normal') {
     let geo, mat, speed, damage;
+    const isBoss = (type === 'boss' || type === true); // Handle legacy bool or string
 
     if (isBoss) {
       // Virus Orb (Purple, Spiky)
@@ -333,6 +343,13 @@ export class DoomGame {
       mat = new THREE.MeshBasicMaterial({ color: 0xaa00ff, wireframe: true });
       speed = 40;
       damage = 25;
+    } else if (type === 'scout') {
+      // Prompt Engineer Bolt (Green, Fast)
+      geo = new THREE.ConeGeometry(0.2, 0.8, 8); // Sharp
+      geo.rotateX(Math.PI / 2); // Point forward
+      mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: false }); // GREEN
+      speed = 50; // Buffed (was 30)
+      damage = 10;
     } else {
       // Standard Projectile
       geo = new THREE.DodecahedronGeometry(0.5);
@@ -343,6 +360,9 @@ export class DoomGame {
 
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(start);
+    // Align rotation to direction
+    if (type === 'scout') mesh.lookAt(start.clone().add(dir));
+
     this.scene.add(mesh);
 
     this.projectiles.push({
@@ -354,7 +374,8 @@ export class DoomGame {
       isBossProjectile: isBoss
     });
 
-    const pitch = isBoss ? 100 : 200; // Lower pitch for boss
+    let pitch = isBoss ? 100 : 200; // Lower pitch for boss
+    if (type === 'scout') pitch = 400; // High pitch for PE
     if (this.audio) this.audio.playSound(pitch, 'sawtooth', 0.2, 0.5);
   }
 
@@ -408,10 +429,7 @@ export class DoomGame {
           }
 
           if (target.userData.health <= 0) {
-            target.visible = false; // Destroyed
-            this.score = Math.max(0, this.score - 500);
-            this.ui.showWarning(`DATA NODE LOST! -500 PTS`);
-            this.ui.updateHUD(); // Ensure score updates
+            this.destroyCrystal(target);
           }
         }
         // Throttled Visuals: 5% chance per frame, small explosion
@@ -706,6 +724,10 @@ export class DoomGame {
                 hit = true;
                 c.mesh.userData.health -= p.damage;
                 this.systems.createExplosion(c.mesh.position, 0x00ffff, true);
+                // Check if crystal is destroyed
+                if (c.mesh.userData.health <= 0) {
+                  this.destroyCrystal(c.mesh);
+                }
                 break;
               }
             }
@@ -1018,13 +1040,72 @@ export class DoomGame {
 
       const distSq = enemy.mesh.position.distanceToSquared(crystalMesh.position);
       if (distSq < 22500) { // 150 units (Aggressive pull)
-        // 100% chance to join the swarm
         enemy.target = crystalMesh;
-        enemy.role = 'destroyer'; // Enforce crystal focus
-        enemy.retaliationTimer = 0; // Stop chasing player immediately
+        enemy.role = 'destroyer';
+        enemy.retaliationTimer = 0; 
         count++;
       }
     }
-    if (count > 0) console.log(`DEBUG: Swarm Triggered! ${count} enemies diverted to crystal.`);
+  }
+
+  checkCrystalHealth() {
+    if (!this.ui || !this.ui.crystals) return;
+    this.ui.crystals.forEach(c => {
+      if (c.mesh && c.mesh.userData.health !== undefined && c.mesh.userData.health <= 0 && !c.mesh.userData.isDead) {
+        this.destroyCrystal(c.mesh);
+      }
+    });
+  }
+
+  findNearestCrystal(pos) {
+    if (!this.ui || !this.ui.crystals) return null;
+    let closest = null;
+    let minDist = Infinity;
+    for (const c of this.ui.crystals) {
+      if (!c.mesh || !c.mesh.visible || c.mesh.userData.isDead) continue;
+      const d = pos.distanceToSquared(c.mesh.position);
+      if (d < minDist) {
+        minDist = d;
+        closest = c.mesh;
+      }
+    }
+    return closest;
+  }
+
+  destroyCrystal(crystalMesh) {
+    if (!crystalMesh || crystalMesh.userData.isDead) return;
+
+    console.log("CRITICAL: Crystal Destroyed", crystalMesh.userData.name);
+    crystalMesh.userData.isDead = true;
+    crystalMesh.visible = false;
+
+    // 1. Score Penalty
+    this.ui.score -= 1000;
+    this.ui.updateHUD();
+
+    // 2. Warning Message
+    // Attempt to show warning if UI supports it, else verify logic
+    if (this.ui.showWarning) this.ui.showWarning(`HISTORY LOST: ${crystalMesh.userData.name}`);
+
+    // 3. Explosion
+    this.systems.createExplosion(crystalMesh.position, 0xff0000, true, 20.0); // Size 20 massive
+
+    // 4. Audio
+    if (this.audio) {
+      this.audio.playSound(50, 'sawtooth', 3.0, 1.0); // Deep Impact
+      this.audio.playSound(200, 'square', 1.5, 0.8, -1200); // Fail Tone
+    }
+
+    // 5. Remove from Scene (to prevent glitches)
+    if (crystalMesh.parent) crystalMesh.parent.remove(crystalMesh);
+    else this.scene.remove(crystalMesh);
+
+    // 6. Release Enemies
+    this.enemies.forEach(e => {
+      if (e.target === crystalMesh) {
+        e.target = null;
+        if (e.findNewTarget) e.findNewTarget();
+      }
+    });
   }
 }
