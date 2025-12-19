@@ -44,7 +44,7 @@ export class DoomAudio {
         src.stop(this.audioCtx.currentTime + duration);
     }
 
-    // Original Simple Sawtooth "Guitar" (from the version you liked)
+    // Original Simple Sawtooth "Guitar" (Tone Preserved)
     playSimpleGuitar(freq, duration) {
         if (!this.audioCtx) return;
         const o = this.audioCtx.createOscillator();
@@ -54,7 +54,7 @@ export class DoomAudio {
 
         const filter = this.audioCtx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.value = 1000; // The "Original" crunch frequency
+        filter.frequency.value = 1000; 
 
         g.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
@@ -70,7 +70,6 @@ export class DoomAudio {
     playMonsterPain(type) {
         const pitch = type === 'imp' ? 600 : (type === 'tank' ? 100 : 300);
         const wave = type === 'wraith' ? 'sine' : 'sawtooth';
-
         this.playSound(pitch, wave, 0.3, 0.4, type === 'imp' ? -500 : 0);
         this.playNoise(0.2, 0.5, 0.8);
     }
@@ -142,12 +141,11 @@ export class DoomAudio {
     playMusic(activeCheck) {
         if (!this.audioCtx) return null;
 
-        // 0: Chill (Menu/Intermission), 1: E1M1 (Wave 1), 2: Sandy's City (Wave 2+), 3: Boss
-        this.musicPhase = 0;
+        // 0: Chill, 1: E1M1 (Wave 1), 2: E1M4 (Wave 2+), 3: Boss
+        this.musicPhase = 0; 
         let beat = 0;
 
-        // PHASE 1: "At Doom's Gate" (E1M1) - Original A-Key Version
-        // The user liked the "original" code which used A2 (110Hz) base
+        // --- PHASE 1: E1M1 (Original A-Key) ---
         const A2 = 110;
         const A3 = 220;
         const G3 = 196;
@@ -156,14 +154,11 @@ export class DoomAudio {
         const E3 = 164;
         const Eb3 = 155;
 
-        // Main Riff Steps (16)
-        // A A A' A A G A A F# A A F A A E Eb
+        // Main Riff
         const mainRiff = [
             A2, A2, A3, A2, A2, G3, A2, A2, Fs3, A2, A2, F3, A2, A2, E3, Eb3
         ];
-
-        // Part B: Move to D (IV)
-        // D is 146.8 (D3)
+        // D Riff (IV)
         const D3 = 146.8;
         const D4 = 293.7;
         const C4 = 261.6;
@@ -171,33 +166,32 @@ export class DoomAudio {
         const Bb3 = 233.1;
         const A3_ = 220.0;
         const Ab3 = 207.7;
-
         const dRiff = [
             D3, D3, D4, D3, D3, C4, D3, D3, B3, D3, D3, Bb3, D3, D3, A3_, Ab3
         ];
-
-        // Part C: Move to F (bVI) -> D (IV)
-        // F3 Base = 174.6
-        // This is usually a chord stab section in the real song, but adapting to riff style:
-        // F Riff approx
+        // F Riff (VI)
         const F_Base = 174.6;
         const F_Oct = 349.2;
         const fRiff = [
             F_Base, F_Base, F_Oct, F_Base, F_Base, 311, F_Base, F_Base, 293, F_Base, F_Base, 277, F_Base, F_Base, 261, 246
         ];
 
-        // Full "Song" Sequence:
-        // Main x 2 -> D Riff x 1 -> Main x 1 -> F Riff x 1 -> D Riff x 1 -> Main x 1
-        const fullE1M1 = [
-            ...mainRiff, ...mainRiff,
-            ...dRiff,
-            ...mainRiff,
-            ...fRiff,
-            ...dRiff,
-            ...mainRiff
+        // Combined Structure: A A D A F D A
+        const fullE1M1 = [...mainRiff, ...mainRiff, ...dRiff, ...mainRiff, ...fRiff, ...dRiff, ...mainRiff];
+
+        // --- PHASE 2: E1M4 "Kitchen Ace" (A Fast Combat Track) ---
+        // Fast, aggressive beat. Key of E.
+        // E E E E ... Bb ... A ... G ...
+        const E2 = 82.4;
+        const Bb2 = 116.5;
+        const G2 = 98.0;
+        // Simple Fast Riff: E E E E E E Bb A G
+        // 8 steps
+        const e1m4Riff = [
+            E2, E2, E2, E2, E2, E2, Bb2, A2
         ];
 
-        // Boss Phase 3
+        // --- Boss Riff ---
         const bossRiff = [65.4, 65.4, 110.0, 65.4, 65.4, 123.5, 65.4, 98.0];
 
         const tick = () => {
@@ -205,36 +199,52 @@ export class DoomAudio {
 
             // Phase 0: Chill
             if (this.musicPhase === 0) {
-                if (beat % 32 === 0) this.playSound(55, 'sine', 3.0, 0.2);
+                if (beat % 32 === 0) this.playSound(55, 'sine', 3.0, 0.2); 
             }
-            // Phase 1: E1M1 (Original A-Key Tone)
+                // Phase 1: E1M1 (Varied)
             else if (this.musicPhase === 1) {
                 const step = beat % fullE1M1.length;
                 const note = fullE1M1[step];
 
-                // Use the Simple Guitar (Saw + Lowpass @ 1000)
                 this.playSimpleGuitar(note, 0.12);
 
-                // Drums (Original style was simple, let's keep it rock)
+                // Lead Melody (Variety) - High Sine
+                // Play on the "Turnaround" parts (Steps 32-48 and 64-96 roughly)
+                if (step >= 32 && step < 48 && beat % 2 === 0) {
+                    // Harmonies on D section
+                    this.playSound(note * 2, 'sine', 0.1, 0.1);
+                }
+                if (step >= 64 && beat % 4 === 0) {
+                    // Harmonies on F section
+                    this.playSound(note * 3, 'triangle', 0.1, 0.05);
+                }
+
+                // Drums
                 if (beat % 4 === 0) this.playNoise(0.1, 0.6, 0.8);
                 if (beat % 4 === 2) this.playNoise(0.15, 0.5, 1.5, 600);
-            }
-            // Phase 2: Sandy's City (Keeping mapped for Wave 2+)
+            } 
+                // Phase 2: E1M4 (Fast Metal) - REPLACED Sandy's City
             else if (this.musicPhase === 2) {
-                const bassNote = beat % 64 < 16 ? 73.4 : 69.3;
-                if (beat % 8 === 0) this.playSimpleGuitar(bassNote, 0.2);
-                if (beat % 4 === 2) this.playNoise(0.05, 0.1, 0.8, 2000);
-            }
+                const note = e1m4Riff[beat % e1m4Riff.length];
+                // Driving constant 16th notes
+                this.playSimpleGuitar(note, 0.1);
+
+                // Accent Hi-Hats every step for speed feeling
+                this.playNoise(0.02, 0.05, 3.0, 4000); // Tsk tsk tsk tsk
+
+                // Snare punch
+                if (beat % 4 === 2) this.playNoise(0.1, 0.5, 2.0, 600);
+            } 
             // Phase 3: Boss
             else if (this.musicPhase === 3) {
                 const note = bossRiff[beat % bossRiff.length];
                 this.playSimpleGuitar(note, 0.1);
-                if (beat % 2 === 1) this.playNoise(0.1, 0.5, 2.5, 500);
+                if (beat % 2 === 1) this.playNoise(0.1, 0.5, 2.5, 500); 
             }
 
             beat++;
-            // 0: Chill, 1: E1M1 (150ms Original), 2: Sandy (200), 3: Boss (100)
-            const interval = this.musicPhase === 3 ? 100 : (this.musicPhase === 1 ? 150 : (this.musicPhase === 2 ? 200 : 300));
+            // 0: Chill, 1: E1M1 (150ms), 2: E1M4 (110ms FAST), 3: Boss (100ms)
+            const interval = this.musicPhase === 3 ? 100 : (this.musicPhase === 1 ? 150 : (this.musicPhase === 2 ? 110 : 300));
             this.musicLoopOffset = setTimeout(tick, interval);
         };
 

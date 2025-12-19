@@ -10,8 +10,8 @@ export class GlitchBoss {
         this.isBoss = true;
 
         // Boss Stats
-        this.life = 1500; // Reduced from 2000
-        this.maxLife = 1500;
+        this.life = 3000; // Buffed from 1500
+        this.maxLife = 3000;
         this.speed = 4;
         this.damage = 100;
         this.scale = 20.0;
@@ -166,16 +166,16 @@ export class GlitchBoss {
         }
 
         this.shootTimer += delta;
-        if (this.shootTimer > 2.0) { // Slower fire rate for big attack
+        if (this.shootTimer > 1.5) { // Faster fire rate (was 2.0)
             this.shootTimer = 0;
             console.log("DEBUG: Boss Casting Virus Fan");
             if (this.onShoot) {
                 const start = this.mesh.position.clone().add(new THREE.Vector3(0, 5, 0));
                 const baseDir = new THREE.Vector3().subVectors(targetPos, start).normalize();
 
-                // Fan Attack: 5 Projectiles in a horizontal spread
-                const spreadAngle = 0.2; // roughly 12 degrees
-                for (let i = -2; i <= 2; i++) {
+                // Fan Attack: 7 Projectiles (was 5)
+                const spreadAngle = 0.2;
+                for (let i = -3; i <= 3; i++) { // -3 to 3 = 7 projectiles
                     const dir = baseDir.clone();
                     // Rotate around Y axis (approximate)
                     dir.x += Math.cos(Date.now() * 0.001) * 0.05; // Slight wobble

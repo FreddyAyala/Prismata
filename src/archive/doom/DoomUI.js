@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GlitchEnemy } from './DoomEnemy.js';
 
 export class DoomUI {
     constructor(game) {
@@ -8,98 +9,147 @@ export class DoomUI {
     }
 
     createHUD() {
-        if (document.getElementById('doom-hud')) return;
         this.hud = document.createElement('div');
         this.hud.id = 'doom-hud';
-        this.hud.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; color:#ff0033; font-family:'Orbitron', sans-serif; font-size:24px; text-shadow:0 0 10px #ff0000; z-index:4000;";
-        this.hud.innerHTML = `
-            <div style="position:absolute; bottom:20px; left:20px; pointer-events:none;">
-                <div style="font-size:32px; color:#00ff88; margin-bottom:10px;">HP: <span id="doom-hp">100</span></div>
-                <div style="width: 300px; height: 10px; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; margin-bottom: 5px; position: relative; overflow: hidden;">
-                    <div id="doom-stamina-bar" style="width: 100%; height: 100%; background: #00f3ff; transition: width 0.1s; box-shadow: 0 0 10px #00f3ff;"></div>
-                </div>
-                <div style="font-size:18px; color:#ffaa00; margin-bottom:5px;">SCORE: <span id="doom-score">0</span></div>
-                <div style="font-size:18px; color:#ff00ff;">WAVE: <span id="doom-wave">1/5</span></div>
-                <div id="doom-weapon" style="font-size:22px; color:#eee; margin-top:10px;">BLASTER [∞]</div>
-            </div>
-            
-            <div id="doom-crosshair" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; pointer-events: none;">
-                <div style="width: 20px; height: 2px; background: #00ff88; position: absolute; left: -10px; top: 0; box-shadow: 0 0 5px #00ff88;"></div>
-                <div style="width: 2px; height: 20px; background: #00ff88; position: absolute; left: 0; top: -10px; box-shadow: 0 0 5px #00ff88;"></div>
-                <div style="width: 4px; height: 4px; background: #00ff88; border-radius: 50%; position: absolute; left: -1px; top: -1px; box-shadow: 0 0 5px #00ff88;"></div>
-            </div>
+        this.hud.style.cssText = `
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; user-select: none;
+            font-family: 'Orbitron', sans-serif; overflow: hidden; z-index: 4000;
         `;
         document.body.appendChild(this.hud);
+
+        // Crosshair
+        const crosshair = document.createElement('div');
+        crosshair.innerText = '+';
+        crosshair.style.cssText = `
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 30px; color: #00ff00; opacity: 0.8; text-shadow: 0 0 5px #00ff00;
+        `;
+        this.hud.appendChild(crosshair);
+
+        // Stats Bar (Bottom Left)
+        const stats = document.createElement('div');
+        stats.style.cssText = `
+            position: absolute; bottom: 20px; left: 20px; text-align: left;
+        `;
+        stats.innerHTML = `
+            <div id="doom-hp" style="font-size:40px; color:#00ff00; text-shadow:0 0 10px #00ff00;">HP: 100</div>
+            <div id="doom-score" style="font-size:24px; color:#0088ff;">SCORE: 0</div>
+            <div id="doom-wave" style="font-size:24px; color:#ffaa00;">WAVE: 1/5</div>
+            <div id="doom-ammo" style="font-size:24px; color:#ffffff;">BLASTER [∞]</div>
+        `;
+        this.hud.appendChild(stats);
+    }
+
+    removeHUD() {
+        if (this.hud && this.hud.parentNode) {
+            this.hud.parentNode.removeChild(this.hud);
+        }
+        this.hud = null;
     }
 
     updateHUD() {
         if (!this.hud) return;
-        const w = this.game.weapons[this.game.currentWeaponIdx];
-        const hp = Math.ceil(this.game.playerHealth);
+        const hpEl = document.getElementById('doom-hp');
+        const scoreEl = document.getElementById('doom-score');
+        const waveEl = document.getElementById('doom-wave');
+        const ammoEl = document.getElementById('doom-ammo');
 
-        const elHP = document.getElementById('doom-hp');
-        if (elHP) { elHP.innerText = hp; elHP.style.color = hp < 30 ? '#ff0000' : '#00ff88'; }
+        if (hpEl) {
+            hpEl.innerText = `HP: ${Math.max(0, Math.ceil(this.game.playerHealth))}`;
+            hpEl.style.color = this.game.playerHealth < 30 ? '#ff0000' : (this.game.playerHealth < 60 ? '#ffff00' : '#00ff00');
+        }
+        if (scoreEl) scoreEl.innerText = `SCORE: ${this.game.score}`;
+        if (waveEl) waveEl.innerText = `WAVE: ${this.game.wave}/5`;
 
-        const elScore = document.getElementById('doom-score');
-        if (elScore) elScore.innerText = this.game.score;
-        
-        const elWave = document.getElementById('doom-wave');
-        if (elWave) elWave.innerText = this.game.wave + "/5";
-
-        // Stamina HUD Update
-        if (this.game.player) {
-            const elStamina = document.getElementById('doom-stamina-bar');
-            if (elStamina) {
-                const pct = (this.game.player.stamina / this.game.player.maxStamina) * 100;
-                elStamina.style.width = pct + '%';
-                if (pct < 30) elStamina.style.background = '#ff0033';
-                else elStamina.style.background = '#00f3ff';
-            }
+        if (ammoEl) {
+            const w = this.game.weapons[this.game.currentWeaponIdx];
+            const name = w.name;
+            const ammo = w.ammo === -1 ? '∞' : w.ammo;
+            ammoEl.innerText = `${name} [${ammo}]`;
         }
 
-        const elWep = document.getElementById('doom-weapon');
-        if (elWep) {
-            elWep.innerText = `${w.name} [${w.ammo === -1 ? '∞' : w.ammo}]`;
-            elWep.style.color = '#' + new THREE.Color(w.color).getHexString();
-        }
+        this.updateModelHealthBars();
     }
 
+    // --- Instuctions / Start Screen ---
     showInstructions(onStart) {
-        const existing = document.getElementById('doom-instructions');
-        if (existing) existing.remove();
-
-        if (document.pointerLockElement) document.exitPointerLock();
-
         if (!this.hud) return;
-
         const div = document.createElement('div');
-        div.id = 'doom-instructions';
-        div.style.cssText = `position: absolute; top:0; left:0; width:100%; height:100%; 
-                        background: rgba(0,0,0,0.95); display:flex; flex-direction:column; justify-content:center; align-items:center;
+        div.style.cssText = `position:absolute; top:0; left:0; width:100%; height:100%; 
+                        background:rgba(0,0,0,0.85); display:flex; flex-direction:column; justify-content:center; align-items:center;
                         z-index:5000; pointer-events:auto; color:white; font-family:'Orbitron', sans-serif;`;
         
         div.innerHTML = `
-                <h1 style="font-size:60px; color:#ff0033; margin-bottom:10px; text-shadow:0 0 20px red;">OPERATION FIREWALL</h1>
-                <div style="font-size:24px; color:#aaa; margin-bottom:40px;">CRITICAL SYSTEM BREACH DETECTED</div>
-                
-                <div style="background:rgba(255,255,255,0.05); padding:30px; border:1px solid #444; border-radius:10px; margin-bottom:40px; text-align:left; line-height:1.6;">
-                    <p><b style="color:#00ff88;">WASD</b>: NAVIGATE PHYSICAL LAYERS</p>
-                    <p><b style="color:#00ff88;">SHIFT</b>: OVERCLOCK MOVEMENT (SPRINT)</p>
-                    <p><b style="color:#00ff88;">SPACE</b>: VERTICAL BUFFER ESCAPE (JUMP)</p>
-                    <p><b style="color:#00ff88;">MOUSE</b>: AIM DECODER</p>
-                    <p><b style="color:#00ff88;">CLICK</b>: PURGE GLITCH (FIRE)</p>
-                    <p><b style="color:#00ff88;">1-5</b>: SELECT WEAPON MODULES</p>
-                    <p><b style="color:#ff0033;">GOAL</b>: PROTECT THE CRYSTAL DEFENSE MODELS AT ALL COSTS.</p>
+                <h1 style="font-size:50px; color:#ff0033; margin-bottom:10px; text-shadow:0 0 20px red; text-align:center;">OPERATION FIREWALL</h1>
+                <div style="font-size:20px; color:#aaa; margin-bottom:30px; text-align:center;">CRITICAL SYSTEM BREACH DETECTED</div>
+
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; width:90%; max-width:1000px; margin:0 auto; margin-bottom:30px;">
+                    <!-- LEFT COLUMN: CONTROLS -->
+                    <div style="width:45%; background:rgba(0,0,0,0.5); padding:20px; border:1px solid #444; border-radius:10px;">
+                        <h3 style="color:#00ff88; border-bottom:1px solid #00ff88; padding-bottom:5px; margin-top:0;">DEFENSE PROTOCOLS</h3>
+                        <div style="text-align:left; line-height:1.8; font-size:16px;">
+                            <div><b style="color:#00ff88;">WASD</b>: NAVIGATE LAYERS</div>
+                            <div><b style="color:#00ff88;">SHIFT</b>: OVERCLOCK (SPRINT)</div>
+                            <div><b style="color:#00ff88;">SPACE</b>: VERTICAL BUFFER (JUMP)</div>
+                            <div><b style="color:#00ff88;">MOUSE</b>: AIM DECODER</div>
+                            <div><b style="color:#00ff88;">CLICK</b>: PURGE GLITCH (FIRE)</div>
+                            <div><b style="color:#00ff88;">1-5</b>: SWAP MODULES</div>
+                            <div style="margin-top:10px; color:#ff0033; font-weight:bold;">GOAL: PROTECT THE CRYSTALS</div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: THREAT DATABASE -->
+                    <div style="width:50%; text-align:left;">
+                        <h3 style="color:#ff0033; border-bottom:1px solid #ff0033; padding-bottom:5px; margin-top:0;">THREAT DATABASE</h3>
+
+                        <!-- IMP -->
+                        <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                            <img src="${this.generateEnemySnapshot('imp')}" style="width:50px; height:50px; border:1px solid #ff4400; margin-right:10px; background:#000;">
+                            <div>
+                                <div style="color:#ff4400; font-weight:bold; font-size:14px;">PROMPT ENGINEER</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Spams low-quality tokens. Hallucinates confidence."</div>
+                            </div>
+                        </div>
+
+                        <!-- TANK -->
+                        <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                            <img src="${this.generateEnemySnapshot('tank')}" style="width:50px; height:50px; border:1px solid #3366ff; margin-right:10px; background:#000;">
+                            <div>
+                                <div style="color:#3366ff; font-weight:bold; font-size:14px;">VC FUNDING WHALE</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Bloated with cash. Hard to kill. Zero revenue."</div>
+                            </div>
+                        </div>
+
+                        <!-- WRAITH -->
+                        <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                            <img src="${this.generateEnemySnapshot('wraith')}" style="width:50px; height:50px; border:1px solid #00ffff; margin-right:10px; background:#000;">
+                            <div>
+                                <div style="color:#00ffff; font-weight:bold; font-size:14px;">INFINITY GLITCH</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Reality distortion field. Hard to debug."</div>
+                            </div>
+                        </div>
+
+                         <!-- BOSS -->
+                        <div style="display:flex; align-items:center; margin-bottom:5px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                            <div style="width:50px; height:50px; border:1px solid #ff00ff; margin-right:10px; background:#000; display:flex; align-items:center; justify-content:center; color:#ff00ff; font-size:24px;">?</div>
+                            <div>
+                                <div style="color:#ff00ff; font-weight:bold; font-size:14px;">TOP SECRET</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Classified. Do not approach."</div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
 
-                <button id="doom-start-btn" style="padding: 20px 60px; font-size:28px; background:#ff0033; color:white; border:none; cursor:pointer; 
-                            box-shadow: 0 0 20px #ff0033; font-family:'Orbitron', sans-serif; transition: transform 0.2s;">
-                    PRESS ENTER TO INITIATE SEQUENCE
-                </button>
-                <div style="margin-top:20px;">
-                    <button id="doom-cancel-btn" style="background:transparent; border:1px solid #666; color:#888; padding:10px 20px; font-family:'Orbitron', sans-serif; cursor:pointer;">
-                        I'M SCARED, CANCEL (ESC)
+                <div style="text-align:center;">
+                    <button id="doom-start-btn" style="padding: 15px 50px; font-size:24px; background:#ff0033; color:white; border:none; cursor:pointer; 
+                                box-shadow: 0 0 20px #ff0033; font-family:'Orbitron', sans-serif; transition: transform 0.2s;">
+                        PRESS ENTER TO START
                     </button>
+                    <br>
+                    <div style="margin-top:10px; font-size:12px; color:#666;">
+                        (ESC TO CANCEL)
+                    </div>
                 </div>
         `;
         this.hud.appendChild(div);
@@ -138,6 +188,68 @@ export class DoomUI {
             cancelBtn.onmouseover = () => { cancelBtn.style.color = '#fff'; cancelBtn.style.borderColor = '#fff'; };
             cancelBtn.onmouseout = () => { cancelBtn.style.color = '#888'; cancelBtn.style.borderColor = '#666'; };
         }
+    }
+
+    generateEnemySnapshot(type) {
+        const width = 128;
+        const height = 128;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+
+        // Dynamic Camera Positioning based on enemy scale
+        let dist = 8;
+        let yOffset = 0;
+        if (type === 'tank') { dist = 14; yOffset = 1; }
+        else if (type === 'wraith') { dist = 10; yOffset = 0.5; }
+        else if (type === 'imp') { dist = 8; yOffset = 0.5; }
+
+        camera.position.set(0, 1 + yOffset, dist);
+        camera.lookAt(0, yOffset, 0);
+
+        // Bright Lights
+        const amb = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(amb);
+        const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+        dir.position.set(2, 5, 5);
+        scene.add(dir);
+
+        // Enemy Mesh
+        const enemy = new GlitchEnemy(scene, new THREE.Vector3(0, 0, 0), null, type, 'hunter');
+        enemy.mesh.rotation.y = Math.PI / 6;
+
+        // Force Solid Visibility
+        const makeSolid = (obj) => {
+            if (obj.isMesh) {
+                // Clone needed props
+                const oldColor = obj.material.color.getHex();
+                obj.material = new THREE.MeshStandardMaterial({
+                    color: oldColor,
+                    wireframe: false, // Force SOLID
+                    transparent: false,
+                    opacity: 1.0,
+                    roughness: 0.4,
+                    metalness: 0.6
+                });
+            }
+            if (obj.children) obj.children.forEach(makeSolid);
+        };
+        makeSolid(enemy.mesh);
+
+        // Render
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: false, antialias: true, preserveDrawingBuffer: true });
+        renderer.setSize(width, height);
+
+        renderer.render(scene, camera);
+        const dataURL = canvas.toDataURL();
+
+        renderer.dispose();
+        return dataURL;
     }
 
     showWaveTitle(text) {
@@ -182,131 +294,118 @@ export class DoomUI {
                         background:rgba(50,0,0,0.8); z-index:5000; pointer-events:auto;
                         display:flex; flex-direction:column; justify-content:center; align-items:center;`;
         div.innerHTML = `
-                <h1 style="font-size: 80px; color: red; text-shadow: 0 0 20px red; font-family:'Orbitron', sans-serif;">GAME OVER</h1>
-                <button id="doom-restart-btn" style="padding: 15px 40px; font-size: 30px; margin-top: 30px;
-                            border: 2px solid red; background: #220000; color: white; cursor: pointer; font-family:'Orbitron', sans-serif;">
-                    RESTART SYSTEM
-                </button>
-                <div style="margin-top:10px; color:#aaa;">(OR PRESS 'R')</div>
+            <h1 style="font-size:80px; color:red; margin-bottom:20px; font-family:'Orbitron', sans-serif;">SYSTEM FAILURE</h1>
+            <button id="doom-restart" style="padding: 20px 40px; font-size:30px; background:red; color:white; border:none; cursor:pointer;">REBOOT (ENTER)</button>
         `;
         hud.appendChild(div);
-        
-        setTimeout(() => {
-            const btn = document.getElementById('doom-restart-btn');
-            if (btn) btn.onclick = onRestart;
-        }, 100);
-    }
 
+        const restart = () => {
+            div.remove();
+            if (onRestart) onRestart();
+        };
+
+        const btn = document.getElementById('doom-restart');
+        if (btn) btn.onclick = restart;
+
+        // ENTER key support
+        const keyH = (e) => {
+            if (e.key === 'Enter') {
+                window.removeEventListener('keydown', keyH);
+                restart();
+            }
+        };
+        window.addEventListener('keydown', keyH);
+    }
 
     triggerWin(score, onRestart) {
-        if (this.hud) {
-            this.hud.style.display = 'none';
-            if (this.hud.parentNode) this.hud.parentNode.removeChild(this.hud);
-        }
+        const hud = document.getElementById('doom-hud');
+        if (!hud) return;
+        if (document.pointerLockElement) document.exitPointerLock();
 
-        // Create Victory Screen
-        const winDiv = document.createElement('div');
-        winDiv.style.cssText = `
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background: black; color: #00ff00; font-family: 'Courier New', Courier, monospace;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 5000; text-align: center;
-    `;
+        const div = document.createElement('div');
+        div.style.cssText = `position: absolute; top: 0; left: 0; width:100%; height:100%; 
+                        background:black; z-index:5000; pointer-events:auto;
+                        display:flex; flex-direction:column; justify-content:center; align-items:center;`;
 
-        // 1. Victory Image (User Provided)
-        const img = document.createElement('img');
-        img.src = '/aibubbleburst.jpg'; // Correct file extension
-        img.style.cssText = "width: 400px; max-width: 80%; margin-bottom: 20px; border: 4px solid #00ff00; image-rendering: pixelated; object-fit: contain;";
-        winDiv.appendChild(img);
+        // Use user-provided image if they have one. For now using placeholder logic or asset found in logs
+        // User asked for "AIBUBBLEBURST.jpg" in a previous context
+        // Try to load from assets if possible, else text
 
-        // 2. Text
-        const title = document.createElement('h1');
-        title.textContent = "CONGRATULATIONS!";
-        title.style.cssText = "font-size: 64px; margin: 10px 0; text-shadow: 0 0 10px #00ff00;";
-        winDiv.appendChild(title);
+        div.innerHTML = `
+            <img src="/assets/AIBUBBLEBURST.jpg" style="max-width:80%; max-height:50vh; border:2px solid #00ff00; margin-bottom:20px; box-shadow:0 0 50px #00ff00;" onerror="this.style.display='none'">
+            <h1 style="font-size:80px; color:#00ff00; margin-bottom:10px; font-family:'Orbitron', sans-serif;">THREAT NEUTRALIZED</h1>
+            <div style="font-size:40px; color:white; margin-bottom:30px;">FINAL SCORE: ${score}</div>
+            <div style="color:#888; margin-bottom:20px;">PRESS ENTER TO REBOOT SYSTEM or ESC TO EXIT</div>
+            <button id="doom-restart-win" style="padding: 20px 40px; font-size:30px; background:#00ff00; color:black; border:none; cursor:pointer;">REBOOT (ENTER)</button>
+        `;
+        hud.appendChild(div);
 
-        const sub = document.createElement('h2');
-        sub.textContent = "THE AI BUBBLE HAS BURST";
-        sub.style.cssText = "font-size: 32px; margin: 10px 0; color: #ccffcc;";
-        winDiv.appendChild(sub);
+        const restart = () => {
+            div.remove();
+            if (onRestart) onRestart();
+        };
 
-        const scoreText = document.createElement('h3');
-        const safeScore = typeof score === 'number' ? score : 0;
-        scoreText.textContent = `FINAL SCORE: ${safeScore}`;
-        scoreText.style.cssText = "font-size: 48px; margin: 20px 0; color: #ffff00;";
-        winDiv.appendChild(scoreText);
+        const btn = document.getElementById('doom-restart-win');
+        if (btn) btn.onclick = restart;
 
-        const restartText = document.createElement('p');
-        restartText.textContent = "PRESS ENTER TO RESTART OR ESC TO EXIT";
-        restartText.style.cssText = "font-size: 24px; margin-top: 40px; animation: blink 1s infinite;";
-        winDiv.appendChild(restartText);
-
-        // Blink Animation style
-        const style = document.createElement('style');
-        style.textContent = `@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }`;
-        document.head.appendChild(style);
-
-        document.body.appendChild(winDiv);
-        winDiv.id = 'doom-win-screen';
-    }
-
-    initModelHealthBars(exhibitsSource) {
-        this.crystals = [];
-        if (exhibitsSource && exhibitsSource.length > 0) {
-            exhibitsSource.forEach(ex => {
-                if (ex.mesh && ex.loaded) {
-                    const obj = ex.mesh;
-                    if (obj.userData.health === undefined) obj.userData.health = 100;
-
-                    const oldBar = obj.getObjectByName('healthBar');
-                    if (oldBar) obj.remove(oldBar);
-
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 64; canvas.height = 8;
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#00ff00';
-                    ctx.fillRect(0, 0, 64, 8);
-
-                    const tex = new THREE.CanvasTexture(canvas);
-                    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-                    const sprite = new THREE.Sprite(mat);
-                    sprite.name = 'healthBar';
-                    sprite.scale.set(10, 1.25, 1);
-                    sprite.position.y = 8;
-                    obj.add(sprite);
-
-                    this.crystals.push({ mesh: obj, sprite: sprite, tex: tex, ctx: ctx });
-                }
-            });
-        }
-    }
-
-    updateModelHealthBars() {
-        if (!this.crystals) return;
-        this.crystals.forEach(c => {
-            const hp = c.mesh.userData.health;
-            if (hp < 100) {
-                if (c.lastHp !== hp) {
-                    const width = Math.max(0, (hp / 100) * 64);
-                    c.ctx.clearRect(0, 0, 64, 8);
-                    c.ctx.fillStyle = '#330000';
-                    c.ctx.fillRect(0, 0, 64, 8);
-                    c.ctx.fillStyle = hp < 30 ? '#ff0000' : '#00ff00';
-                    c.ctx.fillRect(0, 0, width, 8);
-                    c.tex.needsUpdate = true;
-                    c.lastHp = hp;
-                    c.sprite.visible = true;
-                }
-            } else {
-                if (c.sprite) c.sprite.visible = false;
+        const keyH = (e) => {
+            if (e.key === 'Enter') {
+                window.removeEventListener('keydown', keyH);
+                restart();
             }
+        };
+        window.addEventListener('keydown', keyH);
+    }
+
+    initModelHealthBars(exhibits) {
+        this.crystals = [];
+        exhibits.forEach(ex => {
+            if (!ex.mesh) return;
+            const bar = document.createElement('div');
+            bar.style.cssText = `position:absolute; width:60px; height:6px; background:rgba(0,0,0,0.5); border:1px solid #00ff00; pointer-events:none; display:none; transform:translate(-50%, -50%);`;
+            const inner = document.createElement('div');
+            inner.style.cssText = `width:100%; height:100%; background:#00ff00; transition:width 0.2s;`;
+            bar.appendChild(inner);
+            this.hud.appendChild(bar);
+            this.crystals.push({ mesh: ex.mesh, bar: bar, inner: inner, maxHp: 100 });
         });
     }
 
-    removeHUD() {
-        if (this.hud) {
-            this.hud.remove();
-            this.hud = null;
-        }
+    updateModelHealthBars() {
+        if (!this.game || !this.game.camera) return;
+
+        // We know from DoomGame systems that crystal HP is tracked there. 
+        // Actually, DoomGame doesn't expose crystal HP nicely yet unless we dig into logic.
+        // But wait, the crystals are exhibits.
+        // Let's assume full health for visualization if not tracked, OR hook into userData.
+
+        this.crystals.forEach(c => {
+            if (!c.mesh.visible) {
+                c.bar.style.display = 'none';
+                return;
+            }
+            // Project position
+            const pos = c.mesh.position.clone();
+            pos.y += 2.0; // Above crystal
+            pos.project(this.game.camera);
+
+            const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
+
+            if (pos.z < 1.0) {
+                c.bar.style.display = 'block';
+                c.bar.style.left = `${x}px`;
+                c.bar.style.top = `${y}px`;
+
+                // Get HP from userData if available (DoomArena might set it)
+                const hp = (c.mesh.userData.health !== undefined) ? c.mesh.userData.health : 100;
+                // DoomArena sets default 100
+                const pct = Math.max(0, hp);
+                c.inner.style.width = `${pct}%`;
+                c.inner.style.backgroundColor = pct < 30 ? '#ff0000' : '#00ff00';
+            } else {
+                c.bar.style.display = 'none';
+            }
+        });
     }
 }

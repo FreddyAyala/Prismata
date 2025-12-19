@@ -41,7 +41,13 @@ export class DoomGame {
     this.muzzleLight = null;
     this.weaponRecoil = 0;
     this.raycaster = new THREE.Raycaster();
+    this.weaponRecoil = 0;
+    this.raycaster = new THREE.Raycaster();
     this.isFiring = false;
+
+    // Cheats
+    this.cheatBuffer = "";
+    this.godMode = false;
   }
 
   activate(exhibits = null, skipIntro = false) {
@@ -61,6 +67,7 @@ export class DoomGame {
       this.ui.showInstructions(() => {
         console.log("DEBUG: Instructions 'Enter' callback triggered. Starting Game...");
         this.startGame();
+        document.body.requestPointerLock();
       });
     } else {
       console.log("DEBUG: Skipping Intro. Starting Game...");
@@ -211,7 +218,7 @@ export class DoomGame {
     if (this.wave > 5) { this.triggerWin(); return; }
 
     this.waveInProgress = true;
-    this.enemiesToSpawn = 10 + (this.wave * 5);
+    this.enemiesToSpawn = 15 + (this.wave * 8); // Buffed (was 10 + 5*wave)
     const spawnRate = Math.max(500, 2500 - (this.wave * 300));
 
     this.ui.showWaveTitle(`WAVE ${this.wave}`);
@@ -224,7 +231,7 @@ export class DoomGame {
 
     this.spawnInterval = setInterval(() => {
       if (!this.active || this.isGameOver) return;
-      if (this.enemiesToSpawn > 0 && this.enemies.length < 20) {
+      if (this.enemiesToSpawn > 0 && this.enemies.length < 30) { // Buffed max concurrency (was 20)
         this.spawnEnemy();
       }
     }, spawnRate);
@@ -434,6 +441,7 @@ export class DoomGame {
   }
 
   takePlayerDamage(amount) {
+    if (this.godMode) return; // IDDQD
     this.playerHealth -= amount;
     if (Math.random() < 0.1) this.audio.playSound(80, 'square', 0.1, 0.2);
     if (this.ui.hud && Math.random() < 0.3) {
@@ -827,6 +835,7 @@ export class DoomGame {
       if (e.key === 'Escape') this.deactivate();
       return;
     }
+    this.handleCheatInput(e.key);
     if (e.key === 'r') this.resetGame();
     if (e.key === '0') {
       console.log("DEBUG: Jumping to Boss Wave & Refilling Ammo");
@@ -851,8 +860,32 @@ export class DoomGame {
     }
   }
 
+  handleCheatInput(key) {
+    this.cheatBuffer += key.toLowerCase();
+    if (this.cheatBuffer.length > 10) this.cheatBuffer = this.cheatBuffer.slice(-10);
+
+    if (this.cheatBuffer.endsWith("iddqd")) {
+      this.godMode = !this.godMode;
+      this.playerHealth = 100;
+      this.ui.showWarning(this.godMode ? "GOD MODE ON" : "GOD MODE OFF");
+      this.audio.playSound(1000, 'sawtooth', 0.5, 0.5); // Powerup sound
+      this.ui.updateHUD();
+    }
+    else if (this.cheatBuffer.endsWith("idkfa")) {
+      this.weapons.forEach(w => w.ammo = w.maxAmmo);
+      this.weapons[0].ammo = -1; // Blaster infinite
+      this.ui.showWarning("VERY HAPPY AMMO ADDED");
+      this.audio.playSound(800, 'square', 0.5, 0.5);
+      this.ui.updateHUD();
+    }
+    else if (this.cheatBuffer.endsWith("idclev5")) {
+      this.ui.showWarning("WARPING TO BOSS...");
+      setTimeout(() => this.startBossWave(), 1000);
+    }
+  }
+
   handlePointerLockChange() {
-    if (!document.pointerLockElement && this.active && !this.isGameOver) this.deactivate();
+    if (!document.pointerLockElement && this.active && !this.isGameOver && !this.isVictory) this.deactivate();
   }
 
 
