@@ -54,11 +54,24 @@ export class GlitchEnemy {
     this.mesh.position.copy(position);
 
     this.buildVisuals();
+    this.createHitbox();
 
     this.mesh.scale.set(this.scale, this.scale, this.scale);
     this.scene.add(this.mesh);
 
     this.createHealthBar();
+  }
+
+  createHitbox() {
+    // Add an invisible sphere that acts as the primary collision target
+    // This makes it MUCH easier to hit wireframe enemies
+    const geo = new THREE.SphereGeometry(3.0, 8, 8); // Increased from 1.5 for easier hits
+    // Use opacity 0 instead of visible: false to ensure Raycaster definitely hits it
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0, depthWrite: false });
+    this.hitbox = new THREE.Mesh(geo, mat);
+    this.hitbox.name = 'enemy_hitbox';
+    this.hitbox.userData.enemy = this;
+    this.mesh.add(this.hitbox);
   }
 
   createHealthBar() {
@@ -352,6 +365,6 @@ export class GlitchEnemy {
       });
       return true; // Dead
     }
-    return false;
+    return true; // Hit but alive
   }
 }
