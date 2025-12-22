@@ -214,13 +214,25 @@ export class GoomProjectiles {
         this.raycaster.ray.at(100, targetPoint);
         const velocityDir = new THREE.Vector3().subVectors(targetPoint, start).normalize();
 
-        const geo = new THREE.SphereGeometry(1.5, 16, 16);
-        const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.8 });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.copy(start);
-        this.scene.add(mesh);
+        // Complex BFG Mesh
+        const group = new THREE.Group();
 
-        this.list.push({ mesh, velocity: velocityDir.multiplyScalar(30), life: 10.0, damage: weapon.damage, isBFG: true });
+        // Green Outer Shell
+        const geoOuter = new THREE.SphereGeometry(3.0, 16, 16);
+        const matOuter = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4, wireframe: true });
+        const meshOuter = new THREE.Mesh(geoOuter, matOuter);
+
+        // White Hot Core
+        const geoCore = new THREE.SphereGeometry(1.5, 16, 16);
+        const matCore = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const meshCore = new THREE.Mesh(geoCore, matCore);
+
+        group.add(meshOuter);
+        group.add(meshCore);
+        group.position.copy(start);
+        this.scene.add(group);
+
+        this.list.push({ mesh: group, velocity: velocityDir.multiplyScalar(30), life: 10.0, damage: weapon.damage, isBFG: true });
     }
 
     fireEnemyProjectile(start, dir, type = 'normal', owner = null) {
@@ -283,18 +295,33 @@ export class GoomProjectiles {
             p.life -= delta;
 
             if (p.isBFG) {
+                // Rotate Shell
+                if (p.mesh.children && p.mesh.children[0]) {
+                    p.mesh.children[0].rotation.y += delta * 5.0;
+                    p.mesh.children[0].rotation.z += delta * 2.0;
+                }
+
+                // PATH OF DESTRUCTION
+                const range = 60.0;
                 this.game.enemies.forEach(e => {
                     const dist = e.mesh.position.distanceTo(p.mesh.position);
-                    if (dist < 40.0) {
-                        e.takeDamage(200 * delta);
+                    if (dist < range) {
+                        e.takeDamage(1000 * delta); // MELT
+                    // Visuals
                         if (Math.random() < 0.3) {
-                            this.createTracer(e.mesh.position, 0x00ffff, p.mesh.position);
+                            if (this.game.systems.createLightning) {
+                                this.game.systems.createLightning(p.mesh.position, e.mesh.position, 0x00ff00);
+                            } else {
+                                this.createTracer(e.mesh.position, 0x00ff00, p.mesh.position);
+                            }
                         }
                     }
                 });
-                if (this.game.boss && this.game.boss.mesh.position.distanceTo(p.mesh.position) < 40.0) {
-                    this.game.boss.takeDamage(100 * delta);
-                    if (Math.random() < 0.3) this.createTracer(this.game.boss.mesh.position, 0x00ffff, p.mesh.position);
+                if (this.game.boss && this.game.boss.mesh.position.distanceTo(p.mesh.position) < range) {
+                    this.game.boss.takeDamage(500 * delta);
+                    if (Math.random() < 0.3 && this.game.systems.createLightning) {
+                        this.game.systems.createLightning(p.mesh.position, this.game.boss.mesh.position, 0x00ff00);
+                    }
                 }
             }
 
@@ -335,11 +362,8 @@ export class GoomProjectiles {
 
                                 if (c.mesh.userData.health <= 0) {
                                     // If already corrupted, destroy it (rare). If healthy, corrupt it.
-                                    if (c.mesh.userData.isCorrupted) {
-                                    this.game.destroyCrystal(c.mesh);
-                                } else {
-                                    this.game.corruptCrystal(c.mesh);
-                                }
+                                    if (c.mesh.userData.isCorrupted) this.game.destroyCrystal(c.mesh);
+                                    else this.game.corruptCrystal(c.mesh);
                                 }
                                 break;
                             }
@@ -389,12 +413,13 @@ export class GoomProjectiles {
                     }
                     // Boss
                     if (!hit && this.game.boss && p.mesh.position.distanceTo(this.game.boss.mesh.position) < 30.0) {
-                    hit = true;
-                    this.game.boss.takeDamage(p.damage);
+                        hit = true;
+                        this.game.boss.takeDamage(p.damage);
+                    }
                 }
             }
-            }
 
+            // Floor/Wall Collision
             if (p.isRocket || p.isBFG) {
                 if (p.mesh.position.y < 0.5) {
                     hit = true;
@@ -412,11 +437,12 @@ export class GoomProjectiles {
             if (hit || p.life <= 0) {
                 if (p.isRocket || p.isBFG) {
                     const isBFG = p.isBFG;
-                    this.game.systems.createExplosion(p.mesh.position, p.mesh.material.color, true, isBFG ? 3.0 : 1.5);
+                    const color = isBFG ? 0x00ff00 : (p.mesh.material ? p.mesh.material.color : 0xffffff);
+                    this.game.systems.createExplosion(p.mesh.position, color, true, isBFG ? 5.0 : 1.5);
                     if (this.game.audio) this.game.audio.playNoise(0.5, 0.5, 0.5);
 
-                    const radius = isBFG ? 80.0 : 40.0;
-                    const dmg = isBFG ? 800 : 150;
+                    const radius = isBFG ? 100.0 : 40.0;
+                    const dmg = isBFG ? 2000 : 150;
 
                     this.game.enemies.forEach(e => {
                         if (e.mesh.position.distanceTo(p.mesh.position) < radius) {

@@ -225,7 +225,12 @@ export class GlitchBoss {
         for (let i = 0; i < particleCount; i++) this.spawnDollarSign(hitObject || this.core);
 
         if (this.life <= 0) {
+            this.life = 0;
             this.active = false;
+            // Force UI Update to 0
+            if (this.scene && this.scene.userData && this.scene.userData.game && this.scene.userData.game.ui) {
+                this.scene.userData.game.ui.updateBossHealth(0, this.maxLife);
+            }
             // DEATH ANIMATION: BURST
             // We want it to "Pop"
             this.explode();

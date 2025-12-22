@@ -11,12 +11,20 @@ import { GoomProjectiles } from './GoomProjectiles.js';
 export class GoomGame {
   constructor(scene, camera, player = null) {
     this.scene = scene;
+    this.scene.userData.game = this; // Expose Game to Objects (e.g. Boss)
     this.camera = camera;
     this.player = player;
     this.active = false;
 
     // Systems
     this.audio = new GoomAudio();
+    // DEBUG: Allow user to change music from console
+    window.setMusic = (p) => {
+      if (this.audio && this.audio.setMusicPhase) {
+        this.audio.setMusicPhase(p);
+        console.log(`Command: Music set to Phase ${p}`);
+      }
+    };
     this.ui = new GoomUI(this);
     this.systems = new GoomSystems(this);
     this.arena = new GoomArena(scene);
@@ -71,6 +79,11 @@ export class GoomGame {
     }
 
     if (this.audio && this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
+    // Start Phase 0 Music Immediately!
+    if (this.audio) {
+      if (this.audio.setMusicPhase) this.audio.setMusicPhase(0);
+      this.musicHandle = this.audio.playMusic(() => this.active && !this.isGameOver);
+    }
   }
 
   startGame() {
@@ -91,8 +104,31 @@ export class GoomGame {
 
     this.exhibitsSource.forEach(ex => {
       if (ex.mesh) {
+        // RESET STATE
         ex.mesh.userData.health = 100;
         ex.mesh.userData.name = ex.title || "DATA NODE";
+        ex.mesh.userData.isCorrupted = false;
+        ex.mesh.userData.isDead = false;
+        ex.mesh.userData.fireTimer = 0;
+        ex.mesh.visible = true;
+        ex.mesh.scale.setScalar(1.0); // Reset pulse
+
+        // RESTORE MATERIAL
+        const restoreMat = (mat) => {
+          if (mat.color) mat.color.setHex(0x00ffff); // Cyan Default
+          if (mat.emissive) mat.emissive.setHex(0x000000);
+        };
+
+        if (ex.mesh.material) {
+          if (Array.isArray(ex.mesh.material)) ex.mesh.material.forEach(restoreMat);
+          else restoreMat(ex.mesh.material);
+        }
+        ex.mesh.traverse(c => {
+          if (c.isMesh && c.material) {
+            if (Array.isArray(c.material)) c.material.forEach(restoreMat);
+            else restoreMat(c.material);
+          }
+        });
       }
     });
 
@@ -165,7 +201,6 @@ export class GoomGame {
   update(delta) {
     if (!this.active) return;
 
-    this.systems.updateParticles(delta);
     this.checkCrystalHealth();
 
     if (this.isVictory || this.isGameOver) return;
@@ -184,6 +219,7 @@ export class GoomGame {
     this.ui.updateModelHealthBars();
     this.ui.updateStamina();
 
+    if (this.audio && this.audio.updateListener) this.audio.updateListener(this.camera); // Audio Spatialization
     this.projectiles.update(delta);
     this.updateEnemies(delta);
     this.updateBoss(delta);
@@ -238,7 +274,7 @@ export class GoomGame {
     const spawnRate = Math.max(200, 2000 - (this.wave * 350)); // Faster Spawns (was 2500 - 300)
 
     this.ui.showWaveTitle(`WAVE ${this.wave}`);
-    if (this.audio.setMusicPhase) this.audio.setMusicPhase(this.wave); // Pass Wave Number!
+    if (this.audio.setMusicPhase) this.audio.setMusicPhase(this.wave); // Wave 1-4 now have distinct phases
 
     this.spawnInterval = setInterval(() => {
       if (!this.active || this.isGameOver) return;
@@ -254,7 +290,7 @@ export class GoomGame {
     this.waveInProgress = true;
     this.wave = 5;
     this.ui.showWaveTitle("THE AI BUBBLE: POP IT TO SAVE AI!");
-    if (this.audio.setMusicPhase) this.audio.setMusicPhase(3);
+    if (this.audio.setMusicPhase) this.audio.setMusicPhase(5);
     const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 5, -60));
 
     const onShoot = (pos, dir, type) => this.projectiles.fireEnemyProjectile(pos, dir, type);
@@ -277,7 +313,7 @@ export class GoomGame {
 
   spawnEnemy() {
     if (!this.active) return;
-    const validTargets = this.ui.crystals.filter(c => c.mesh && c.mesh.visible && c.mesh.userData.health > 0).map(c => c.mesh);
+    const validTargets = this.ui.crystals.filter(c => c.mesh && c.mesh.visible && c.mesh.userData.health > 0 && !c.mesh.userData.isCorrupted).map(c => c.mesh);
 
     let spawnPoint = this.arena.getRandomSpawnPoint();
     for (let i = 0; i < 5; i++) {
@@ -309,6 +345,14 @@ export class GoomGame {
     const enemy = new GlitchEnemy(this.scene, spawnPoint, target, type, role, (pos, dir, enemyType) => {
       this.projectiles.fireEnemyProjectile(pos, dir, enemyType);
     }, onFindTarget, this.wave);
+
+    // SPAWN EFFECT
+    if (this.systems) this.systems.createTeleportEffect(spawnPoint); // Cyan Teleport Beam
+    if (this.audio && this.audio.play3DSound) {
+      // High pitch "Teleport" chime
+      this.audio.play3DSound(spawnPoint, 1500, 'sine', 1.5, 1.0);
+    }
+
     this.enemies.push(enemy);
     this.enemiesToSpawn--;
   }
@@ -522,10 +566,18 @@ export class GoomGame {
       const bossHud = document.getElementById('boss-health-container');
       if (bossHud) bossHud.remove();
       this.systems.createExplosion(this.boss.mesh.position, 0xffaa00, true, 5.0);
+
+      // KILL ALL MINIONS
+      this.enemies.forEach(e => {
+        this.systems.createExplosion(e.mesh.position, 0xff0000, false, 1.0);
+        this.scene.remove(e.mesh);
+      });
+      this.enemies = [];
+
       this.score += 5000;
       this.boss = null;
       if (this.audio) this.audio.playBossDeath();
-      setTimeout(() => this.triggerWin(), 5000);
+      setTimeout(() => this.triggerWin(), 2000);
     }
   }
 
@@ -603,11 +655,25 @@ export class GoomGame {
     }
     this.handleCheatInput(e.key);
     if (e.key === 'r') this.resetGame();
+    // Cycle Music Phases
+    if (e.key === '+' || e.key === '=') { // + or =
+      if (this.audio && this.audio.setMusicPhase) {
+        let next = (this.audio.musicPhase + 1) % 6;
+        this.audio.setMusicPhase(next);
+        this.ui.showWarning(`MUSIC PHASE: ${next}`);
+      }
+    }
+    if (e.key === '-' || e.key === '_') { // - or _
+      if (this.audio && this.audio.setMusicPhase) {
+        let prev = (this.audio.musicPhase - 1 + 6) % 6;
+        this.audio.setMusicPhase(prev);
+        this.ui.showWarning(`MUSIC PHASE: ${prev}`);
+      }
+    }
     if (e.key === '0') {
       console.log("DEBUG: Jumping to Boss Wave & Refilling Ammo");
       this.weapons.forEach(w => w.ammo = w.maxAmmo);
       this.ui.updateHUD();
-
       if (this.spawnInterval) clearInterval(this.spawnInterval);
       if (this.pickupInterval) clearInterval(this.pickupInterval);
       this.enemies.forEach(en => this.scene.remove(en.mesh));
@@ -787,26 +853,4 @@ export class GoomGame {
     return closest;
   }
 
-  destroyCrystal(crystalMesh) {
-    if (!crystalMesh || crystalMesh.userData.isDead) return;
-    console.log("CRITICAL: Crystal Destroyed", crystalMesh.userData.name);
-    crystalMesh.userData.isDead = true;
-    crystalMesh.visible = false;
-    this.ui.score -= 1000;
-    this.ui.updateHUD();
-    if (this.ui.showWarning) this.ui.showWarning(`HISTORY LOST: ${crystalMesh.userData.name}`);
-    this.systems.createExplosion(crystalMesh.position, 0xff0000, true, 20.0);
-    if (this.audio) {
-      this.audio.playSound(50, 'sawtooth', 3.0, 1.0);
-      this.audio.playSound(200, 'square', 1.5, 0.8, -1200);
-    }
-    if (crystalMesh.parent) crystalMesh.parent.remove(crystalMesh);
-    else this.scene.remove(crystalMesh);
-    this.enemies.forEach(e => {
-      if (e.target === crystalMesh) {
-        e.target = null;
-        if (e.findNewTarget) e.findNewTarget();
-      }
-    });
-  }
 }

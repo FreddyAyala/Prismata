@@ -56,6 +56,33 @@ export class GoomSystems {
         this.particles.push({ mesh: flash, life: 0.2, initialLife: 0.2, isFlash: true });
     }
 
+    createTeleportEffect(pos) {
+        // A tall cyberpunk cylinder beam
+        const geometry = new THREE.CylinderGeometry(2, 2, 20, 8, 1, true);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.8,
+            wireframe: true,
+            side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(pos);
+        mesh.position.y += 10; // Center it
+        this.scene.add(mesh);
+
+        // Animate scale/opacity
+        this.particles.push({
+            mesh,
+            life: 0.5,
+            initialLife: 0.5,
+            isTeleport: true
+        });
+
+        // Add some floating bits
+        this.createExplosion(pos, 0x00ffff, true, 1.0);
+    }
+
     updateParticles(delta) {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
@@ -80,6 +107,32 @@ export class GoomSystems {
                 if (p.isFlash) {
                     const s = p.mesh.scale.x + delta * 15.0;
                     p.mesh.scale.set(s, s, s);
+                }
+
+                // Teleport Collapse (Beam)
+                if (p.isTeleport) {
+                    p.mesh.scale.x = Math.max(0.1, p.mesh.scale.x - delta * 0.5);
+                    p.mesh.scale.z = Math.max(0.1, p.mesh.scale.z - delta * 0.5);
+                    p.mesh.rotation.y += delta * 5.0;
+                }
+
+                // Rising Particles
+                if (p.isRising) {
+                    // Accelerate up
+                    p.velocity.y += delta * 10.0;
+                }
+
+                // Expanding Rings
+                if (p.isRing) {
+                    if (p.delay > 0) {
+                        p.delay -= delta;
+                        p.mesh.visible = false;
+                    } else {
+                        p.mesh.visible = true;
+                        const s = p.mesh.scale.x + delta * 10.0;
+                        p.mesh.scale.set(s, s, 1);
+                        if (p.mesh.material) p.mesh.material.opacity = p.life / p.initialLife;
+                    }
                 }
             }
 
@@ -209,6 +262,35 @@ export class GoomSystems {
                 this.scene.remove(p.mesh);
                 this.pickups.splice(i, 1);
             }
+        }
+    }
+
+    createLightning(start, end, color = 0x00ffff) {
+        const dist = start.distanceTo(end);
+        const segments = Math.floor(dist / 2.0);
+        const points = [];
+        points.push(start);
+
+        for (let i = 1; i < segments; i++) {
+            const t = i / segments;
+            const p = new THREE.Vector3().lerpVectors(start, end, t);
+            // Jitter
+            p.x += (Math.random() - 0.5) * 1.5;
+            p.y += (Math.random() - 0.5) * 1.5;
+            p.z += (Math.random() - 0.5) * 1.5;
+            points.push(p);
+        }
+        points.push(end);
+
+        // Create line segments
+        for (let i = 0; i < points.length - 1; i++) {
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            const geo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+            const mat = new THREE.LineBasicMaterial({ color: color });
+            const mesh = new THREE.Line(geo, mat);
+            this.scene.add(mesh);
+            this.particles.push({ mesh, life: 0.1, initialLife: 0.1 }); // Short life
         }
     }
 
