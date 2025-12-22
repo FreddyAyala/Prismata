@@ -86,7 +86,15 @@ A first-person 3D experience inspired by *Tron*.
 *   **Scale:** Experience the sheer scale of modern models.
 *   **Controls:** WASD to move, Mouse to look. ESC to exit.
 
-### 4. Operation Firewall (Defense Mode) 🛡️
+### 5. Cinematic Auto-Tour & Neural Sonification 🎵
+Experience the gallery as a hands-free, audio-visual journey.
+*   **Auto-Tour:** Simply click "**▶ AUTO-TOUR**" in the Timeline. The camera will automatically glide through history, zooming in on key architectural details.
+*   **Neural Sonification:** A generative audio engine reads the "DNA" of each model (Year, Parameter Count, Architecture Type) and synthesizes a **Unique Audio Signature** in real-time.
+    *   **1950s:** Pure Analog Sine Waves.
+    *   **2020s:** Ethereal, Complex Glass Pads.
+    *   **The Signature:** A unique melodic motif generated from the model's name hash.
+
+### 6. Operation Firewall (Defense Mode) 🛡️
 A hidden survival mode where you protect the crystals from corruption.
 *   **The Mission:** Defend the Gallery from waves of "Glitch Entities" trying to destabilize the neural topology.
 *   **Arsenal:** Procedural weaponry (Blaster, Shotgun, Plasma) generated from the model's own parameters.
@@ -139,6 +147,10 @@ The script outputs a `.ply` file (Point Cloud) which you can view in Prismata.
 
 ## 📜 Changelog
 
+*   **v2.0.0**: **Cinematic Auto-Tour** & **Neural Sonification**.
+    *   Hands-free "Museum Mode" with dynamic camera paths.
+    *   Generative Audio Engine: Unique sound signatures for every model based on their architectural DNA.
+    *   Sci-Fi Soundscapes: Ethereal padding and subtle transitions.
 *   **v1.2.0**: Added **Operation Firewall (Defense Mode)**.
 *   **v1.1.0**: Timeline Expansion (Gemini 3.0, DeepSeek-V3, Qwen 2.5, SmolLM, etc.).
 *   **v1.0.0**: Initial Release.

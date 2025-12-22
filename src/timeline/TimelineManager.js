@@ -1,3 +1,5 @@
+import { neuralAudio } from '../audio/NeuralAudio.js';
+
 export class TimelineManager {
     constructor(viewer) {
         this.viewer = viewer; // Main viewer reference
@@ -40,6 +42,8 @@ export class TimelineManager {
             node.addEventListener('click', () => {
                 this.stopAutoPlay();
                 this.goTo(index);
+                // Audio Init on interaction
+                if (neuralAudio) neuralAudio.playCrystalSound(model);
             });
             this.track.appendChild(node);
         });
@@ -48,6 +52,19 @@ export class TimelineManager {
         const btnPrev = document.getElementById('btn-prev-model');
         const btnNext = document.getElementById('btn-next-model');
         const btnClose = document.getElementById('btn-close-timeline');
+        const btnAudio = document.getElementById('btn-toggle-audio');
+
+        if (btnAudio) btnAudio.onclick = () => {
+            if (neuralAudio) {
+                const isMuted = neuralAudio.toggleMute();
+                btnAudio.textContent = isMuted ? '🔇' : '🔊';
+
+                // Play sound immediately if turning ON
+                if (!isMuted) {
+                    neuralAudio.playCrystalSound(this.models[this.currentIndex]);
+                }
+            }
+        };
 
         if (btnPrev) btnPrev.onclick = () => {
             this.stopAutoPlay();
@@ -71,6 +88,16 @@ export class TimelineManager {
 
     enter() {
         if (this.overlay) this.overlay.classList.remove('hidden');
+
+        // Audio Init
+        neuralAudio.init();
+        neuralAudio.resume();
+
+        // Sync Audio Button
+        const btnAudio = document.getElementById('btn-toggle-audio');
+        if (btnAudio) {
+            btnAudio.textContent = neuralAudio.isMuted ? '🔇' : '🔊';
+        }
 
         // Hide Main UI Opacity
         const nav = document.querySelector('.gallery-nav');
@@ -130,6 +157,10 @@ export class TimelineManager {
             if (this.yearLabel) this.yearLabel.style.opacity = 1;
             if (this.titleLabel) this.titleLabel.style.opacity = 1;
             if (this.descLabel) this.descLabel.style.opacity = 1;
+
+            // Trigger Sound
+            neuralAudio.playCrystalSound(model);
+
         }, 200);
 
         // Load Crystal
@@ -152,6 +183,7 @@ export class TimelineManager {
     startAutoPlay() {
         if (this.isPlaying) return;
         this.isPlaying = true;
+        neuralAudio.resume();
 
         const btn = document.getElementById('btn-auto-tour');
         if (btn) {
@@ -203,6 +235,9 @@ export class TimelineManager {
 
     performTransition() {
         if (!this.isPlaying) return;
+
+        // Sound Effect
+        neuralAudio.playGlitch();
 
         // --- DRAMATIC TRANSITION ---
         // "Recall" Effect: Explode lines out, then fade.

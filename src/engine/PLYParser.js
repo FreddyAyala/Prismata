@@ -81,47 +81,41 @@ export class PLYParser {
         `
           #include <worldpos_vertex>
 
-          // 1. Random Density Discard
+          // 1. Random Density
           float densityRand = fract(sin(dot(position.xy ,vec2(12.9898,78.233))) * 43758.5453);
           if (densityRand > uNodeDensity) {
               gl_Position = vec4(10.0, 10.0, 10.0, 1.0); // Clip
           }
 
-          // 2. Distance Mask (Center Cutoff or Sine Band)
-          // "Line Distance" often implies seeing connectivity distance, but for nodes...
-          // Let's make NodeDist behave like a radial visibility or specific band.
-          // IF uNodeDist < 100, we start hiding outer nodes?
-          // Actually, let's map "Line Dist" to "Connectivity Visibility" but for points, maybe "Layer Visibility"?
-          // Use uNodeDist as a "Max Radius" or "Vertical Slice"?
-          // Let's use it as a "Vertical Scan" effect mask if small?
-          // Simple: Hide nodes if abs(y) > uNodeDist (if we treat it as height/focus)
-          // Default is 50.
-
-          if (abs(position.y) > uNodeDist * 0.8) { // 0 to 100 scale
-             // Fade out or clip? Clip for performnace.
-             // gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-             // Let's leave nodes mostly alone unless requested.
+          // 2. Node Distance (Vertical Focus)
+          if (abs(position.y) > uNodeDist * 0.8) {
+             // Logic reserved if user wants to hide ends
           }
-
 
           vPulse = 0.0;
           if (uPulseEnabled > 0.5) {
-             float offset = sin(position.x * 0.5) + cos(position.y * 0.5);
-             float wave = sin(position.z * 0.2 + uTime * 2.5 + offset * 0.5);
-             vPulse = smoothstep(0.9, 1.0, wave);
+              // Y-AXIS DATA FLOW (Bottom to Top)
+              float speed = 12.0;
+              float range = 60.0;
+              float offset = -30.0;
 
-             // Pulse Size Increase
-             // Use uLFO for intensity. Default 0.0 -> 0.5, Max 1.0 -> 2.5 multiplier
-             float intensity = 0.5 + (uLFO * 2.5);
-             if (vPulse > 0.01) {
-                 gl_PointSize *= (1.0 + vPulse * intensity);
-             }
+              float scan = mod(uTime * speed, range) + offset;
+              float dist = abs(position.y - scan);
+
+              if (dist < 6.0) {
+                 vPulse = 1.0 - (dist / 6.0);
+                 vPulse = pow(vPulse, 2.0); // Glow curve
+
+                 // Expand active nodes
+                 gl_PointSize *= (1.0 + vPulse * 1.5);
+              }
           }
           `
       );
 
       shader.fragmentShader = `
           varying float vPulse;
+          uniform float uTime;
         ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -129,7 +123,20 @@ export class PLYParser {
         `
           #include <color_fragment>
           if (vPulse > 0.01) {
-             diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.6, 1.0, 1.0), vPulse * 0.7);
+             // Artistic Gradient: Gold -> Cyan -> Magenta
+             // We can simulate height via vColor if the ply has colored layers?
+             // Or just use the Plasma mix approach for consistency.
+
+             vec3 colInput = vec3(1.0, 0.8, 0.2); // Warm
+             vec3 colMid   = vec3(0.0, 1.0, 1.0); // Cyan
+             vec3 colOut   = vec3(1.0, 0.2, 0.8); // Magenta
+
+             vec3 pulseCol = mix(colMid, colOut, sin(uTime * 3.0) * 0.5 + 0.5);
+
+             // Core is white
+             vec3 finalCol = mix(pulseCol, vec3(1.0), vPulse * 0.5);
+
+             diffuseColor.rgb = mix(diffuseColor.rgb, finalCol, vPulse);
           }
           `
       );
@@ -159,12 +166,21 @@ export class PLYParser {
         shader.uniforms.uXorDensity = customUniforms.uXorDensity;
         shader.uniforms.uLineDist = customUniforms.uLineDist;
 
+        // Pulse Uniforms for Lines
+        shader.uniforms.uTime = customUniforms.uTime;
+        shader.uniforms.uPulseEnabled = customUniforms.uPulseEnabled;
+
         shader.vertexShader = `
               uniform float uLineDensity;
               uniform float uThinning;
               uniform float uXorDensity;
               uniform float uLineDist;
+
+              uniform float uTime;
+              uniform float uPulseEnabled;
+
               varying float vVisible;
+              varying float vPulse;
             ` + shader.vertexShader;
 
         shader.vertexShader = shader.vertexShader.replace(
@@ -173,59 +189,63 @@ export class PLYParser {
                 #include <begin_vertex>
                 
                 vVisible = 1.0;
+                vPulse = 0.0;
 
                 // 1. Density Check
-                // We need a stable seed per vertex or per primitive.
-                // For lines, vertex shader runs per vertex. 
-                // We want the whole line to be present or absent? 
-                // If V1 is visible and V2 is hidden, we get a gradient.
-                
                 float seed = fract(sin(dot(position.xyz, vec3(1.0, 2.0, 3.0))) * 43758.5453);
                 if (seed > uLineDensity) {
                     vVisible = 0.0;
                 }
 
-                // 2. XOR Logic (Simulated Tech Pattern)
-                // "XOR Density" slider = 0 to 1.
-                // If > 0, we apply a spatial filter.
+                // 2. XOR Logic
                 if (uXorDensity > 0.01) {
-                     // Check position against a grid
                      float gridSize = 5.0;
                      float cx = floor(position.x / gridSize);
                      float cy = floor(position.y / gridSize);
                      float cz = floor(position.z / gridSize);
-                     
-                     // 3D Checkerboardish XOR
                      float pattern = mod(cx + cy + cz, 2.0);
-                     
-                     // If uXorDensity is 1.0, we want maximum effect (hide 50%?).
-                     // If pattern == 0, keep. If pattern == 1, hide?
-                     // Let's mix it.
                      if (pattern > 0.5 && uXorDensity > 0.5) {
                         vVisible = 0.0;
-                     } 
-                     
-                     // Or simplify: A generic noise filter
+                     }
                      float noise = fract(sin(dot(vec2(cx, cy), vec2(12.9, 78.2))) * 43758.5453);
                      if (noise < uXorDensity) {
                         vVisible = 0.0; 
                      }
                 }
 
-                // 3. Line Distance (Vertical Clipping / Focus)
-                // "Line Dist" 0 to 100.
-                // If line is too far from Y=0 (center layer), hide it? 
-                // Or if line length is too long? (Can't know length in vert shader easily without extra attrs).
-                // Let's treat LineDist as a "Vertical Focus" radius.
+                // 3. Line Distance
                 if (abs(position.y) > uLineDist) {
                     vVisible = 0.0;
+                }
+
+                // 4. NEURAL PULSE (Data Flow)
+                // Travel from Bottom (-Y) to Top (+Y)
+                if (uPulseEnabled > 0.5) {
+                    float speed = 12.0;
+                    float range = 60.0; // Height of model approx
+                    float offset = -30.0; // Start point
+
+                    // Sawtooth wave pos
+                    float scan = mod(uTime * speed, range) + offset;
+
+                    // Distance from scan line
+                    float dist = abs(position.y - scan);
+
+                    // Glow band size = 5.0
+                    if (dist < 5.0) {
+                        // Inverse square falloff for glow
+                        vPulse = 1.0 - (dist / 5.0);
+                        vPulse = pow(vPulse, 3.0); // Sharpen curve
+                    }
                 }
                 `
         );
 
         shader.fragmentShader = `
               uniform float uThinning;
+              uniform float uTime;
               varying float vVisible;
+              varying float vPulse;
             ` + shader.fragmentShader;
 
         shader.fragmentShader = shader.fragmentShader.replace(
@@ -234,11 +254,48 @@ export class PLYParser {
                 if (vVisible < 0.1) discard;
                 #include <color_fragment>
                 
-                // Thinning: Reduce Alpha
-                // Slider 0 (Solid) -> 1 (Transparent/Thin)
-                // If uThinning = 0, alpha = 0.2 (Original Legacy Value)
-                // If uThinning = 1, alpha = 0.0
-                diffuseColor.a = mix(0.2, 0.0, uThinning); 
+                // Pulse Color Override (Artistic Gradient)
+                if (vPulse > 0.01) {
+                    // Normalize Height roughly -30 to +30
+                    // We need 'vPos' passed from vertex, but we don't have it here yet.
+                    // Actually, let's assume Uniform Color based on vPulse phase?
+                    // Or better: Let's pass vHeight from vertex.
+
+                    // Since I can't easily add a varying without changing vertex shader structure significantly in this tool call...
+                    // Wait, I AM editing the vertex shader injector too in previous step.
+                    // Let's rely on the fact that vColor or diffuseColor is already set.
+
+                    // Let's use a Time-based Cycle + Pulse to make it "Rainbow" or "Plasma"
+                    // Or just hardcode the "Cyberpunk" palette trio:
+
+                    vec3 colInput = vec3(1.0, 0.6, 0.0); // Gold
+                    vec3 colMid   = vec3(0.0, 0.9, 1.0); // Cyan
+                    vec3 colOut   = vec3(1.0, 0.0, 0.5); // Magenta
+
+                    // We can use uTime to cycle the color of the PULSE itself as it travels?
+                    // The pulse travels. So we can determine color by the pulse "Scan" uniform?
+                    // No, scan is local var.
+
+                    // Simple Hack: Use gl_FragCoord.y if we want screen space, OR just a cool mixed color.
+                    // Let's go for "Electric Plasma" (Cyan + Purple mix)
+
+                    vec3 plasma = mix(colMid, colOut, sin(uTime * 2.0) * 0.5 + 0.5);
+
+                    // Add some "Sparkle" noise if we can?
+                    // No noise function available in stdlib here without injection.
+
+                    // Let's just make it BRIGHT and Colorful.
+                    vec3 finalPulse = mix(colInput, plasma, vPulse); // Edges gold, center plasma?
+
+                    diffuseColor.rgb = mix(diffuseColor.rgb, plasma, vPulse * 0.9);
+                    diffuseColor.a += vPulse * 0.8; // High visibility
+
+                    // "Overdrive" brightness
+                    diffuseColor.rgb += vec3(0.2, 0.2, 0.2) * vPulse;
+                }
+
+                // Thinning
+                diffuseColor.a = mix(diffuseColor.a, 0.0, uThinning);
                 `
         );
       };

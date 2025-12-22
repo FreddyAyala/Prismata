@@ -22,7 +22,7 @@ export class CrystalViewer {
     // Pulse Uniforms
     this.customUniforms = {
       uTime: { value: 0 },
-      uPulseEnabled: { value: 0.0 },
+      uPulseEnabled: { value: 0.0 }, // Flow OFF by default
       // Advanced Uniforms (Setters will update these)
       uNodeDensity: { value: 1.0 },
       uLineDensity: { value: 1.0 },
