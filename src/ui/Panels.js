@@ -74,8 +74,57 @@ export async function handleLoadCrystal(data, slot, viewers) {
             <div class="markdown-content">
                 ${parseMarkdown(infoText)}
             </div>
+
+            ${data.diagram ? `
+            <div style="margin-top: 15px; border-top: 1px solid rgba(0,243,255,0.2); padding-top: 10px;">
+                <button id="toggle-arch-btn-${slot}" style="
+                    background: rgba(0,243,255,0.1); 
+                    border: 1px solid rgba(0,243,255,0.3); 
+                    color: #00f3ff; 
+                    padding: 5px 10px; 
+                    font-family: 'Rajdhani', sans-serif; 
+                    cursor: pointer; 
+                    width: 100%;
+                    text-transform: uppercase;
+                    font-size: 0.8em;
+                    letter-spacing: 1px;
+                " onclick="
+                    const container = document.getElementById('arch-container-${slot}');
+                    const btn = document.getElementById('toggle-arch-btn-${slot}');
+                    if (container.style.display === 'none') {
+                        container.style.display = 'block';
+                        btn.textContent = 'HIDE BLUEPRINT';
+                        btn.style.background = 'rgba(0,243,255,0.3)';
+                    } else {
+                        container.style.display = 'none';
+                        btn.textContent = 'SHOW BLUEPRINT';
+                        btn.style.background = 'rgba(0,243,255,0.1)';
+                    }
+                ">SHOW BLUEPRINT</button>
+                <div id="arch-container-${slot}" style="display:none; margin-top:15px;">
+                    <img src="${data.diagram}" style="
+                        width: 100%; 
+                        border: 1px solid #00f3ff; 
+                        box-shadow: 0 0 10px rgba(0,243,255,0.2);
+                        margin-bottom: 15px;
+                    ">
+                    <div style="
+                        font-family: 'Rajdhani', sans-serif;
+                        font-size: 0.85em;
+                        color: rgba(255,255,255,0.9);
+                        background: rgba(0,0,0,0.3);
+                        padding: 10px;
+                        border-left: 2px solid #00f3ff;
+                        line-height: 1.4;
+                    ">
+                        ${getArchDesc(data.diagram)}
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+
             <br>
-            <div style="font-size:0.7em; opacity:0.6;">SOURCE: ${data.url.split('/').pop()}</div>
+            <div style="font-size:0.7em; opacity:0.6; margin-top:5px;">SOURCE: ${data.url.split('/').pop()}</div>
         `;
     }
 
@@ -111,6 +160,22 @@ function parseMarkdown(text) {
   html = html.replace(/<\/h5><br>/g, '</h5>');
 
   return html;
+}
+
+const archDescriptions = {
+  'transformer_blueprint.png': "<strong>TYPE: TRANSFORMER</strong><br><em style='opacity:0.7'>MECHANISM: SELF-ATTENTION</em><br><br>The fundamental architecture of modern AI. Uses 'Attention Heads' to process entire sequences in parallel, weighing relationships between all tokens simultaneously.",
+  'decoder_blueprint.png': "<strong>TYPE: DECODER-ONLY TRANSFORMER</strong><br><em style='opacity:0.7'>MECHANISM: AUTOREGRESSIVE GENERATION</em><br><br>The standard for LLMs (GPT, Llama). A stack of masked attention layers that predicts tokens sequentially. Specialized for massive scale text generation.",
+  'moe_blueprint.png': "<strong>TYPE: MIXTURE-OF-EXPERTS (MoE)</strong><br><em style='opacity:0.7'>MECHANISM: SPARSE GATING</em><br><br>A massive sparse network. A 'Gating' router selects only the relevant 'Expert' blocks for each token, allowing trillions of parameters with low inference cost.",
+  'cnn_blueprint.png': "<strong>TYPE: CONVOLUTIONAL NETWORK</strong><br><em style='opacity:0.7'>MECHANISM: SPATIAL FILTERING</em><br><br>The vision pioneer. Uses sliding convolutional filters to build hierarchical feature maps, from edges to complex objects.",
+  'gan_blueprint.png': "<strong>TYPE: GENERATIVE ADVERSARIAL NETWORK</strong><br><em style='opacity:0.7'>MECHANISM: ZERO-SUM GAME</em><br><br>Two networks at war: A Generator creating fakes, and a Discriminator detecting them. This conflict drives the evolution of realistic synthesis.",
+  'lstm_blueprint.png': "<strong>TYPE: LSTM (Recurrent)</strong><br><em style='opacity:0.7'>MECHANISM: GATED MEMORY CELLS</em><br><br>The memory solver. Introduces 'Forget', 'Input', and 'Output' gates to control information flow, solving the vanishing gradient problem of early RNNs.",
+  'multimodal_blueprint.png': "<strong>TYPE: MULTIMODAL FUSION</strong><br><em style='opacity:0.7'>MECHANISM: JOINT EMBEDDING SPACE</em><br><br>Dual encoders (Vision + Text) projecting data into a shared conceptual space. Allows the model to 'see' and 'read' simultaneously."
+};
+
+function getArchDesc(path) {
+  if (!path) return '';
+  const filename = path.split('/').pop();
+  return archDescriptions[filename] || "";
 }
 
 export function showToast(msg, isAlert = false) {

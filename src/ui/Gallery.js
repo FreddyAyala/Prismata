@@ -50,6 +50,7 @@ async function loadGallery(activeSlotGetter, viewers) {
             item.dataset.modelName = model.name;
             item.dataset.modelDesc = model.desc;
             item.dataset.modelId = model.id;
+          item.dataset.diagram = model.diagram || '';
 
             item.innerHTML = `
                 <span class="item-name">${crystal.name}</span>

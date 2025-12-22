@@ -6,6 +6,7 @@
     "era": "The Omni Era",
     "type": "Multimodal",
     "desc": "The first truly native Omni-model. Sees, hears, and speaks as one. (Simulation)",
+    "diagram": "diagrams/multimodal_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -22,6 +23,7 @@
     "era": "The Omni Era",
     "type": "Multimodal",
     "desc": "Google's native multimodal triumph. (Real Weights)",
+    "diagram": "diagrams/multimodal_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -38,6 +40,7 @@
     "era": "The Specialized Era",
     "type": "Medical",
     "desc": "Fine-tuned for medical reasoning. (Real Weights)",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -54,6 +57,7 @@
     "era": "The Edge Era",
     "type": "SLM",
     "desc": "Microsoft's efficient powerhouse. (Real Weights)",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -70,6 +74,7 @@
     "era": "The Artifact Era",
     "type": "Steerable",
     "desc": "Anthropic's masterpiece. The 'Artifact' structure represents its high steerability and safety.",
+    "diagram": "diagrams/transformer_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -86,6 +91,7 @@
     "era": "The Sparse Era",
     "type": "MoE",
     "desc": "A massive 671B parameter Mixture-of-Experts model. Famous for extreme efficiency via sparsity.",
+    "diagram": "diagrams/moe_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -103,6 +109,7 @@
     "era": "The Scale Era",
     "type": "MoE",
     "desc": "The model that changed the world. Massive scale, massive capability. (Simulation)",
+    "diagram": "diagrams/moe_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -135,6 +142,7 @@
     "era": "Reasoning & Agency",
     "type": "CoT Decoder",
     "desc": "The reasoning engine. Capable of complex multi-step logic and planning.",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -157,6 +165,7 @@
     "era": "The Logic Era",
     "type": "Reasoning",
     "desc": "The next evolution of reasoning. (Real Weights)",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -173,6 +182,7 @@
     "era": "Open Weights Revolution",
     "type": "Dense Decoder",
     "desc": "Google's open model. Highly efficient knowledge compression.",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -189,6 +199,7 @@
     "era": "Open Source Spark",
     "type": "Decoder",
     "desc": "The model that leaked and started the open-source revolution. (Real Weights)",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -205,6 +216,7 @@
     "era": "Efficient AI",
     "type": "Decoder",
     "desc": "Compact brilliance. Trained on 3 Trillion tokens to prove small models can be smart.",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -221,6 +233,7 @@
     "era": "Multimodal Bridge",
     "type": "Multimodal",
     "desc": "The bridge between Vision and Language. Two architectures (Visual + Text) side-by-side.",
+    "diagram": "diagrams/multimodal_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -253,6 +266,7 @@
     "era": "Generative Beginnings",
     "type": "Decoder",
     "desc": "The model that demonstrated unsupervised language generation capabilities at scale.",
+    "diagram": "diagrams/decoder_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -309,6 +323,7 @@
     "era": "The Efficiency Era",
     "type": "CNN",
     "desc": "The first truly efficient mobile vision model.",
+    "diagram": "diagrams/cnn_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -325,6 +340,7 @@
     "era": "The Deep Learning Boom",
     "type": "CNN",
     "desc": "The model that solved the vanishing gradient problem with skip connections, allowing for deep networks.",
+    "diagram": "diagrams/cnn_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -346,6 +362,7 @@
     "year": 2014,
     "era": "The Deep Tower",
     "type": "CNN",
+    "diagram": "diagrams/cnn_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -362,6 +379,7 @@
     "era": "The Branching Path",
     "type": "CNN",
     "desc": "Wide, parallel processing. Introducing complexity through the 'Inception Module'.",
+    "diagram": "diagrams/cnn_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -378,6 +396,7 @@
     "era": "The Spark",
     "type": "CNN",
     "desc": "The model that ignited the Deep Learning revolution. Winning ImageNet 2012 by a landslide.",
+    "diagram": "diagrams/cnn_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -410,6 +429,7 @@
     "era": "The Creative Duel",
     "type": "Generative",
     "desc": "Generator vs Discriminator. The adversarial game that taught AI to dream.",
+    "diagram": "diagrams/gan_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -426,6 +446,7 @@
     "era": "The Origin",
     "type": "CNN",
     "desc": "The ancestor. A tiny 5-layer network that learned to read digits. The spark that started it all.",
+    "diagram": "diagrams/cnn_blueprint.png",
     "crystals": [
       {
         "id": "struct",
@@ -442,6 +463,7 @@
     "era": "The Memory Era",
     "type": "RNN",
     "desc": "Long Short-Term Memory. The first time neural networks could remember the past.",
+    "diagram": "diagrams/lstm_blueprint.png",
     "crystals": [
       {
         "id": "struct",
