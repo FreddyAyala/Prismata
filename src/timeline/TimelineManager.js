@@ -37,7 +37,10 @@ export class TimelineManager {
                 <span class="node-year">${model.year}</span>
                 <span class="node-label">${model.name}</span>
             `;
-            node.addEventListener('click', () => this.goTo(index));
+            node.addEventListener('click', () => {
+                this.stopAutoPlay();
+                this.goTo(index);
+            });
             this.track.appendChild(node);
         });
 
@@ -47,15 +50,23 @@ export class TimelineManager {
         const btnClose = document.getElementById('btn-close-timeline');
 
         if (btnPrev) btnPrev.onclick = () => {
+            this.stopAutoPlay();
             if (this.currentIndex > 0) this.goTo(this.currentIndex - 1);
         };
         if (btnNext) btnNext.onclick = () => {
+            this.stopAutoPlay();
             if (this.currentIndex < this.models.length - 1) this.goTo(this.currentIndex + 1);
         };
         if (btnClose) btnClose.onclick = () => {
             this.exit();
             if (this.onExit) this.onExit();
         };
+
+        // Auto-Tour Button
+        const btnAuto = document.getElementById('btn-auto-tour');
+        if (btnAuto) {
+            btnAuto.onclick = () => this.toggleAutoPlay();
+        }
     }
 
     enter() {
@@ -70,13 +81,16 @@ export class TimelineManager {
         if (details) details.style.opacity = '0';
         if (headerWithStatus) headerWithStatus.style.opacity = '0';
 
-        // Select First
-        this.goTo(0);
-        // Sync UI - We assume we have access to updateModeUI logic via window or callback
+        // Select First if not playing
+        if (!this.isPlaying) this.goTo(0);
+
+        // Sync UI
         if (window.updateModeUI) window.updateModeUI('timeline');
     }
 
     exit() {
+        this.stopAutoPlay();
+
         if (this.overlay) this.overlay.classList.add('hidden');
 
         // Restore UI
@@ -87,8 +101,6 @@ export class TimelineManager {
         if (nav) { nav.style.opacity = '1'; nav.style.pointerEvents = 'auto'; }
         if (details) details.style.opacity = '1';
         if (header) header.style.opacity = '1';
-
-
     }
 
     goTo(index) {
@@ -125,6 +137,111 @@ export class TimelineManager {
         if (this.viewer && crystal) {
             this.viewer.loadCrystal(`./${crystal.file}`).catch(e => console.error(e));
         }
+    }
+
+    // --- CINEMATIC AUTO-TOUR ---
+
+    toggleAutoPlay() {
+        if (this.isPlaying) {
+            this.stopAutoPlay();
+        } else {
+            this.startAutoPlay();
+        }
+    }
+
+    startAutoPlay() {
+        if (this.isPlaying) return;
+        this.isPlaying = true;
+
+        const btn = document.getElementById('btn-auto-tour');
+        if (btn) {
+            btn.textContent = '⏹ STOP TOUR';
+            btn.style.background = 'rgba(0, 243, 255, 0.2)';
+        }
+
+        this.scheduleNextStep();
+    }
+
+    stopAutoPlay() {
+        if (!this.isPlaying) return;
+        this.isPlaying = false;
+        if (this.playTimer) clearTimeout(this.playTimer);
+
+        const btn = document.getElementById('btn-auto-tour');
+        if (btn) {
+            btn.textContent = '▶ AUTO-TOUR';
+            btn.style.background = 'transparent';
+        }
+
+        // Ensure crystal is visible
+        if (this.viewer && this.viewer.setThinning) {
+            this.viewer.setThinning(0.0);
+        }
+    }
+
+    scheduleNextStep() {
+        if (!this.isPlaying) return;
+
+        // --- CINEMATIC ACTION ---
+        // 1. Zoom In (Dolly)
+        if (this.viewer && this.viewer.setTargets) {
+            // Pick a random angle or just zoom in
+            const zoom = 0.5 + Math.random() * 0.5; // Random zoom 0.5 - 1.0 multiplier
+            // Actually, let's use global uniforms or a helper if available.
+            // Since we don't have a full camera director, let's use the 'AutoRotate' speed 
+            // and perform a stylized "Explosion" prepare.
+
+            if (this.viewer.setAutoRotateSpeed) this.viewer.setAutoRotateSpeed(5.0); // Fast spin
+        }
+
+        // Wait 4 seconds (viewing time)
+        this.playTimer = setTimeout(() => {
+            if (this.viewer && this.viewer.setAutoRotateSpeed) this.viewer.setAutoRotateSpeed(2.0); // Reset speed
+            this.performTransition();
+        }, 4000);
+    }
+
+    performTransition() {
+        if (!this.isPlaying) return;
+
+        // --- DRAMATIC TRANSITION ---
+        // "Recall" Effect: Explode lines out, then fade.
+        if (this.viewer && this.viewer.customUniforms) {
+            // 1. Explosion (Push lines away)
+            if (this.viewer.setLineDist) this.viewer.setLineDist(0.0); // Collapse lines? Or 500? Less dist = less lines visible usually.
+            // Actually, let's use thinning + density to "glitch" out.
+            if (this.viewer.setLineDensity) this.viewer.setLineDensity(0.0);
+            if (this.viewer.setNodeDensity) this.viewer.setNodeDensity(0.0);
+            if (this.viewer.setThinning) this.viewer.setThinning(1.0);
+        }
+
+        // 2. Wait for Glitch (1s)
+        this.playTimer = setTimeout(() => {
+            if (!this.isPlaying) return;
+
+            // 3. Advance Model
+            let nextIndex = this.currentIndex + 1;
+            if (nextIndex >= this.models.length) {
+                nextIndex = 0;
+            }
+
+            this.goTo(nextIndex);
+
+            // 4. Reveal (Dramatic Re-assembly)
+            this.playTimer = setTimeout(() => {
+                if (!this.viewer) return;
+
+                // Reset to full
+                if (this.viewer.setLineDist) this.viewer.setLineDist(200.0);
+                if (this.viewer.setLineDensity) this.viewer.setLineDensity(1.0);
+                if (this.viewer.setNodeDensity) this.viewer.setNodeDensity(1.0);
+                if (this.viewer.setThinning) this.viewer.setThinning(0.0);
+
+                // 5. Schedule Next
+                this.scheduleNextStep();
+            }, 800);
+
+        }, 1000);
     }
 }
 
