@@ -16,6 +16,70 @@
     ]
   },
   {
+    "id": "gemma3",
+    "name": "Gemma 3.0 (Triad)",
+    "year": 2025,
+    "era": "The Omni Era",
+    "type": "Multimodal",
+    "desc": "Google's native multimodal triumph. (Real Weights)",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Triad",
+        "file": "crystals/gemma3/structure_layers.ply",
+        "desc": "Real structural signature of Gemma 3 (1B)."
+      }
+    ]
+  },
+  {
+    "id": "gemmahealth",
+    "name": "Gemma Health",
+    "year": 2024,
+    "era": "The Specialized Era",
+    "type": "Medical",
+    "desc": "Fine-tuned for medical reasoning. (Real Weights)",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Caduceus",
+        "file": "crystals/gemma_health/structure_layers.ply",
+        "desc": "Real weight topology of Medical Gemma."
+      }
+    ]
+  },
+  {
+    "id": "phi35",
+    "name": "Phi 3.5",
+    "year": 2024,
+    "era": "The Edge Era",
+    "type": "SLM",
+    "desc": "Microsoft's efficient powerhouse. (Real Weights)",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Micro-Core",
+        "file": "crystals/phi35/structure_layers.ply",
+        "desc": "Real weight topology of Phi 3.5 Mini."
+      }
+    ]
+  },
+  {
+    "id": "claude35",
+    "name": "Claude 3.5 Sonnet",
+    "year": 2024,
+    "era": "The Artifact Era",
+    "type": "Steerable",
+    "desc": "Anthropic's masterpiece. The 'Artifact' structure represents its high steerability and safety.",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Artifact",
+        "file": "crystals/claude35/structure_layers.ply",
+        "desc": "Simulated 'Box' topology."
+      }
+    ]
+  },
+  {
     "id": "deepseek",
     "name": "DeepSeek-V3 (MoE)",
     "year": 2025,
@@ -76,13 +140,29 @@
         "id": "struct",
         "name": "The Logic Core",
         "file": "crystals/qwen25/structure_layers.ply",
-        "desc": "Dense, optimized circuitry for reasoning."
+        "desc": "Real Weights (1.5B) - Dense reasoning circuitry."
       },
       {
         "id": "cot",
         "name": "Thought: Step-by-Step",
         "file": "crystals/qwen25/activation_cot.ply",
         "desc": "'Let's think step by step' [Reasoning Path]"
+      }
+    ]
+  },
+  {
+    "id": "qwen3",
+    "name": "Qwen 3 (8B)",
+    "year": 2025,
+    "era": "The Logic Era",
+    "type": "Reasoning",
+    "desc": "The next evolution of reasoning. (Real Weights)",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Hyper-Logic",
+        "file": "crystals/qwen3/structure_layers.ply",
+        "desc": "Real Weights (8B) - Advanced reasoning topology."
       }
     ]
   },
@@ -99,6 +179,22 @@
         "name": "Obsidian Monolith",
         "file": "crystals/gemma2/structure_layers.ply",
         "desc": "Dense obsidian-like lattice."
+      }
+    ]
+  },
+  {
+    "id": "llama1",
+    "name": "Llama 1 (7B)",
+    "year": 2023,
+    "era": "Open Source Spark",
+    "type": "Decoder",
+    "desc": "The model that leaked and started the open-source revolution. (Real Weights)",
+    "crystals": [
+      {
+        "id": "struct",
+        "name": "The Leak",
+        "file": "crystals/llama1/structure_layers.ply",
+        "desc": "The original 7B architecture."
       }
     ]
   },

@@ -1,13 +1,13 @@
 # THE LOGIC CORE
 
-**Architecture:** Qwen 2.5 (CoT Decoder)
-**Shape:** The Logic Core
-**Concept:** Chain of Thought
+**Architecture:** Qwen 2.5 (Dense Decoder)
+**Shape:** The Logic Engine
+**Concept:** Chain-of-Thought
 
-Modern models don't just predict the next token; they plan. By generating intermediate reasoning steps ("Let's think step by step"), they navigate complex logic puzzles.
-Released in late **2024**, proving smaller, well-trained models could beat larger legacy giants.
+A model optimized for complex reasoning and instruction following.
+Released by Alibaba Cloud in **2024**, Qwen 2.5 demonstrated that "reasoning" models could be open and efficient.
 
 **Use Cases:**
-*   **Math & Logic:** Solving complex algebra and calculus word problems.
-*   **Agentic Workflows:** Breaking down high-level goals ("Plan a trip") into actionable API steps.
-*   **Coding:** Generating robust, error-free code snippets.
+*   **Math & Coding:** Solving graduate-level STEM problems.
+*   **Complex Instruction:** Following 10+ step constraints perfectly.
+*   **Multi-Agent Systems:** Serving as the "Brain" in agent swarms.

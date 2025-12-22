@@ -65,6 +65,8 @@ Prismata acts as a timeline, showcasing the architectural evolution of AI:
 *   **2024 | Qwen 2.5 & Gemma 2**: The Reasoning Era begins.
 *   **2025 | DeepSeek-V3 & SmolLM2**: Sparse Mixtures of Experts and Edge AI.
 *   **2026 | Gemini 3.0**: The Omni Era – seeing, hearing, and speaking as one.
+*   **2025 | Gemma 3 & Kimi k2**: The Triad (Multimodal Fusion) and The Rail (Infinite Context).
+*   **2024 | Claude 3.5 & Llama 3**: The Age of Agents and Open Weights.
 
 ## 🚀 Features
 

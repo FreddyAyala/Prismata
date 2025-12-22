@@ -98,7 +98,6 @@ class SimpleInception(nn.Module):
     """
     def __init__(self):
         super(SimpleInception, self).__init__()
-        # Simplified Inception Module sequence
         self.features = nn.Sequential(
             # Stem
             nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),
@@ -222,10 +221,44 @@ class SimpleGemini3(nn.Module):
                     # Ultra-dense, high connectivity
                     proj.weight *= 2.0
             
+    # Gemini 3 Logic (Existing)
+            layer.self_attn.k_proj = nn.Linear(hidden_dim, hidden_dim)
+            layer.self_attn.v_proj = nn.Linear(hidden_dim, hidden_dim)
+            self.layers.append(layer)
+
+
+
+class SimpleKimiK2(nn.Module):
+    """
+    Kimi k2 (The Long Context Rail) Mock.
+    Simulates infinite context via a 'Rail' structure.
+    """
+    def __init__(self):
+        super(SimpleKimiK2, self).__init__()
+        self.layers = nn.ModuleList()
+        hidden_dim = 1024
+        num_layers = 200 # Very Deep (Long context stack)
+        
+        for i in range(num_layers):
+            layer = nn.Module()
+            layer.self_attn = nn.Module()
+            proj = nn.Linear(hidden_dim, hidden_dim)
+            
+            with torch.no_grad():
+                # The 'Rail' - Strong diagonal focus (identity preservation)
+                # plus periodic cross-bracing
+                idx = torch.arange(hidden_dim)
+                proj.weight[idx, idx] = 2.0 # Identity spine
+                
+                # Periodic bracing
+                if i % 10 == 0:
+                    proj.weight *= 1.5 # Stronger layer
+            
             layer.self_attn.q_proj = proj
             layer.self_attn.k_proj = nn.Linear(hidden_dim, hidden_dim)
             layer.self_attn.v_proj = nn.Linear(hidden_dim, hidden_dim)
             self.layers.append(layer)
+
 
 def get_model_structure(model):
     """Auto-detects layer list and attention submodule for different architectures."""
@@ -279,3 +312,61 @@ def get_model_structure(model):
         raise ValueError(f"Architecture {type(model).__name__} not supported.")
 
     return layers
+
+
+
+class SimpleClaude35(nn.Module):
+    """
+    Claude 3.5 Sonnet (Mock).
+    "The Artifact" - A highly structured, safe, and steerable lattice.
+    """
+    def __init__(self):
+        super(SimpleClaude35, self).__init__()
+        self.layers = nn.ModuleList()
+        # 50 Layers
+        hidden_dim = 2048 
+        for i in range(50):
+            layer = nn.Module()
+            layer.self_attn = nn.Module()
+            proj = nn.Linear(hidden_dim, hidden_dim)
+            with torch.no_grad():
+                # Structure: A Dense Volumetric Block (The Monolith)
+                # 1. Start with dense Gaussian noise (Real Weight Look)
+                nn.init.normal_(proj.weight, mean=0.0, std=0.02)
+                
+                # 2. Apply "Constitutional" Constraints (Shaping)
+                # Clamp values to create hard edges (The Box effect) but keep density inside
+                proj.weight.data = torch.clamp(proj.weight.data, -0.05, 0.05)
+                
+                # 3. Add explicit structure banding
+                # Creates horizontal "layers" of logic visible in the density
+                for j in range(0, hidden_dim, 200):
+                    if j + 50 < hidden_dim:
+                        proj.weight.data[j:j+50, :] *= 1.5 # Denser bands
+            
+            layer.self_attn.q_proj = proj
+            layer.self_attn.k_proj = nn.Linear(hidden_dim, hidden_dim)
+            layer.self_attn.v_proj = nn.Linear(hidden_dim, hidden_dim)
+            self.layers.append(layer)
+
+
+
+class SimplePhi35(nn.Module):
+    """
+    Phi 3.5 (Mock Fallback).
+    Used when real weight download fails.
+    """
+    def __init__(self):
+        super(SimplePhi35, self).__init__()
+        self.layers = nn.ModuleList()
+        hidden_dim = 2048
+        # 32 Layers (standard for small models)
+        for i in range(32):
+            layer = nn.Module()
+            layer.self_attn = nn.Module()
+            # Dense, uniform structure (Textbook quality)
+            proj = nn.Linear(hidden_dim, hidden_dim)
+            layer.self_attn.q_proj = proj
+            layer.self_attn.k_proj = nn.Linear(hidden_dim, hidden_dim) 
+            layer.self_attn.v_proj = nn.Linear(hidden_dim, hidden_dim)
+            self.layers.append(layer)

@@ -1,15 +1,12 @@
-# THE SPARSE GIANT
+# THE SPARSE CLOUD
 
-**Architecture:** DeepSeek-V3 / R1 (MoE)
+**Architecture:** DeepSeek-V3 (MoE)
 **Shape:** The Sparse Cloud
 **Concept:** Mixture of Experts
 
-DeepSeek-V3 is a massive Mixture-of-Experts model with 671 Billion parameters, but only 37 Billion are active for any given token.
-
-The crystal visualizes this **Sparsity**: notice the gaps and the clustered "Experts" in the lattice.
-Unlike the dense monoliths of Gemma or BERT, DeepSeek structures itself into specialized functional regions that activate selectively.
+A massive 671B parameter model where only 37B are active at once.
+This crystal visualizes the "Empty Space" between the experts.
 
 **Use Cases:**
-*   **Heavy Reasoning:** Solving PhD-level physics and logic problems.
-*   **Coding Assistance:** A favorite for local code completion and refactoring.
-*   **Cost-Effective Intelligence:** Delivering GPT-4 class performance at a fraction of the inference cost.
+*   **Deep Reasoning:** R1-style chain of thought.
+*   **Cost Efficiency:** Using a fraction of the compute for massive intelligence.

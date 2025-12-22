@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from plyfile import PlyData, PlyElement
 from transformers import AutoModel
 
-from lib.models import SimpleAlexNet, SimpleDeepSeekMOE, SimpleVGG16, SimplePerceptron, SimpleInception, SimpleGPT4, SimpleGemini3, SimpleWord2Vec, get_model_structure
+from lib.models import SimpleAlexNet, SimpleDeepSeekMOE, SimpleVGG16, SimplePerceptron, SimpleInception, SimpleGPT4, SimpleGemini3, SimpleKimiK2, SimpleClaude35, SimplePhi35, SimpleWord2Vec, get_model_structure
 from lib.extractors import extract_weights, get_activations
 from lib.rendering import get_color
 
@@ -33,6 +33,15 @@ def extract_and_crystallize(model_name='bert-base-uncased', step=2, mode='layers
         elif model_name == 'gemini3':
             model = SimpleGemini3()
             print("   ⚠️  Using manually defined Gemini 3.0 (Mock Omni).")
+        elif model_name == 'kimik2':
+            model = SimpleKimiK2()
+            print("   ⚠️  Using manually defined Kimi k2 (Simulated Rail).")
+        elif model_name == 'claude35':
+            model = SimpleClaude35()
+            print("   ⚠️  Using manually defined Claude 3.5 (Simulated Artifact).")
+        elif model_name == 'phi35':
+            model = SimplePhi35()
+            print("   ⚠️  Using manually defined Phi 3.5 (Simulated - Download Failed).")
         elif model_name == 'word2vec':
             model = SimpleWord2Vec()
             print("   ⚠️  Using manually defined Word2Vec (2013).")
