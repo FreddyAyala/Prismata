@@ -37,6 +37,10 @@ export class GoomUI {
             <div id="goom-wave" style="font-size:24px; color:#ffaa00;">WAVE: 1/5</div>
             <div id="goom-enemies" style="font-size:24px; color:#ff0033;">ENEMIES: 0</div>
             <div id="goom-ammo" style="font-size:24px; color:#ffffff;">BLASTER [∞]</div>
+            <div style="margin-top:10px; width:200px; height:10px; background:rgba(255,255,255,0.2); border:1px solid #00ff88;">
+                <div id="goom-stamina" style="width:100%; height:100%; background:#00ff88; transition:width 0.1s;"></div>
+            </div>
+            <div style="font-size:12px; color:#00ff88;">ENERGY</div>
         `;
         this.hud.appendChild(stats);
     }
@@ -73,6 +77,13 @@ export class GoomUI {
             const name = w.name; // Uses full name e.g. "BFG 9000"
             const ammo = w.ammo === -1 ? '∞' : w.ammo;
             ammoEl.innerText = `${name} [${ammo}]`;
+        }
+
+        const staminaEl = document.getElementById('goom-stamina');
+        if (staminaEl && this.game.player) {
+            const pct = (this.game.player.stamina / this.game.player.maxStamina) * 100;
+            staminaEl.style.width = `${pct}%`;
+            staminaEl.style.backgroundColor = pct < 20 ? '#ff0000' : (pct < 50 ? '#ffff00' : '#00ff88');
         }
 
         this.updateModelHealthBars();
@@ -273,8 +284,9 @@ export class GoomUI {
 
     showWarning(text) {
         if (!this.hud) return;
-        // avoid spamming
-        if (document.getElementById('goom-warning')) return;
+        // Allow overwriting warnings
+        const existing = document.getElementById('goom-warning');
+        if (existing) existing.remove();
 
         const div = document.createElement('div');
         div.id = 'goom-warning';
@@ -438,17 +450,18 @@ export class GoomUI {
             inner.style.cssText = `width:100%; height:100%; background:#00ff00; transition:width 0.2s;`;
             bar.appendChild(inner);
             this.hud.appendChild(bar);
-            this.crystals.push({ mesh: ex.mesh, bar: bar, inner: inner, maxHp: 100 });
+
+            // FIX: Ensure Health is linked to Mesh UserData
+            if (ex.mesh.userData.health === undefined) ex.mesh.userData.health = 250;
+            if (ex.mesh.userData.maxHealth === undefined) ex.mesh.userData.maxHealth = 250;
+            if (ex.mesh.userData.name === undefined) ex.mesh.userData.name = "DATA NODE";
+
+            this.crystals.push({ mesh: ex.mesh, bar: bar, inner: inner, maxHp: 250 });
         });
     }
 
     updateModelHealthBars() {
         if (!this.game || !this.game.camera) return;
-
-        // We know from GoomGame systems that crystal HP is tracked there. 
-        // Actually, GoomGame doesn't expose crystal HP nicely yet unless we dig into logic.
-        // But wait, the crystals are exhibits.
-        // Let's assume full health for visualization if not tracked, OR hook into userData.
 
         this.crystals.forEach(c => {
             if (!c.mesh.visible || (c.mesh.userData.health !== undefined && c.mesh.userData.health <= 0)) {
@@ -478,5 +491,15 @@ export class GoomUI {
                 c.bar.style.display = 'none';
             }
         });
+    }
+
+    updateStamina() {
+        if (!this.hud) return;
+        const staminaEl = document.getElementById('goom-stamina');
+        if (staminaEl && this.game.player) {
+            const pct = (this.game.player.stamina / this.game.player.maxStamina) * 100;
+            staminaEl.style.width = `${pct}%`;
+            staminaEl.style.backgroundColor = pct < 20 ? '#ff0000' : (pct < 50 ? '#ffff00' : '#00ff88');
+        }
     }
 }

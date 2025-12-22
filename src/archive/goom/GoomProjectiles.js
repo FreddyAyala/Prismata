@@ -25,6 +25,15 @@ export class GoomProjectiles {
         // OPTIMIZED: Raycast only against simplified hitboxes to prevent CPU lag
         const objects = this.game.enemies.map(e => e.hitbox).filter(h => h);
 
+        // Corrupted Crystals are also valid targets
+        if (this.game.ui && this.game.ui.crystals) {
+            this.game.ui.crystals.forEach(c => {
+                if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted) {
+                    objects.push(c.mesh);
+                }
+            });
+        }
+
         // Boss fallback
         if (this.game.boss) objects.push(this.game.boss.mesh);
 
@@ -41,6 +50,43 @@ export class GoomProjectiles {
             const hit = intersections[0];
             hitPoint = hit.point;
             target = hit.object;
+        }
+
+        // FUZZY AIM AID: Check if we missed but were "close enough" to a Crystal
+        if ((!target || (target.userData && !target.userData.enemy)) && this.game.ui && this.game.ui.crystals) {
+            let closestCrystal = null;
+            let closestDistSq = Infinity;
+            const threshold = 2.5; // generous hit radius (radius of "magnetism")
+            const thresholdSq = threshold * threshold;
+            const camPos = this.camera.position;
+
+            this.game.ui.crystals.forEach(c => {
+                if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted) {
+                    // Check distance from Ray to Crystal Center
+                    // Project crystal center onto ray
+                    const vToCenter = new THREE.Vector3().subVectors(c.mesh.position, this.raycaster.ray.origin);
+                    const directionDist = vToCenter.dot(this.raycaster.ray.direction);
+
+                    if (directionDist > 0) { // In front of us
+                        const projectedPoint = this.raycaster.ray.origin.clone().add(this.raycaster.ray.direction.clone().multiplyScalar(directionDist));
+                        const distToRaySq = c.mesh.position.distanceToSquared(projectedPoint);
+
+                        if (distToRaySq < thresholdSq) {
+                            // It's a "hit" candidate. Is it closer than our current hit?
+                            const distFromCamSq = c.mesh.position.distanceToSquared(camPos);
+                            if (distFromCamSq < closestDistSq && (!hitPoint || distFromCamSq < camPos.distanceToSquared(hitPoint))) {
+                                closestDistSq = distFromCamSq;
+                                closestCrystal = c.mesh;
+                                hitPoint = projectedPoint; // Snap hit point to the closest point on ray
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (closestCrystal) {
+                target = closestCrystal;
+            }
         }
 
         // VISUALS FIRST: Guaranteed Tracer
@@ -63,11 +109,36 @@ export class GoomProjectiles {
 
                 if (enemy) {
                     this.game.systems.createExplosion(hitPoint, 0x00ff00, false);
-                    if (enemy.takeDamage(weapon.damage, target)) {
-                        if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(enemy.type);
+                    const wasDead = enemy.takeDamage(weapon.damage, target);
+                    if (wasDead) {
                         this.game.score += 100;
                         this.game.ui.updateHUD();
                         this.game.systems.createExplosion(enemy.mesh.position, 0xff0000, true);
+                    } else {
+                        if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(enemy.type);
+                    }
+
+                    // SPLASH DAMAGE (Shotgun)
+                    if (weapon.splashRadius > 0) {
+                        const splashSq = weapon.splashRadius * weapon.splashRadius;
+                        for (const other of this.game.enemies) {
+                            if (other === enemy) continue; // Already hit
+                            if (other.mesh.position.distanceToSquared(hitPoint) < splashSq) {
+                                other.takeDamage(weapon.damage); // Full damage per pellet to neighbors
+                                this.game.systems.createExplosion(other.mesh.position, 0xffaa00, false, 0.5);
+                            }
+                        }
+                    }
+                } else if (target.userData && target.userData.isCorrupted) {
+                    // Damage Corrupted Crystal
+                    this.game.systems.createExplosion(hitPoint, 0x00ffff, false);
+                    target.userData.health -= weapon.damage;
+                    if (target.userData.health <= 0) {
+                        this.game.destroyCrystal(target);
+                        this.game.score += 500;
+                        this.game.ui.updateHUD();
+                    } else {
+                        this.game.audio.playSound(150, 'square', 0.2, 0.2); // Hit sound
                     }
                 } else {
                     this.game.systems.createExplosion(hitPoint, 0xffff00, false);
@@ -91,6 +162,13 @@ export class GoomProjectiles {
         this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
 
         const objects = this.game.enemies.map(e => e.hitbox).filter(h => h);
+        if (this.game.ui && this.game.ui.crystals) {
+            this.game.ui.crystals.forEach(c => {
+                if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted) {
+                    objects.push(c.mesh);
+                }
+            });
+        }
         if (this.game.boss) objects.push(this.game.boss.mesh);
 
         let targetPoint = new THREE.Vector3();
@@ -145,7 +223,7 @@ export class GoomProjectiles {
         this.list.push({ mesh, velocity: velocityDir.multiplyScalar(30), life: 10.0, damage: weapon.damage, isBFG: true });
     }
 
-    fireEnemyProjectile(start, dir, type = 'normal') {
+    fireEnemyProjectile(start, dir, type = 'normal', owner = null) {
         let geo, mat, speed, damage;
         const isBoss = (type === 'boss' || type === true);
 
@@ -160,6 +238,16 @@ export class GoomProjectiles {
             mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: false });
             speed = 50;
             damage = 10;
+        } else if (type === 'tank') {
+            geo = new THREE.IcosahedronGeometry(0.4, 0);
+            mat = new THREE.MeshBasicMaterial({ color: 0xff8800, wireframe: false });
+            speed = 20; // Slow, heavy
+            damage = 40; // Ouch
+        } else if (type === 'corrupted') {
+            geo = new THREE.IcosahedronGeometry(0.8, 1);
+            mat = new THREE.MeshPhongMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2.0, wireframe: false });
+            speed = 25;
+            damage = 15;
         } else {
             geo = new THREE.DodecahedronGeometry(0.5);
             mat = new THREE.MeshBasicMaterial({ color: 0xff4400, wireframe: false });
@@ -179,7 +267,8 @@ export class GoomProjectiles {
             life: 5.0,
             damage: damage,
             isEnemy: true,
-            isBossProjectile: isBoss
+            isBossProjectile: isBoss,
+            owner: owner
         });
 
         let pitch = isBoss ? 100 : 200;
@@ -210,43 +299,100 @@ export class GoomProjectiles {
             }
 
             let hit = false;
+
+            // --- ENEMY PROJECTILE ---
             if (p.isEnemy) {
+                // Hit Player?
                 if (p.mesh.position.distanceTo(this.camera.position) < 3.0) {
                     hit = true;
                     this.game.takePlayerDamage(p.damage);
                     this.game.systems.createExplosion(this.camera.position, 0xff0000, true);
                 }
-                if (!hit) {
+
+                // Hit Crystals?
+                if (!hit && this.game.ui && this.game.ui.crystals) {
+                    const worldPos = new THREE.Vector3();
                     for (const c of this.game.ui.crystals) {
+                        // Prevent Friendly Fire (Crystal Turret -> Itself)
+                        if (p.owner === c.mesh) continue;
+
                         if (c.mesh && c.mesh.visible && c.mesh.userData.health > 0) {
-                            if (p.mesh.position.distanceTo(c.mesh.position) < 8.0) {
+                            c.mesh.getWorldPosition(worldPos);
+                            if (p.mesh.position.distanceTo(worldPos) < 8.0) {
                                 hit = true;
                                 c.mesh.userData.health -= p.damage;
-                                this.game.systems.createExplosion(c.mesh.position, 0x00ffff, true);
+                                this.game.systems.createExplosion(worldPos, 0x00ffff, true);
+
+                                // Alert Logic
+                                if (!this.game.lastAlertTime || (this.game.audio.audioCtx && this.game.audio.audioCtx.currentTime - this.game.lastAlertTime > 1.5)) {
+                                    this.game.lastAlertTime = this.game.audio.audioCtx ? this.game.audio.audioCtx.currentTime : Date.now();
+                                    this.game.audio.playAlert();
+                                    if (this.game.ui.showWarning) {
+                                        const name = c.mesh.userData.name || "SYSTEM";
+                                        this.game.ui.showWarning(`${name} UNDER FIRE!`);
+                                    }
+                                }
+
                                 if (c.mesh.userData.health <= 0) {
+                                    // If already corrupted, destroy it (rare). If healthy, corrupt it.
+                                    if (c.mesh.userData.isCorrupted) {
                                     this.game.destroyCrystal(c.mesh);
+                                } else {
+                                    this.game.corruptCrystal(c.mesh);
+                                }
                                 }
                                 break;
                             }
                         }
                     }
                 }
-            } else {
-                // Player Projectile vs Enemies
+            }
+            // --- PLAYER PROJECTILE ---
+            else {
+                // 1. Hit Enemies
                 for (const e of this.game.enemies) {
                     const dist = p.mesh.position.distanceTo(e.mesh.position);
                     const hitRadius = (e.scale / 2) + 1.0;
                     if (dist < hitRadius) {
                         hit = true;
-                        e.takeDamage(p.damage);
+                        const wasDead = e.takeDamage(p.damage);
+                        if (wasDead) {
+                            this.game.score += 100;
+                            this.game.ui.updateHUD();
+                            this.game.systems.createExplosion(e.mesh.position, 0xff0000, true);
+                        } else {
+                            if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(e.type);
+                        }
                         break;
                     }
                 }
-                // Player Projectile vs Boss (Using fixed logic from recent step)
-                if (this.game.boss && p.mesh.position.distanceTo(this.game.boss.mesh.position) < 30.0) {
+
+                // 2. Hit Corrupted Crystals & Boss
+                if (!hit) {
+                    // Corrupted Crystals
+                    if (this.game.ui && this.game.ui.crystals) {
+                        const worldPos = new THREE.Vector3();
+                        for (const c of this.game.ui.crystals) {
+                            if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted && c.mesh.userData.health > 0) {
+                                c.mesh.getWorldPosition(worldPos);
+                                if (p.mesh.position.distanceTo(worldPos) < 8.0) {
+                                    hit = true;
+                                    c.mesh.userData.health -= p.damage;
+                                    this.game.systems.createExplosion(worldPos, 0xff00ff, true);
+                                    if (c.mesh.userData.health <= 0) {
+                                        this.game.destroyCrystal(c.mesh);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // Boss
+                    if (!hit && this.game.boss && p.mesh.position.distanceTo(this.game.boss.mesh.position) < 30.0) {
                     hit = true;
                     this.game.boss.takeDamage(p.damage);
                 }
+            }
             }
 
             if (p.isRocket || p.isBFG) {
@@ -280,7 +426,9 @@ export class GoomProjectiles {
                     });
                     if (this.game.boss && this.game.boss.mesh.position.distanceTo(p.mesh.position) < radius) this.game.boss.takeDamage(dmg);
                 } else {
-                    this.game.systems.createExplosion(p.mesh.position, p.mesh.material.color, false);
+                    if (p.mesh.material && p.mesh.material.color) {
+                        this.game.systems.createExplosion(p.mesh.position, p.mesh.material.color, false);
+                    }
                 }
                 this.scene.remove(p.mesh);
                 this.list.splice(i, 1);

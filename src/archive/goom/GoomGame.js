@@ -182,8 +182,13 @@ export class GoomGame {
     }
 
     this.ui.updateModelHealthBars();
+    this.ui.updateStamina();
 
+    this.projectiles.update(delta);
     this.updateEnemies(delta);
+    this.updateBoss(delta);
+    this.updateCrystals(delta); // NEW: Turrets
+
     if (this.boss) {
       try {
         const res = this.boss.update(delta, this.camera.position);
@@ -229,11 +234,11 @@ export class GoomGame {
     if (this.wave > 5) { this.triggerWin(); return; }
 
     this.waveInProgress = true;
-    this.enemiesToSpawn = 15 + (this.wave * 8);
-    const spawnRate = Math.max(300, 2500 - (this.wave * 300));
+    this.enemiesToSpawn = 20 + (this.wave * 12); // Buffed (was 15 + 8*wave)
+    const spawnRate = Math.max(200, 2000 - (this.wave * 350)); // Faster Spawns (was 2500 - 300)
 
     this.ui.showWaveTitle(`WAVE ${this.wave}`);
-    if (this.audio.setMusicPhase) this.audio.setMusicPhase(this.wave === 1 ? 1 : 2);
+    if (this.audio.setMusicPhase) this.audio.setMusicPhase(this.wave); // Pass Wave Number!
 
     this.spawnInterval = setInterval(() => {
       if (!this.active || this.isGameOver) return;
@@ -278,7 +283,7 @@ export class GoomGame {
     for (let i = 0; i < 5; i++) {
       const potential = this.arena.getRandomSpawnPoint();
       const dist = potential.distanceTo(this.camera.position);
-      if (dist > 20 && dist < 110) {
+      if (dist > 30 && dist < 80) { // Tighter, closer spawns (Rendering limit optimized)
         spawnPoint = potential;
         break;
       }
@@ -286,7 +291,7 @@ export class GoomGame {
 
     let target = this.camera;
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const role = Math.random() < 0.6 ? 'destroyer' : 'hunter';
+    const role = Math.random() < 0.8 ? 'destroyer' : 'hunter'; // 80% Aggro on Crystals
 
     if (validTargets.length > 0) {
       if (role === 'destroyer') target = pick(validTargets);
@@ -303,7 +308,7 @@ export class GoomGame {
     const onFindTarget = (pos) => this.findNearestCrystal(pos);
     const enemy = new GlitchEnemy(this.scene, spawnPoint, target, type, role, (pos, dir, enemyType) => {
       this.projectiles.fireEnemyProjectile(pos, dir, enemyType);
-    }, onFindTarget);
+    }, onFindTarget, this.wave);
     this.enemies.push(enemy);
     this.enemiesToSpawn--;
   }
@@ -322,34 +327,45 @@ export class GoomGame {
         e.takeDamage(999);
         this.systems.createExplosion(e.mesh.position, 0xff0000, true);
         this.takePlayerDamage(15);
-      } else if (result === 'damage_crystal') {
+      } else if (result === 'damage_crystal' || result === 'explode') {
         const target = e.target;
         if (target && target.userData.health !== undefined) {
-          target.userData.health -= e.damage * delta * 3.0;
-          if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 2.0)) {
-            this.lastAlertTime = this.audio.audioCtx ? this.audio.audioCtx.currentTime : Date.now();
-            this.audio.playAlert();
-
-            let dirText = "";
-            if (target.position) {
-              const toTarget = new THREE.Vector3().subVectors(target.position, this.camera.position).normalize();
-              const forward = new THREE.Vector3();
-              this.camera.getWorldDirection(forward);
-              forward.y = 0; toTarget.y = 0; forward.normalize(); toTarget.normalize();
-              const dot = forward.dot(toTarget);
-              const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0));
-              const dotRight = right.dot(toTarget);
-              if (dot < -0.5) dirText = "(BEHIND)";
-              else if (dotRight > 0.5) dirText = "(RIGHT)";
-              else if (dotRight < -0.5) dirText = "(LEFT)";
-              else dirText = "(AHEAD)";
+          if (target.userData.isCorrupted) {
+            // Do nothing
+          } else {
+            let dmg = e.damage * delta * 3.0;
+            if (result === 'explode') {
+              dmg = 100; // MASSIVE DAMAGE
+              e.takeDamage(999); // Suicide
+              this.systems.createExplosion(e.mesh.position, 0xff0000, true, 10.0); // Big Boom
             }
-            const name = target.userData.name || "SYSTEM";
-            this.ui.showWarning(`${name} ${dirText} UNDER ATTACK!`);
-            this.swarmCrystal(target);
-          }
-          if (target.userData.health <= 0) {
-            this.destroyCrystal(target);
+
+            target.userData.health -= dmg;
+            if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 1.5)) {
+              this.lastAlertTime = this.audio.audioCtx ? this.audio.audioCtx.currentTime : Date.now();
+              this.audio.playAlert();
+
+              let dirText = "";
+              if (target.position) {
+                const toTarget = new THREE.Vector3().subVectors(target.position, this.camera.position).normalize();
+                const forward = new THREE.Vector3();
+                this.camera.getWorldDirection(forward);
+                forward.y = 0; toTarget.y = 0; forward.normalize(); toTarget.normalize();
+                const dot = forward.dot(toTarget);
+                const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0));
+                const dotRight = right.dot(toTarget);
+                if (dot < -0.5) dirText = "(BEHIND)";
+                else if (dotRight > 0.5) dirText = "(RIGHT)";
+                else if (dotRight < -0.5) dirText = "(LEFT)";
+                else dirText = "(AHEAD)";
+              }
+              const name = target.userData.name || "SYSTEM";
+              this.ui.showWarning(`${name} ${dirText} UNDER ATTACK!`);
+              this.swarmCrystal(target);
+            }
+            if (target.userData.health <= 0) {
+              this.corruptCrystal(target);
+            }
           }
         }
         if (Math.random() < 0.05) {
@@ -362,6 +378,139 @@ export class GoomGame {
         this.enemies.splice(i, 1);
       }
     }
+  }
+
+  // NEW: Corrupts a crystal instead of destroying it
+  corruptCrystal(crystal) {
+    if (crystal.userData.isCorrupted) return; // Already corrupted
+
+    crystal.userData.isCorrupted = true;
+    crystal.userData.health = 50; // Glass Canon
+    crystal.userData.maxHealth = 50;
+
+    // Visual Transformation
+    // Visual Transformation
+    const setColor = (mat) => {
+      if (!mat) return;
+      if (mat.color) mat.color.setHex(0x330000); // Dark Red
+      if (mat.emissive) {
+        mat.emissive.setHex(0xff0000);
+        mat.emissiveIntensity = 2.0;
+      }
+    };
+
+    if (crystal.material) {
+      if (Array.isArray(crystal.material)) {
+        crystal.material.forEach(setColor);
+      } else {
+        setColor(crystal.material);
+      }
+    } else {
+      // Traverse if it's a group
+      crystal.traverse((child) => {
+        if (child.isMesh && child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(setColor);
+          } else {
+            setColor(child.material);
+          }
+        }
+      });
+    }
+
+    // Update UI/Label if possible (hacky access to sprite?)
+    // We will rely on the "Corrupted" status being obvious visually
+    const name = crystal.userData.name || "DATA NODE";
+    this.ui.showWarning(`WARNING: ${name} CORRUPTED!`);
+    this.audio.playSound(100, 'sawtooth', 1.0, 1.0); // Fail sound
+
+    // Enemies ignore it now
+    this.enemies.forEach(e => {
+      if (e.target === crystal) {
+        e.target = this.camera; // switch to player
+        e.isTargetingPlayer = true;
+      }
+    });
+  }
+
+  destroyCrystal(crystal) {
+    if (!crystal || crystal.userData.isDead) return;
+
+    // Logic: If Corrupted, it's a kill (Good). If not Corrupted, it's a loss (Bad).
+    const wasCorrupted = crystal.userData.isCorrupted;
+
+    crystal.userData.isDead = true;
+    crystal.visible = false;
+
+    if (wasCorrupted) {
+      // Good Job!
+      this.ui.score += 500;
+      this.ui.showWarning("CORRUPTED NODE NEUTRALIZED");
+      this.audio.playSound(50, 'sawtooth', 1.0, 1.0);
+    } else {
+      // Bad Job!
+      this.ui.score -= 1000;
+      this.ui.showWarning(`HISTORY LOST: ${crystal.userData.name}`);
+      this.audio.playSound(50, 'sawtooth', 3.0, 1.0); // Harsh sound
+      this.audio.playSound(200, 'square', 1.5, 0.8, -1200);
+    }
+
+    this.ui.updateHUD();
+    this.systems.createExplosion(crystal.position, 0xff0000, true, wasCorrupted ? 5.0 : 20.0);
+
+    // Remove from scene only if absolutely necessary, but keeping it invisible is usually safer for references
+    // if (crystal.parent) crystal.parent.remove(crystal); 
+    // ^ Don't remove for now, just keep hidden/dead so findNearestCrystal skips it safely
+
+    // Enemies ignore it now
+    this.enemies.forEach(e => {
+      if (e.target === crystal) {
+        e.target = this.camera; // switch to player
+        e.isTargetingPlayer = true;
+      }
+    });
+  }
+
+  updateCrystals(delta) {
+    // Logic for Corrupted Crystals to attack Player
+    if (!this.ui || !this.ui.crystals) return;
+
+    this.ui.crystals.forEach(c => {
+      const mesh = c.mesh;
+      if (mesh && mesh.visible && mesh.userData.isCorrupted) {
+        // Turret Logic
+        if (!mesh.userData.fireTimer) mesh.userData.fireTimer = 0;
+        mesh.userData.fireTimer += delta;
+
+        const distSq = mesh.position.distanceToSquared(this.camera.position);
+        if (distSq < 62500 && mesh.userData.fireTimer > 1.0) {
+          // Fire!
+          mesh.userData.fireTimer = 0;
+
+          const worldPos = new THREE.Vector3();
+          mesh.getWorldPosition(worldPos);
+
+          const dir = new THREE.Vector3().subVectors(this.camera.position, worldPos).normalize();
+
+          // Spawn outside the mesh (towards player)
+          const spawnPos = worldPos.clone().add(new THREE.Vector3(0, 2.0, 0)).add(dir.clone().multiplyScalar(10.0));
+
+          this.projectiles.fireEnemyProjectile(spawnPos, dir, 'corrupted', mesh);
+          this.audio.playSound(300, 'sawtooth', 0.4, 0.5); // Distinct sound
+        }
+
+        // Rotate slowly & Pulsate
+        mesh.rotation.y += delta;
+        const pulse = 1.5 + Math.sin(performance.now() * 0.005) * 0.2; // Beeg Crystal
+        mesh.scale.setScalar(pulse);
+
+        // Glitch Particles
+        if (Math.random() < 0.2) {
+          const offset = new THREE.Vector3((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+          this.systems.createExplosion(mesh.position.clone().add(offset), 0xff0000, false, 0.5);
+        }
+      }
+    });
   }
 
   updateBoss(delta) {
@@ -617,8 +766,8 @@ export class GoomGame {
   checkCrystalHealth() {
     if (!this.ui || !this.ui.crystals) return;
     this.ui.crystals.forEach(c => {
-      if (c.mesh && c.mesh.userData.health !== undefined && c.mesh.userData.health <= 0 && !c.mesh.userData.isDead) {
-        this.destroyCrystal(c.mesh);
+      if (c.mesh && c.mesh.userData.health !== undefined && c.mesh.userData.health <= 0 && !c.mesh.userData.isDead && !c.mesh.userData.isCorrupted) {
+        this.corruptCrystal(c.mesh);
       }
     });
   }
@@ -628,7 +777,7 @@ export class GoomGame {
     let closest = null;
     let minDist = Infinity;
     for (const c of this.ui.crystals) {
-      if (!c.mesh || !c.mesh.visible || c.mesh.userData.isDead) continue;
+      if (!c.mesh || !c.mesh.visible || c.mesh.userData.isDead || c.mesh.userData.isCorrupted) continue;
       const d = pos.distanceToSquared(c.mesh.position);
       if (d < minDist) {
         minDist = d;

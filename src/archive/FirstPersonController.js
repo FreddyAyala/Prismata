@@ -52,6 +52,7 @@ export class FirstPersonController {
                 if (this.canJump) {
                     this.velocity.y += 18.0; // Jump Force
                     this.canJump = false;
+                    if (this.onJump) this.onJump();
                 }
                 break;
         }

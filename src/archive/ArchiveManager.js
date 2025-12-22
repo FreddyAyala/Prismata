@@ -115,6 +115,13 @@ class ArchiveManager {
         this.player = new FirstPersonController(this.camera, document.body); // Bind to body for pointer lock
         this.goomManager = new GoomGame(this.scene, this.camera, this.player);
 
+        // Audio Bindings
+        this.player.onJump = () => {
+            if (this.goomManager && this.goomManager.active && this.goomManager.audio) {
+                this.goomManager.audio.playJump();
+            }
+        };
+
         // Unlock Listener to Show Menu
         this.player.controls.addEventListener('unlock', () => {
             // DO NOT show pause menu if Goom Mode is Active

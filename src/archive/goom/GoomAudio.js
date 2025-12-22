@@ -273,22 +273,25 @@ export class GoomAudio {
 
     playAlert() {
         if (!this.audioCtx) return;
+        if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
         const now = this.audioCtx.currentTime;
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
-        osc.frequency.linearRampToValueAtTime(600, now + 0.2);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.3);
+        // Siren Effect: Sawtooth oscillating between 800Hz and 400Hz
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.linearRampToValueAtTime(400, now + 0.4);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.8);
 
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.4);
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.linearRampToValueAtTime(0.6, now + 0.6);
+        gain.gain.linearRampToValueAtTime(0, now + 0.8);
 
+        osc.connect(gain);
         gain.connect(this.audioCtx.destination);
         osc.start();
-        osc.stop(now + 0.4);
+        osc.stop(now + 0.8);
     }
 
     playBossDeath() {
@@ -312,51 +315,101 @@ export class GoomAudio {
         }
     }
 
+    playJump() {
+        if (!this.audioCtx) return;
+        const t = this.audioCtx.currentTime;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+
+        // Boosted Grunt for Laptop Speakers
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(250, t); // Higher base pitch (was 120)
+        osc.frequency.linearRampToValueAtTime(150, t + 0.15); // Drop to 150
+
+        const filter = this.audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1200, t); // Open up filter (was 600)
+        filter.frequency.linearRampToValueAtTime(300, t + 0.15);
+
+        gain.gain.setValueAtTime(0.5, t); // Louder (was 0.3)
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start();
+        osc.stop(t + 0.15);
+    }
+
     playPlayerPain() {
         if (!this.audioCtx) return;
-        // GOOM GRUNT: Low pitch descending sawtooth with lowpass
         const t = this.audioCtx.currentTime;
+
+        // GRUNT: Low pitch noise + sawtooth for "Ugh!"
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
         const filter = this.audioCtx.createBiquadFilter();
 
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(150, t);
-        osc.frequency.exponentialRampToValueAtTime(80, t + 0.3);
+        osc.frequency.exponentialRampToValueAtTime(50, t + 0.25);
 
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(500, t);
-        filter.Q.value = 1;
+        filter.frequency.setValueAtTime(800, t);
+        filter.frequency.exponentialRampToValueAtTime(200, t + 0.25);
+        filter.Q.value = 5; // Resonant punch
 
         gain.gain.setValueAtTime(0.8, t);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+        gain.gain.linearRampToValueAtTime(0, t + 0.25);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.audioCtx.destination);
-
         osc.start();
-        osc.stop(t + 0.3);
+        osc.stop(t + 0.25);
+
+        // Add some noise for breath
+        this.playNoise(0.2, 0.4, 0.5, 400); 
     }
 
-    playPickup() {
+    playPickup(type = 'ammo') {
         if (!this.audioCtx) return;
         const t = this.audioCtx.currentTime;
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
 
-        // High Pitch Chime (Coin/Powerup style)
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(1200, t);
-        osc.frequency.linearRampToValueAtTime(1800, t + 0.1); // Quick Zip Up
+        if (type === 'health') {
+        // HIGH PITCH CHIME (Sine)
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
 
-        gain.gain.setValueAtTime(0.1, t);
-        gain.gain.linearRampToValueAtTime(0, t + 0.2);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, t);
+            osc.frequency.exponentialRampToValueAtTime(1200, t + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(1600, t + 0.2);
 
-        osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
-        osc.start();
-        osc.stop(t + 0.2);
+            gain.gain.setValueAtTime(0.3, t);
+            gain.gain.linearRampToValueAtTime(0, t + 0.4);
+
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            osc.start();
+            osc.stop(t + 0.4);
+        } else {
+            // AMMO LOADING CLICK (Square/Saw)
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(200, t);
+            osc.frequency.linearRampToValueAtTime(400, t + 0.05);
+
+            gain.gain.setValueAtTime(0.2, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            osc.start();
+            osc.stop(t + 0.1);
+        }
     }
     playVictorySong() {
         if (!this.audioCtx) return;

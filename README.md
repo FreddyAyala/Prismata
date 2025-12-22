@@ -2,7 +2,20 @@
 
 **Prismata** is an interactive 3D visualization tool that transforms the invisible mathematics of Artificial Intelligence into tangible, crystalline structures. It allows us to "see" the shape of intelligence.
 
+
 ![Prismata Header](assets/prismata.png)
+
+## 🚀 Quick Start
+
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+2.  **Launch Local Server**:
+    ```bash
+    npm run dev
+    ```
+3.  **Explore**: Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## 🔬 The Science: What Are We Seeing?
 
