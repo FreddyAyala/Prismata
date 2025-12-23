@@ -1136,42 +1136,42 @@ input:checked+.slider:before {
 
 /* Mobile Timeline Tweaks */
 @media (max-width: 600px) {
-    #timeline-year {
-        font-size: 4rem;
-        top: -40px;
-        left: 0;
-    }
+    .timeline-overlay {
+            padding-bottom: 0;
+            justify-content: flex-end;
+        }
 
-    #timeline-title {
-        font-size: 1.5rem;
-    }
-
-    #timeline-desc {
-        font-size: 0.9rem;
-        padding: 10px;
-        max-height: 100px;
-        overflow-y: auto;
-    }
-
-    .timeline-active-info {
-        top: 15%;
-        left: 5%;
-        right: 5%;
-        max-width: none;
-    }
-
-    .timeline-track-container {
-        padding: 5px;
-    }
-
-    .timeline-track {
-        gap: 15px;
-        padding: 10px;
-    }
-
+                .timeline-controls-top {
+                    top: auto;
+                    bottom: 110px;
+                    /* Above the track */
+                    left: 0;
+                    right: 0;
+                    width: 100%;
+                    /* Full width for layout */
+                    justify-content: center;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+                    padding-bottom: 10px;
+                }
+                                .close-timeline-btn {
+                                    padding: 8px 12px;
+                                    font-size: 0.75rem;
+                                    border-radius: 4px;
+                                    background: rgba(0, 5, 10, 0.9);
+                                }
     .nav-arrow {
-        width: 30px;
-        height: 30px;
+        width: 50px;
+            height: 50px;
+            background: rgba(0, 243, 255, 0.1);
+            /* Subtle box */
+            border: 1px solid var(--color-secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
     }
 
     .node-year {

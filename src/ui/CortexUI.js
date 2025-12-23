@@ -1,4 +1,3 @@
-
 import { neuralAudio } from '../audio/NeuralAudio.js';
 import { cortex } from '../ai/Cortex.js';
 
@@ -133,6 +132,15 @@ export class CortexUI {
         this.container.appendChild(this.input);
 
         document.body.appendChild(this.container);
+
+        // Global Toggle (Backquote / ~)
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Backquote') {
+                e.preventDefault();
+                const isHidden = this.container.style.display === 'none' || this.container.style.opacity === '0';
+                this.toggleDisplay(isHidden);
+            }
+        });
 
         // Event Listeners
         this.input.addEventListener('keydown', (e) => {
@@ -365,6 +373,14 @@ export class CortexUI {
                 this.game.startBossWave();
                 response = "FATAL ERROR: FORCING BOSS ENCOUNTER...";
             }
+            // --- USER-DEFINED MONSTER CREATION ---
+            else if (cmd.startsWith('CREATE ') || cmd.startsWith('SPAWN ') || cmd.startsWith('MAKE ')) {
+                const desc = text.substring(text.indexOf(' ') + 1);
+                if (this.game.director) {
+                    this.game.director.spawnUserDefinedMonster(desc, "USER");
+                    response = `FABRICATING ENTITY: "${desc.toUpperCase()}"`;
+                }
+            }
 
             if (response) {
                 this.status.innerText = `COMMAND ACCEPTED: ${response}`;
@@ -445,7 +461,40 @@ export class CortexUI {
                 if (this.isInit) {
                     this.container.style.transform = 'translateX(-50%) scaleY(1)';
                 }
+
+                // Release Pointer Lock if in Game
+                if (document.pointerLockElement) {
+                    document.exitPointerLock();
+                }
+                this.input.focus();
             });
         }
+    }
+
+    showTacticalAlert(text, key) {
+        if (!this.container) return;
+
+        // Ensure visible
+        this.toggleDisplay(true);
+        // Position specifically for game (e.g., top center or just use existing)
+        // For now, let's just use the status area but make it FLASH
+        this.status.innerHTML = `⚠️ <span style="color:#ff0055">${text}</span> <br><span style="color:#ffffff; font-size:10px;">PRESS [${key}] TO EXECUTE</span>`;
+        this.status.style.color = '#ffaa00';
+
+        // Pulse effect
+        this.container.classList.add('cortex-active');
+        if (neuralAudio) neuralAudio.playSound(800, 'square', 0.2, 0.2); // Alert sound
+
+        // Auto-clear after 5s
+        setTimeout(() => {
+            if (this.status.innerHTML.includes(text)) {
+                this.container.classList.remove('cortex-active');
+                this.status.innerHTML = "CORTEX_LINK: DATA STREAM MONITORING...";
+                this.status.style.color = '#00f3ff';
+                // Hide if not needed? No, let's keep it up contextually or user can hide
+                // Actually, if we are in game, maybe we want it less obtrusive?
+                // For now, standard display is fine.
+            }
+        }, 5000);
     }
 }

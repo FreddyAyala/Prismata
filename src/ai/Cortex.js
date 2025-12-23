@@ -157,6 +157,59 @@ class CortexService {
             focus: vector3
         };
     }
+
+
+    // --- SEMANTIC MATH ---
+    dotProduct(vecA, vecB) {
+        let sum = 0;
+        const len = vecA.length;
+        for (let i = 0; i < len; i++) sum += vecA[i] * vecB[i];
+        return sum;
+    }
+
+    magnitude(vec) {
+        let sum = 0;
+        for (let i = 0; i < vec.length; i++) sum += vec[i] * vec[i];
+        return Math.sqrt(sum);
+    }
+
+    cosineSimilarity(vecA, vecB) {
+        const dot = this.dotProduct(vecA, vecB);
+        const magA = this.magnitude(vecA);
+        const magB = this.magnitude(vecB);
+        return dot / (magA * magB);
+    }
+
+    // "Creative" AI: Assess a situation text against a set of concepts
+    // Returns the concept with the highest similarity score
+    async assess(situationText, concepts = ['good', 'bad']) {
+        if (!this.extractor) return null;
+
+        // 1. Embed Situation
+        const sitOut = await this.extractor(situationText, { pooling: 'mean', normalize: true });
+        const sitVec = sitOut.data;
+
+        // 2. Embed Concepts (We could cache these!)
+        let bestConcept = null;
+        let bestScore = -1.0;
+
+        for (const concept of concepts) {
+            const conOut = await this.extractor(concept, { pooling: 'mean', normalize: true });
+            const score = this.cosineSimilarity(sitVec, conOut.data);
+
+            // console.log(`🧠 Assessment: "${situationText}" vs "${concept}" = ${score.toFixed(3)}`);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestConcept = concept;
+            }
+        }
+
+        return {
+            match: bestConcept,
+            score: bestScore
+        };
+    }
 }
 
 export const cortex = new CortexService();
