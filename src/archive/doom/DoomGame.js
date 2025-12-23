@@ -59,6 +59,13 @@ export class DoomGame {
 
     this.setupInputs();
 
+    // Link to Cortex UI for Tactical Override
+    if (window.cortexUI) {
+      window.cortexUI.game = this;
+      window.cortexUI.status.innerText = "TACTICAL UPLINK: ESTABLISHED";
+      window.cortexUI.status.style.color = "#ffaa00";
+    }
+
     if (!skipIntro) {
       console.log("DEBUG: Showing Instructions...");
       this.ui.showInstructions(() => {

@@ -291,6 +291,31 @@
                     FPS: --</div>
             </aside>
 
+            <!-- Mobile Dock (Bottom Navigation) -->
+            <nav id="mobile-dock" class="mobile-dock">
+                <button id="dock-btn-info" class="dock-btn active" data-target="panel-info">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                    </svg>
+                    <span>INFO</span>
+                </button>
+                <button id="dock-btn-cortex" class="dock-btn" data-target="panel-cortex">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                    </svg>
+                    <span>CORTEX</span>
+                </button>
+                <button id="dock-btn-controls" class="dock-btn" data-target="sketch-controls">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path
+                            d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z" />
+                    </svg>
+                    <span>CONTROLS</span>
+                </button>
+            </nav>
+
             <!-- Footer: Timeline / scrubber could go here later -->
             <footer class="gallery-footer">
                 <div class="interaction-hint">
@@ -309,10 +334,19 @@
                             invisible
                             geometry of intelligence.</p>
                         <p style="margin-bottom:20px; color:#ccc;">Prismata transforms the raw mathematical weights of
-                            Neural
-                            Networks into 3D crystalline structures. By applying PCA (Principal Component Analysis) to
-                            layer
-                            weights, we reveal the unique "fingerprint" of each architecture.</p>
+                            Neural Networks into 3D crystalline structures. By applying PCA (Principal Component Analysis) to layer weights, we
+                            reveal the unique "fingerprint" of each architecture.</p>
+                            
+                            <div
+                                style="background: rgba(0,243,255,0.02); padding: 15px; border-left: 2px solid var(--color-secondary); margin-bottom: 20px;">
+                                <h3 style="font-size:0.8rem; color:var(--color-primary); letter-spacing:1px; margin-top:0;">NEW: CORTEX INTERFACE
+                                </h3>
+                                <ul style="font-size:0.8rem; color:#aaa; padding-left:15px; margin:5px 0;">
+                                    <li><strong>Real-time Inference:</strong> In-browser neural search.</li>
+                                    <li><strong>Sonification:</strong> Generative audio signatures for every model.</li>
+                                    <li><strong>???:</strong> Rumors of a defensive anomaly in the Archive...</li>
+                                </ul>
+                            </div>
 
                         <div
                             style="margin: 20px 0; padding: 15px; background: rgba(0,243,255,0.05); border-left: 2px solid var(--color-primary);">

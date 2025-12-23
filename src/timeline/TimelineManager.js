@@ -168,6 +168,9 @@ export class TimelineManager {
         if (this.viewer && crystal) {
             this.viewer.loadCrystal(`./${crystal.file}`).catch(e => console.error(e));
         }
+
+        // Update Cortex Compatibility
+        if (window.cortexUI) window.cortexUI.setModel(model);
     }
 
     // --- CINEMATIC AUTO-TOUR ---

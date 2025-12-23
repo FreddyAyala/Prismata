@@ -1499,3 +1499,154 @@ input:checked+.slider:before {
 input:checked + .slider.gold {
     background-color: #ffaa00;
 }
+/* --- MOBILE DOCK REFACTOR --- */
+.mobile-dock {
+    display: none;
+    /* Desktop: Hidden */
+}
+
+@media (max-width: 768px) {
+
+    /* 1. Hide Standard Layout Elements on Mobile */
+    .ui-layer {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr 60px;
+        grid-template-areas:
+            "header"
+            "content"
+            "dock";
+        pointer-events: none;
+    }
+
+    /* Hide redundant menu items since we have the dock */
+    #mob-btn-info,
+    #btn-toggle-info {
+        display: none !important;
+    }
+
+    .gallery-nav {
+        display: none;
+        /* Hide Sidebar on Mobile */
+    }
+
+    .color-legend {
+        display: none;
+        /* Hide Legend on Mobile */
+    }
+
+    /* 2. Mobile Dock Styling */
+    .mobile-dock {
+        grid-area: dock;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: rgba(3, 5, 7, 0.95);
+        border-top: 1px solid rgba(0, 243, 255, 0.2);
+        pointer-events: auto;
+        padding-bottom: env(safe-area-inset-bottom);
+        z-index: 1000;
+    }
+
+    .dock-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.4);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        font-family: var(--font-header);
+        font-size: 0.6rem;
+        letter-spacing: 1px;
+        padding: 10px;
+        width: 100%;
+    }
+
+    .dock-btn.active {
+        color: var(--color-primary);
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+    }
+
+    .dock-btn svg {
+        filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+    }
+
+    /* 3. Panel Overrides for Centered Modal View */
+    .artifact-details {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        width: 96%;
+        /* Takes more horizontal space */
+        max-width: 500px;
+        /* Allow wider on tablets/large phones */
+        height: auto;
+        max-height: 80vh;
+        /* Takes more vertical space */
+        z-index: 10000 !important;
+        pointer-events: none;
+        /* Invisible by default */
+        opacity: 0;
+        /* transition removed to fix blink glitch */
+        border: none;
+        background: transparent;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* INFO PANEL ACTIVE */
+    .artifact-details.mobile-active-info {
+        opacity: 1 !important;
+        pointer-events: auto;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Make the glass panel visible/centered */
+    .artifact-details.mobile-active-info .glass-panel:not(.controls-panel) {
+        background: rgba(10, 15, 20, 0.95);
+        border: 1px solid var(--color-primary);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        display: block !important;
+        /* Force show if active */
+    }
+
+    /* STRICTLY HIDE CONTROLS IN INFO MODE */
+    .artifact-details.mobile-active-info .advanced-controls,
+    .artifact-details.mobile-active-info .controls-panel {
+        display: none !important;
+    }
+
+    /* CONTROLS PANEL ACTIVE */
+    .artifact-details.mobile-active-controls {
+        opacity: 1 !important;
+        pointer-events: auto;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    .artifact-details.mobile-active-controls .advanced-controls {
+        display: block !important;
+        background: rgba(10, 15, 20, 0.95);
+        border: 1px solid var(--color-secondary);
+        padding: 15px;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
+    .artifact-details.mobile-active-controls .controls-panel {
+        display: block !important;
+        margin-top: 10px;
+    }
+
+    /* Hide Info logic when Controls active */
+    .artifact-details.mobile-active-controls .glass-panel:not(.controls-panel) {
+        display: none !important;
+    }
+
+    /* Footer Elements Hide */
+    .gallery-footer,
+    .interaction-hint {
+        display: none;
+    }
+}

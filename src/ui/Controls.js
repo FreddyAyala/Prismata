@@ -165,11 +165,73 @@ export function setupControls(context) {
       panels.forEach(p => p.style.opacity = newState ? '1' : '0');
       btnToggleInfo.textContent = newState ? 'HIDE INFO' : 'SHOW INFO';
 
+      // Toggle Cortex UI as well
+      if (window.cortexUI) {
+        window.cortexUI.toggleDisplay(newState);
+      }
+
       setTimeout(() => {
         if (viewers.main) viewers.main.onResize();
         if (viewers.compare) viewers.compare.onResize();
       }, 300);
     });
+
+    // --- MOBILE DOCK LOGIC ---
+    const dockBtns = document.querySelectorAll('.dock-btn');
+    const artifactPanel = document.querySelector('.artifact-details');
+    console.log("Mobile Dock Setup: Found bits?", dockBtns.length, artifactPanel);
+
+    if (dockBtns.length > 0) {
+      dockBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const isActive = btn.classList.contains('active');
+          console.log("Dock Click:", btn.dataset.target, "Was Active:", isActive);
+
+          // 1. Reset Everything (Clean Slate)
+          dockBtns.forEach(b => b.classList.remove('active'));
+          artifactPanel.classList.remove('mobile-active-info');
+          artifactPanel.classList.remove('mobile-active-controls');
+
+          // Force Hide
+          artifactPanel.style.opacity = '0';
+          artifactPanel.style.pointerEvents = 'none';
+
+          if (window.cortexUI) window.cortexUI.toggleDisplay(false);
+
+          // 2. If it was NOT active, Activate it (Toggle On)
+          if (!isActive) {
+            btn.classList.add('active');
+            const target = btn.dataset.target;
+
+            if (target === 'panel-info') {
+              artifactPanel.style.opacity = '1';
+              artifactPanel.style.pointerEvents = 'auto';
+              artifactPanel.classList.add('mobile-active-info');
+            } else if (target === 'panel-cortex') {
+              if (window.cortexUI) {
+                window.cortexUI.toggleDisplay(true);
+              }
+            } else if (target === 'sketch-controls') {
+              artifactPanel.style.opacity = '1';
+              artifactPanel.style.pointerEvents = 'auto';
+              artifactPanel.classList.add('mobile-active-controls');
+            }
+          }
+          // If it WAS active, we just leave it reset (Toggle Off / Clean View)
+        });
+      });
+
+      // Default to INFO on load (if mobile)
+      if (window.innerWidth < 768) {
+        // Don't auto-click if we want a clean start, 
+        // OR click it to show info by default. Let's show info but allow toggle off.
+        const infoBtn = document.getElementById('dock-btn-info');
+        if (infoBtn) {
+          // Simulate click to activate
+          infoBtn.click();
+        }
+      }
+    }
 
     // Mobile Default: Hide Info
     if (window.innerWidth < 900) {

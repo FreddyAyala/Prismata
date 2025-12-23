@@ -66,16 +66,25 @@ export class PLYParser {
       shader.uniforms.uNodeDist = customUniforms.uNodeDist;
       shader.uniforms.uLFO = customUniforms.uLFO;
 
+      // CORTEX UNIFORMS
+      shader.uniforms.uFocus = customUniforms.uFocus;
+      shader.uniforms.uFocusStr = customUniforms.uFocusStr;
+
       shader.vertexShader = `
           varying float vPulse;
+          varying float vActive; // Activation Varying
+
           uniform float uTime;
           uniform float uPulseEnabled;
           uniform float uNodeDensity;
           uniform float uNodeDist;
           uniform float uLFO;
+
+          uniform vec3 uFocus;
+          uniform float uFocusStr;
         ` + shader.vertexShader;
 
-      // Pulse Logic
+      // Pulse & Focus Logic
       shader.vertexShader = shader.vertexShader.replace(
         '#include <worldpos_vertex>',
         `
@@ -90,6 +99,44 @@ export class PLYParser {
           // 2. Node Distance (Vertical Focus)
           if (abs(position.y) > uNodeDist * 0.8) {
              // Logic reserved if user wants to hide ends
+          }
+
+          // 3. CORTEX ACTIVATION (Broad & Bright + ELECTRICITY ⚡)
+          vActive = 0.0;
+          if (uFocusStr > 0.01) {
+             vec3 posDir = normalize(position);
+             float align = dot(posDir, normalize(uFocus));
+
+             // Activation Threshold (0.75 = Wide Beam)
+             if (align > 0.75) {
+                 vActive = (align - 0.75) * 4.0;
+                 vActive = pow(vActive, 2.0);
+                 vActive *= uFocusStr;
+
+                 // ELECTRICITY EFFECT: Flowing Current ⚡
+                 // High frequency sine waves moving along Y axis to simulate current
+                 float energy = sin(position.y * 20.0 - uTime * 25.0)
+                              * cos(position.x * 15.0 + uTime * 10.0)
+                              * sin(position.z * 15.0 + uTime * 12.0);
+
+                 // Sharpen the waves to make them look like "Bolts" or "Sparks"
+                 energy = smoothstep(0.4, 0.9, energy);
+
+                 // Apply to brightness
+                 if (vActive > 0.1) {
+                     // Base glow + Energy Spikes
+                     vActive += energy * 2.5 * vActive;
+
+                     // Occasional "Super Spark"
+                     if (fract(sin(uTime * 100.0) * 43758.5453) > 0.95) {
+                         vActive *= 2.0;
+                         gl_PointSize *= 1.5;
+                     }
+                 }
+
+                 // Giant Size Boost for active nodes
+                 if (vActive > 0.5) gl_PointSize *= (1.0 + vActive * 3.0);
+             }
           }
 
           vPulse = 0.0;
@@ -115,6 +162,7 @@ export class PLYParser {
 
       shader.fragmentShader = `
           varying float vPulse;
+          varying float vActive;
           uniform float uTime;
         ` + shader.fragmentShader;
 
@@ -122,11 +170,17 @@ export class PLYParser {
         '#include <color_fragment>',
         `
           #include <color_fragment>
+
+          // CORTEX COLOR (Deep Orange/Amber)
+          if (vActive > 0.01) {
+              vec3 activeColor = vec3(1.0, 0.5, 0.0);
+              diffuseColor.rgb = mix(diffuseColor.rgb, activeColor, vActive);
+              diffuseColor.rgb += vec3(0.8, 0.4, 0.0) * vActive; // Glow
+              diffuseColor.a = mix(diffuseColor.a, 1.0, vActive);
+          }
+
           if (vPulse > 0.01) {
              // Artistic Gradient: Gold -> Cyan -> Magenta
-             // We can simulate height via vColor if the ply has colored layers?
-             // Or just use the Plasma mix approach for consistency.
-
              vec3 colInput = vec3(1.0, 0.8, 0.2); // Warm
              vec3 colMid   = vec3(0.0, 1.0, 1.0); // Cyan
              vec3 colOut   = vec3(1.0, 0.2, 0.8); // Magenta

@@ -94,11 +94,17 @@ Experience the gallery as a hands-free, audio-visual journey.
     *   **2020s:** Ethereal, Complex Glass Pads.
     *   **The Signature:** A unique melodic motif generated from the model's name hash.
 
-### 6. Operation Firewall (Defense Mode) 🛡️
+### 6. Cortex Neural Interface (Local Inference) 🧠
+The gallery can now "think" in real-time.
+*   **Neural Link:** Uses `@xenova/transformers` to run the `all-MiniLM-L6-v2` model directly in your browser.
+*   **Thought Visualization:** Type any concept (e.g. "Entropy", "Love", "Singularity") and watch the crystal light up. The system projects your text into 384-dimensional space and maps it to the model's geometry.
+*   **Sci-Fi Immersion:** Features a retro-futuristic terminal with procedurally generated audio (8-bit data bursts) and electricity shaders.
+
+### 7. Operation Firewall (Defense Mode) 🛡️
 A hidden survival mode where you protect the crystals from corruption.
-*   **The Mission:** Defend the Gallery from waves of "Glitch Entities" trying to destabilize the neural topology.
-*   **Arsenal:** Procedural weaponry (Blaster, Shotgun, Plasma) generated from the model's own parameters.
-*   **Access:** Press **'P'** inside the Archive, or find the **Glitch Platform** (Coordinates: 10, 0, 20).
+*   **The Mission:** Defend the Gallery from waves of "Glitch Entities".
+*   **Access:** Hidden somewhere within the **Virtual Archive**. Look for the *Glitch Platform* or listen for the signal...
+*   **Arsenal:** Weaponry procedurally generated from the model's own parameter weights.
 
 
 ---

@@ -65,6 +65,18 @@ async function loadGallery(activeSlotGetter, viewers) {
                 const currentSlot = activeSlotGetter(); // Call getter to get current string
                 handleLoadCrystal(item.dataset, currentSlot, viewers);
                 
+              // Update Cortex Compatibility (Main Slot Only)
+              if (currentSlot === 'main' && window.cortexUI) {
+                // Reconstruct model object for Cortex
+                const modelData = {
+                  name: item.dataset.modelName,
+                  year: parseInt(item.dataset.year),
+                  type: item.dataset.type,
+                  id: item.dataset.modelId
+                };
+                window.cortexUI.setModel(modelData);
+              }
+
                 // Close mobile menu
                 const mobileMenu = document.querySelector('.gallery-nav');
                 if (mobileMenu) mobileMenu.classList.remove('active');

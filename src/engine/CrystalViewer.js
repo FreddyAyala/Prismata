@@ -30,7 +30,10 @@ export class CrystalViewer {
       uNodeDist: { value: 200.0 },
       uThinning: { value: 0.0 },
       uXorDensity: { value: 0.0 },
-      uLFO: { value: 0.0 }
+      uLFO: { value: 0.0 },
+      // Neural Focus (Cortex)
+      uFocus: { value: new THREE.Vector3(0, 0, 0) },
+      uFocusStr: { value: 0.0 }
     };
 
     // LERP Targets for Smooth Transitions
@@ -184,9 +187,13 @@ export class CrystalViewer {
       this.customUniforms.uThinning.value = lerp(this.customUniforms.uThinning.value, this.targetUniforms.uThinning, alpha);
       this.customUniforms.uXorDensity.value = lerp(this.customUniforms.uXorDensity.value, this.targetUniforms.uXorDensity, alpha);
 
-      // Pulse/LFO might be direct or lerped? 
       if (this.customUniforms.uLFO && this.targetUniforms.uLFO !== undefined) {
         this.customUniforms.uLFO.value = lerp(this.customUniforms.uLFO.value, this.targetUniforms.uLFO, alpha);
+      }
+
+      // Focus Decay (Auto fade out thought)
+      if (this.customUniforms.uFocusStr && this.customUniforms.uFocusStr.value > 0.001) {
+        this.customUniforms.uFocusStr.value *= 0.995; // Fade out 0.5% per frame (Very Slow)
       }
     }
 
@@ -297,5 +304,18 @@ export class CrystalViewer {
 
   setThinning(val) {
     if (this.targetUniforms) this.targetUniforms.uThinning = val;
+  }
+
+  setFocus(vector, strength = 1.0) {
+    if (!this.customUniforms) return;
+    // vector is {x,y,z}
+    this.customUniforms.uFocus.value.set(vector.x, vector.y, vector.z);
+
+    // Animate Strength: Pop to 1, then slowly fade?
+    // Or just set it.
+    this.customUniforms.uFocusStr.value = strength;
+
+    // Auto-fadeout mechanic could go in animate loop or here via tween
+    // For now, let's keep it manual or decay in loop if we want.
   }
 }

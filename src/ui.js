@@ -62,6 +62,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       archiveManager.init('archive-root');
     }
 
+  // 8. Init Cortex UI (Neural Interface)
+  const { CortexUI } = await import('./ui/CortexUI.js');
+  window.cortexUI = new CortexUI(viewers.main);
+
+
   // 7. Panel Click Listeners
   const panelA = document.getElementById('panel-a');
   const panelB = document.getElementById('panel-b');
