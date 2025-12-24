@@ -104,6 +104,9 @@ body {
     padding: 0 2rem;
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
     border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+    z-index: 2005;
+        /* Above Timeline Overlay */
+        position: relative;
 }
 
 .logo-text h1 {
@@ -786,6 +789,11 @@ input:checked+.slider:before {
 
     .mobile-menu-btn {
         display: flex;
+        pointer-events: auto;
+            /* explicit click enable */
+            z-index: 2001;
+            /* Above nav */
+            cursor: pointer;
     }
 
     .ui-layer {
@@ -815,7 +823,8 @@ input:checked+.slider:before {
         max-width: 300px;
         transform: translateX(-110%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 100;
+        z-index: 2000;
+            /* High z-index to overlay everything */
         border-right: 1px solid var(--color-primary);
         background: rgba(3, 5, 7, 0.95);
         box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
@@ -1050,6 +1059,8 @@ input:checked+.slider:before {
     justify-content: center;
     width: 100%;
     padding: 20px;
+    padding-bottom: 80px;
+        /* Lift up to clear Cortex UI Status */
     background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
 }
 
@@ -1137,24 +1148,28 @@ input:checked+.slider:before {
 /* Mobile Timeline Tweaks */
 @media (max-width: 600px) {
     .timeline-overlay {
-            padding-bottom: 0;
+        padding-bottom: 90px;
+            /* Pushes track up to clear buttons */
             justify-content: flex-end;
         }
 
                 .timeline-controls-top {
                     top: auto;
-                    bottom: 110px;
-                    /* Above the track */
-                    left: 0;
-                    right: 0;
-                    width: 100%;
-                    /* Full width for layout */
-                    justify-content: center;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-                    padding-bottom: 10px;
-                }
+        bottom: 15px;
+            /* Sits in the white space created by padding */
+            left: 0;
+            right: 0;
+            width: 100%;
+        justify-content: center;
+            flex-wrap: wrap;
+        gap: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            /* Background to ensure readability */
+            padding: 10px 0;
+            border-top: 1px solid var(--color-primary);
+            z-index: 500;
+            /* Ensure on top */
+        }
                                 .close-timeline-btn {
                                     padding: 8px 12px;
                                     font-size: 0.75rem;
@@ -1518,16 +1533,16 @@ input:checked + .slider.gold {
         pointer-events: none;
     }
 
+                                                                .gallery-header {
+                                                                    pointer-events: auto;
+                                                                }
     /* Hide redundant menu items since we have the dock */
     #mob-btn-info,
     #btn-toggle-info {
         display: none !important;
     }
 
-    .gallery-nav {
-        display: none;
-        /* Hide Sidebar on Mobile */
-    }
+
 
     .color-legend {
         display: none;

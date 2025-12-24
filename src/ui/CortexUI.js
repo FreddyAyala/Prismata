@@ -69,8 +69,8 @@ export class CortexUI {
                 .cortex-terminal {
                     width: 95% !important;
                     height: auto !important;
-                    bottom: 70px !important; /* Above Dock (60px) + padding */
-                    top: auto !important; 
+                    top: 80px !important; /* Move to TOP to clear bottom Timeline/Dock */
+                    bottom: auto !important;
                     left: 50% !important;
                     transform: translateX(-50%) !important; 
                     padding: 15px !important;
