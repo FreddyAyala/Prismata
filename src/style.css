@@ -571,6 +571,53 @@ input:checked+.slider:before {
     flex-direction: column;
 }
 
+/* --- TIMELINE MODE FIXES --- */
+display: flex;
+flex-direction: column;
+}
+
+/* --- TIMELINE MODE FIXES --- */
+.timeline-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2100;
+    /* Above Header (2005) */
+    background: radial-gradient(circle at center, rgba(0, 10, 20, 0.95), #000);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.5s ease;
+}
+
+.timeline-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+    /* Ensure it doesn't block rays even if opacity 0 */
+}
+
+/* Force hide legend when inside timeline or when body has timeline class */
+body.mode-timeline .color-legend {
+    display: none !important;
+}
+
+/* Re-enable pointer events for interactive children */
+.timeline-controls-top,
+.timeline-active-info,
+.timeline-track-container {
+    pointer-events: auto;
+}
+
+/* Force hide legend when inside timeline or when body has timeline class */
+body.mode-timeline .color-legend {
+    display: none !important;
+}
 .meta-item .label {
     font-size: 0.7rem;
     color: var(--color-secondary);

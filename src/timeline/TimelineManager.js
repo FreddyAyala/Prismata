@@ -106,7 +106,17 @@ export class TimelineManager {
 
         if (nav) { nav.style.opacity = '0'; nav.style.pointerEvents = 'none'; }
         if (details) details.style.opacity = '0';
-        if (headerWithStatus) headerWithStatus.style.opacity = '0';
+        if (headerWithStatus) {
+            headerWithStatus.style.opacity = '0';
+            headerWithStatus.style.pointerEvents = 'none';
+        }
+
+        // Force Hide Legend
+        const colorLegend = document.querySelector('.color-legend');
+        if (colorLegend) colorLegend.style.display = 'none';
+
+        // Helper Class for CSS
+        document.body.classList.add('mode-timeline');
 
         // Select First if not playing
         if (!this.isPlaying) this.goTo(0);
@@ -117,6 +127,7 @@ export class TimelineManager {
 
     exit() {
         this.stopAutoPlay();
+        document.body.classList.remove('mode-timeline');
 
         if (this.overlay) this.overlay.classList.add('hidden');
 
@@ -127,7 +138,14 @@ export class TimelineManager {
 
         if (nav) { nav.style.opacity = '1'; nav.style.pointerEvents = 'auto'; }
         if (details) details.style.opacity = '1';
-        if (header) header.style.opacity = '1';
+        if (header) {
+            header.style.opacity = '1';
+            header.style.pointerEvents = 'auto';
+        }
+
+        // Restore Legend
+        const colorLegend = document.querySelector('.color-legend');
+        if (colorLegend) colorLegend.style.display = 'flex';
     }
 
     goTo(index) {
@@ -145,6 +163,15 @@ export class TimelineManager {
         });
 
         // Animate Info
+        // UI Updates
+        if (this.colorLegend) this.colorLegend.style.display = 'none';
+
+        // Ensure strictly hidden in timeline
+        const colorLegend = document.querySelector('.color-legend');
+        if (colorLegend) colorLegend.style.display = 'none';
+
+        if (this.audioBtn) this.audioBtn.style.display = 'none';
+        if (this.autoTourBtn) this.autoTourBtn.style.display = 'block';
         if (this.yearLabel) this.yearLabel.style.opacity = 0;
         if (this.titleLabel) this.titleLabel.style.opacity = 0;
         if (this.descLabel) this.descLabel.style.opacity = 0;

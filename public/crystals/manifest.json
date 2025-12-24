@@ -1,5 +1,27 @@
 [
   {
+    "id": "nemotron",
+    "name": "NEMOTRON 3 NANO",
+    "year": 2025,
+    "era": "The Agentic Era",
+    "type": "MOE (HYBRID LATENT)",
+    "desc": "Nvidia's 30B (3B Active) open agentic foundation model.",
+    "crystals": [
+      {
+        "id": "structure",
+        "name": "The Graph",
+        "file": "crystals/nemotron/structure_layers.ply",
+        "desc": "Hybrid Latent MoE topology."
+      },
+      {
+        "id": "intelligence",
+        "name": "Thought: Intelligence",
+        "file": "crystals/nemotron/activation_intelligence.ply",
+        "desc": "'Intelligence is the efficient compression of information.'"
+      }
+    ]
+  },
+  {
     "id": "gemini3",
     "name": "Gemini 3.0 (Omni)",
     "year": 2026,
