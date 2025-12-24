@@ -39,6 +39,13 @@ let compareViewer = null;
 let infoVisible = true;
 let autoFPSEnabled = true;
 window.targetFPS = 24;
+let currentPalette = 'classic';
+let isInverted = true;
+
+// Recording State
+let isRecording = false;
+let recordingBuffer = [];
+let recordingInterval = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -356,8 +363,70 @@ function setupControls() {
     });
   }
 
+  // Palette Menu Logic
+  const paletteTrigger = document.getElementById('palette-trigger');
+  const paletteMenu = document.getElementById('palette-menu');
+  const paletteOptions = document.querySelectorAll('.palette-option');
+
+  if (paletteTrigger && paletteMenu) {
+    paletteTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      paletteMenu.classList.toggle('hidden');
+    });
+
+    // Add click listeners to legend labels
+    const legendLabels = document.querySelectorAll('.legend-label');
+    legendLabels.forEach(label => {
+      label.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Trigger click on palette trigger to open menu
+        paletteTrigger.click();
+      });
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', () => {
+      paletteMenu.classList.add('hidden');
+    });
+
+    paletteOptions.forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const paletteName = opt.dataset.palette;
+        currentPalette = paletteName;
+
+        // Update both viewers
+        if (mainViewer) mainViewer.setPalette(paletteName);
+        if (compareViewer) compareViewer.setPalette(paletteName);
+
+        // Update UI gradient bar
+        paletteTrigger.className = `gradient-bar ${paletteName}`;
+        paletteMenu.classList.add('hidden');
+      });
+    });
+
+    // Initial load sync
+    paletteTrigger.className = `gradient-bar ${currentPalette}`;
+  }
+
   // Hook up Spin to disable Pan - REMOVED for independent control
   // if (btnSpin) ... removed
+
+  if (btnSpin) {
+    btnSpin.addEventListener('click', () => {
+      const isActive = btnSpin.classList.toggle('active');
+      mainViewer.setAutoRotate(isActive);
+      compareViewer.setAutoRotate(isActive);
+      btnSpin.textContent = isActive ? "AUTO-ROTATE: ON" : "AUTO-ROTATE: OFF";
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      mainViewer.resetView();
+      compareViewer.resetView();
+    });
+  }
 
   if (btnToggleInfo) {
     document.getElementById('btn-toggle-info').addEventListener('click', () => {
@@ -550,11 +619,14 @@ function setupControls() {
         summarizeThin: parseFloat(document.getElementById('summarize-thin').value),
         viewHeight: parseFloat(document.getElementById('view-height').value),
         xorDensity: parseFloat(document.getElementById('xor-density-slider').value),
+        nodeOpacity: parseFloat(document.getElementById('node-opacity-slider').value),
         pulse: document.getElementById('btn-toggle-pulse').classList.contains('active'),
         autoPan: document.getElementById('btn-pan').classList.contains('active'),
         autoRotate: document.getElementById('btn-spin').classList.contains('active'),
         targetFPS: targetFPS,
-        autoFPS: autoFPSEnabled
+        autoFPS: autoFPSEnabled,
+        palette: currentPalette,
+        inverted: isInverted
       };
       const settingsJSON = JSON.stringify(settings, null, 2);
       navigator.clipboard.writeText(settingsJSON).then(() => {
@@ -566,204 +638,317 @@ function setupControls() {
     });
     perfSection.appendChild(copySettingsBtn);
   }
+}
 
-  // Easter Egg Toggle
-  const btnEgg = document.getElementById('btn-easter-egg');
-  if (btnEgg) {
-    btnEgg.addEventListener('click', () => {
-      if (mainViewer) {
-        const isActive = mainViewer.toggleEasterEgg();
-        btnEgg.classList.toggle('active', isActive);
+// Record Attract Logic
+const btnRecord = document.getElementById('btn-record');
+if (btnRecord) {
+  btnRecord.addEventListener('click', () => {
+    if (!isRecording) {
+      // Start Recording
+      isRecording = true;
+      recordingBuffer = [];
+      btnRecord.textContent = "STOP RECORDING";
+      btnRecord.classList.add('active');
+      showToast("Recording camera path...");
 
-        if (isActive) {
-          showToast("Lightcycle Arena: ONLINE");
-        } else {
-          showToast("Lightcycle Arena: OFFLINE", true);
+      recordingInterval = setInterval(() => {
+        if (mainViewer && mainViewer.camera && mainViewer.controls) {
+          recordingBuffer.push({
+            pos: {
+              x: parseFloat(mainViewer.camera.position.x.toFixed(3)),
+              y: parseFloat(mainViewer.camera.position.y.toFixed(3)),
+              z: parseFloat(mainViewer.camera.position.z.toFixed(3))
+            },
+            target: {
+              x: parseFloat(mainViewer.controls.target.x.toFixed(3)),
+              y: parseFloat(mainViewer.controls.target.y.toFixed(3)),
+              z: parseFloat(mainViewer.controls.target.z.toFixed(3))
+            }
+          });
         }
-      }
-    });
-  }
-
-  // Pulse Toggle
-  const btnPulse = document.getElementById('btn-toggle-pulse');
-  if (btnPulse) {
-    btnPulse.addEventListener('click', () => {
-      const isActive = btnPulse.classList.toggle('active');
-      btnPulse.textContent = isActive ? "FLOW: ON" : "FLOW: OFF";
-      if (mainViewer) mainViewer.setPulse(isActive);
-    });
-  }
-
-  // Point Size Slider
-  const pointSizeSlider = document.getElementById('point-size-slider');
-  if (pointSizeSlider) {
-    pointSizeSlider.addEventListener('input', (e) => {
-      const size = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setBaseSize(size);
-      if (compareViewer) compareViewer.setBaseSize(size);
-    });
-  }
-
-  // View Height Control
-  const heightSlider = document.getElementById('view-height');
-  if (heightSlider) {
-    heightSlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setManualHeight(val);
-      if (compareViewer) compareViewer.setManualHeight(val);
-    });
-  }
-
-  // LFO Slider
-  const lfoSlider = document.getElementById('lfo-slider');
-  if (lfoSlider) {
-    lfoSlider.addEventListener('input', (e) => {
-      const amount = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setLFOAmount(amount);
-      if (compareViewer) compareViewer.setLFOAmount(amount);
-    });
-  }
-
-  // LFO Speed Slider
-  const lfoSpeedSlider = document.getElementById('lfo-speed');
-  if (lfoSpeedSlider) {
-    lfoSpeedSlider.addEventListener('input', (e) => {
-      const speed = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setLFOSpeed(speed);
-      if (compareViewer) compareViewer.setLFOSpeed(speed);
-    });
-  }
-
-  // PERFORMANCE Property Sliders
-  const lineDistSlider = document.getElementById('line-dist-slider');
-  if (lineDistSlider) {
-    lineDistSlider.addEventListener('input', (e) => {
-      const dist = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setLineDist(dist);
-      if (compareViewer) compareViewer.setLineDist(dist);
-    });
-  }
-
-  const nodeDistSlider = document.getElementById('node-dist-slider');
-  if (nodeDistSlider) {
-    nodeDistSlider.addEventListener('input', (e) => {
-      const dist = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setNodeDist(dist);
-      if (compareViewer) compareViewer.setNodeDist(dist);
-    });
-  }
-
-  const lineDensitySlider = document.getElementById('line-density-slider');
-  if (lineDensitySlider) {
-    lineDensitySlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setLineDensity(val);
-      if (compareViewer) compareViewer.setLineDensity(val);
-    });
-  }
-
-  const nodeDensitySlider = document.getElementById('node-density-slider');
-  if (nodeDensitySlider) {
-    nodeDensitySlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setNodeDensity(val);
-      if (compareViewer) compareViewer.setNodeDensity(val);
-    });
-  }
-
-  const summarizeThinSlider = document.getElementById('summarize-thin');
-  if (summarizeThinSlider) {
-    summarizeThinSlider.addEventListener('input', (e) => {
-      const intensity = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setThinning(intensity);
-      if (compareViewer) compareViewer.setThinning(intensity);
-    });
-  }
-
-  const xorDensitySlider = document.getElementById('xor-density-slider');
-  if (xorDensitySlider) {
-    xorDensitySlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (mainViewer) mainViewer.setXorDensity(val);
-      if (compareViewer) compareViewer.setXorDensity(val);
-    });
-  }
-
-  // File Upload Logic
-  const fileInput = document.getElementById('file-upload');
-  if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const url = URL.createObjectURL(file);
-      console.log("Loading custom file:", url);
-
-      // Force Main View logic
-      setActiveSlot('main');
-
-      mainViewer.loadCrystal(url).then(stats => {
-        // Update UI
-        if (uiElements.main.superTitle) uiElements.main.superTitle.textContent = "CUSTOM UPLOAD";
-        uiElements.main.title.textContent = file.name.toUpperCase().replace('.PLY', '');
-        uiElements.main.type.textContent = "USER DATA";
-        uiElements.main.nodes.textContent = stats.nodes.toLocaleString();
-        uiElements.main.links.textContent = stats.links.toLocaleString();
-        uiElements.main.desc.innerHTML = "PREVISUALIZATION MODE<br><br>Loaded local artifact: " + file.name;
-
-        // Close modal
-        if (modal) modal.classList.add('hidden');
-      }).catch(err => {
-        alert("Failed to load PLY: " + err);
-      });
-    });
-  }
-
-
-
-
-  // Mobile Menu
-  const btnMobileMenu = document.getElementById('btn-mobile-menu');
-  if (btnMobileMenu) {
-    btnMobileMenu.addEventListener('click', () => {
-      document.querySelector('.gallery-nav').classList.toggle('active');
-    });
-  }
-
-  btnSpin.addEventListener('click', () => {
-    const isActive = btnSpin.classList.toggle('active');
-    mainViewer.setAutoRotate(isActive);
-    compareViewer.setAutoRotate(isActive);
-    btnSpin.textContent = isActive ? "AUTO-ROTATE: ON" : "AUTO-ROTATE: OFF";
-  });
-
-  btnReset.addEventListener('click', () => {
-    mainViewer.resetView();
-    compareViewer.resetView();
-  });
-
-  toggleCompare.addEventListener('change', (e) => {
-    isCompareMode = e.target.checked;
-    if (isCompareMode) {
-      viewCompare.classList.remove('hidden');
-      viewerContainer.classList.add('split');
-      panelB.classList.remove('hidden');
-      setActiveSlot('compare');
-      setTimeout(() => {
-        mainViewer.onResize();
-        compareViewer.onResize();
-      }, 550);
+      }, 50); // 20fps recording
     } else {
-      viewCompare.classList.add('hidden');
-      viewerContainer.classList.remove('split');
-      panelB.classList.add('hidden');
-      setActiveSlot('main');
-      setTimeout(() => {
-        mainViewer.onResize();
-      }, 550);
+      // Stop Recording
+      isRecording = false;
+      clearInterval(recordingInterval);
+      btnRecord.textContent = "RECORD ATTRACT";
+      btnRecord.classList.remove('active');
+
+      if (recordingBuffer.length > 0) {
+        const data = JSON.stringify(recordingBuffer);
+        navigator.clipboard.writeText(data).then(() => {
+          showToast("Camera path copied to clipboard!");
+        }).catch(err => {
+          console.error("Failed to copy path:", err);
+          showToast("Failed to copy path.", true);
+        });
+      }
     }
   });
 }
+
+// Easter Egg Toggle
+const btnEgg = document.getElementById('btn-easter-egg');
+if (btnEgg) {
+  btnEgg.addEventListener('click', () => {
+    if (mainViewer) {
+      const isActive = mainViewer.toggleEasterEgg();
+      btnEgg.classList.toggle('active', isActive);
+
+      if (isActive) {
+        showToast("Lightcycle Arena: ONLINE");
+      } else {
+        showToast("Lightcycle Arena: OFFLINE", true);
+      }
+    }
+  });
+}
+
+// Pulse Toggle
+const btnPulse = document.getElementById('btn-toggle-pulse');
+if (btnPulse) {
+  btnPulse.addEventListener('click', () => {
+    const isActive = btnPulse.classList.toggle('active');
+    btnPulse.textContent = isActive ? "FLOW: ON" : "FLOW: OFF";
+    if (mainViewer) mainViewer.setPulse(isActive);
+  });
+}
+
+// Point Size Slider
+const pointSizeSlider = document.getElementById('point-size-slider');
+if (pointSizeSlider) {
+  pointSizeSlider.addEventListener('input', (e) => {
+    const size = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setBaseSize(size);
+    if (compareViewer) compareViewer.setBaseSize(size);
+  });
+}
+
+// View Height Control
+const heightSlider = document.getElementById('view-height');
+if (heightSlider) {
+  heightSlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setManualHeight(val);
+    if (compareViewer) compareViewer.setManualHeight(val);
+  });
+}
+
+// LFO Slider
+const lfoSlider = document.getElementById('lfo-slider');
+if (lfoSlider) {
+  lfoSlider.addEventListener('input', (e) => {
+    const amount = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setLFOAmount(amount);
+    if (compareViewer) compareViewer.setLFOAmount(amount);
+  });
+}
+
+// LFO Speed Slider
+const lfoSpeedSlider = document.getElementById('lfo-speed');
+if (lfoSpeedSlider) {
+  lfoSpeedSlider.addEventListener('input', (e) => {
+    const speed = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setLFOSpeed(speed);
+    if (compareViewer) compareViewer.setLFOSpeed(speed);
+  });
+}
+
+// PERFORMANCE Property Sliders
+const lineDistSlider = document.getElementById('line-dist-slider');
+if (lineDistSlider) {
+  lineDistSlider.addEventListener('input', (e) => {
+    const dist = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setLineDist(dist);
+    if (compareViewer) compareViewer.setLineDist(dist);
+  });
+}
+
+const nodeDistSlider = document.getElementById('node-dist-slider');
+if (nodeDistSlider) {
+  nodeDistSlider.addEventListener('input', (e) => {
+    const dist = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setNodeDist(dist);
+    if (compareViewer) compareViewer.setNodeDist(dist);
+  });
+}
+
+const lineDensitySlider = document.getElementById('line-density-slider');
+if (lineDensitySlider) {
+  lineDensitySlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setLineDensity(val);
+    if (compareViewer) compareViewer.setLineDensity(val);
+  });
+}
+
+const nodeDensitySlider = document.getElementById('node-density-slider');
+if (nodeDensitySlider) {
+  nodeDensitySlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setNodeDensity(val);
+    if (compareViewer) compareViewer.setNodeDensity(val);
+  });
+}
+
+const summarizeThinSlider = document.getElementById('summarize-thin');
+if (summarizeThinSlider) {
+  summarizeThinSlider.addEventListener('input', (e) => {
+    const intensity = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setThinning(intensity);
+    if (compareViewer) compareViewer.setThinning(intensity);
+  });
+}
+
+const xorDensitySlider = document.getElementById('xor-density-slider');
+if (xorDensitySlider) {
+  xorDensitySlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setXorDensity(val);
+    if (compareViewer) compareViewer.setXorDensity(val);
+  });
+}
+
+// New Visual Controls
+const colorInflSlider = document.getElementById('color-infl-slider');
+if (colorInflSlider) {
+  colorInflSlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value) / 100;
+    if (mainViewer) mainViewer.setColorInfluence(val);
+    if (compareViewer) compareViewer.setColorInfluence(val);
+  });
+}
+
+const lineOpacitySlider = document.getElementById('line-opacity-slider');
+if (lineOpacitySlider) {
+  lineOpacitySlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setLineOpacity(val);
+    if (compareViewer) compareViewer.setLineOpacity(val);
+  });
+}
+
+const nodeSaturSlider = document.getElementById('node-satur-slider');
+if (nodeSaturSlider) {
+  nodeSaturSlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setNodeSaturation(val);
+    if (compareViewer) compareViewer.setNodeSaturation(val);
+  });
+}
+
+const nodeOpacitySlider = document.getElementById('node-opacity-slider');
+if (nodeOpacitySlider) {
+  nodeOpacitySlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (mainViewer) mainViewer.setNodeOpacity(val);
+    if (compareViewer) compareViewer.setNodeOpacity(val);
+  });
+}
+
+const btnNodeBlend = document.getElementById('btn-node-blend');
+if (btnNodeBlend) {
+  btnNodeBlend.addEventListener('click', () => {
+    const isAdditive = btnNodeBlend.textContent === 'NORMAL';
+    btnNodeBlend.textContent = isAdditive ? 'ADDITIVE' : 'NORMAL';
+    const mode = isAdditive ? 'additive' : 'normal';
+    if (mainViewer) mainViewer.setNodeBlending(mode);
+    if (compareViewer) compareViewer.setNodeBlending(mode);
+  });
+}
+
+const btnLineBlend = document.getElementById('btn-line-blend');
+if (btnLineBlend) {
+  btnLineBlend.addEventListener('click', () => {
+    const isAdditive = btnLineBlend.textContent === 'NORMAL';
+    btnLineBlend.textContent = isAdditive ? 'ADDITIVE' : 'NORMAL';
+    const mode = isAdditive ? 'additive' : 'normal';
+    if (mainViewer) mainViewer.setLineBlending(mode);
+    if (compareViewer) compareViewer.setLineBlending(mode);
+  });
+}
+
+const btnInvertInfluence = document.getElementById('btn-invert-influence');
+if (btnInvertInfluence) {
+  // Set initial state
+  btnInvertInfluence.textContent = isInverted ? 'INVERTED (COMPLEMENTARY)' : 'DIRECT INFLUENCE';
+  if (mainViewer) mainViewer.setInvertInfluence(isInverted);
+  if (compareViewer) compareViewer.setInvertInfluence(isInverted);
+
+  btnInvertInfluence.addEventListener('click', () => {
+    isInverted = !isInverted;
+    btnInvertInfluence.textContent = isInverted ? 'INVERTED (COMPLEMENTARY)' : 'DIRECT INFLUENCE';
+    if (mainViewer) mainViewer.setInvertInfluence(isInverted);
+    if (compareViewer) compareViewer.setInvertInfluence(isInverted);
+  });
+}
+
+// File Upload Logic
+const fileInput = document.getElementById('file-upload');
+if (fileInput) {
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    console.log("Loading custom file:", url);
+
+    // Force Main View logic
+    setActiveSlot('main');
+
+    mainViewer.loadCrystal(url).then(stats => {
+      // Update UI
+      if (uiElements.main.superTitle) uiElements.main.superTitle.textContent = "CUSTOM UPLOAD";
+      uiElements.main.title.textContent = file.name.toUpperCase().replace('.PLY', '');
+      uiElements.main.type.textContent = "USER DATA";
+      uiElements.main.nodes.textContent = stats.nodes.toLocaleString();
+      uiElements.main.links.textContent = stats.links.toLocaleString();
+      uiElements.main.desc.innerHTML = "PREVISUALIZATION MODE<br><br>Loaded local artifact: " + file.name;
+
+      // Close modal
+      if (modal) modal.classList.add('hidden');
+    }).catch(err => {
+      alert("Failed to load PLY: " + err);
+    });
+  });
+}
+
+
+
+
+// Mobile Menu
+const btnMobileMenu = document.getElementById('btn-mobile-menu');
+if (btnMobileMenu) {
+  btnMobileMenu.addEventListener('click', () => {
+    document.querySelector('.gallery-nav').classList.toggle('active');
+  });
+}
+
+
+
+toggleCompare.addEventListener('change', (e) => {
+  isCompareMode = e.target.checked;
+  if (isCompareMode) {
+    viewCompare.classList.remove('hidden');
+    viewerContainer.classList.add('split');
+    panelB.classList.remove('hidden');
+    setActiveSlot('compare');
+    setTimeout(() => {
+      mainViewer.onResize();
+      compareViewer.onResize();
+    }, 550);
+  } else {
+    viewCompare.classList.add('hidden');
+    viewerContainer.classList.remove('split');
+    panelB.classList.add('hidden');
+    setActiveSlot('main');
+    setTimeout(() => {
+      mainViewer.onResize();
+    }, 550);
+  }
+});
+
 // Toast Helper
 function showToast(msg, isAlert = false) {
   let toast = document.getElementById('toast-notification');
@@ -1009,9 +1194,14 @@ window.addEventListener('fps-update', (e) => {
             nextThin = Math.min(1.0, currentThin + 0.1);
           }
           // 3. Reduce line/node density BEFORE distance clipping
-          else if (currentLineDensity > 10) {
-            nextLineDensity = Math.max(10, currentLineDensity - 5);
-            nextNodeDensity = Math.max(10, currentNodeDensity - 5);
+          // Prioritize reducing line density over node density
+          else if (currentLineDensity > 10 || currentNodeDensity > 30) {
+            if (currentLineDensity > 10) {
+              nextLineDensity = Math.max(10, currentLineDensity - 8);
+            }
+            if (currentNodeDensity > 30) {
+              nextNodeDensity = Math.max(30, currentNodeDensity - 4);
+            }
           } else {
             // 4. Last resort: reduce distance clipping much faster
             nextLineDist = Math.max(10, currentLineDist - 20);
@@ -1023,13 +1213,15 @@ window.addEventListener('fps-update', (e) => {
     } else if (fps >= targetFPS + 1) {
       fpsStabilityCounter++;
       if (fpsStabilityCounter > 4) {
-        // RECOVERY: Density -> Distance -> Thinning -> XOR
-        if (currentLineDensity < 100) {
-          nextLineDensity = Math.min(100, currentLineDensity + 1);
-          nextNodeDensity = Math.min(100, currentNodeDensity + 1);
+        // RECOVERY: Node Density -> Distance -> Line Density -> Thinning -> XOR
+        // Nodes are recovered first to maintain structure
+        if (currentNodeDensity < 100) {
+          nextNodeDensity = Math.min(100, currentNodeDensity + 2);
         } else if (currentLineDist < 100) {
           nextLineDist = Math.min(100, currentLineDist + 5);
           nextNodeDist = Math.min(100, currentNodeDist + 5);
+        } else if (currentLineDensity < 100) {
+          nextLineDensity = Math.min(100, currentLineDensity + 1);
         } else if (currentThin > 0.4) {
           nextThin = Math.max(0.4, currentThin - 0.05);
         } else if (currentXorDensity < 100) {

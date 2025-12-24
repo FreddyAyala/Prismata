@@ -942,7 +942,7 @@ input[type=range]::-moz-range-thumb {
     align-items: center;
     gap: 5px;
     z-index: 20;
-    /* pointer-events: none; REMOVED to allow button click */
+    pointer-events: auto;
     background: rgba(0, 0, 0, 0.6);
     padding: 8px 4px;
     border-radius: 6px;
@@ -984,19 +984,142 @@ input[type=range]::-moz-range-thumb {
     }
 }
 
+.palette-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
 .gradient-bar {
-    width: 6px;
-    height: 80px;
-    /* HSV Gradient: Red(Input) -> Violet(Output) */
-    background: linear-gradient(to top,
-            #ff0000 0%,
-            #ffff00 20%,
-            #00ff00 40%,
-            #00ffff 60%,
-            #0000ff 80%,
-            #ff00ff 100%);
-    border-radius: 3px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    width: 8px;
+    height: 100px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gradient-bar:hover {
+    transform: scaleX(1.5);
+    box-shadow: 0 0 15px var(--color-primary);
+}
+
+/* Palette Menu */
+.palette-menu {
+    position: absolute;
+    left: 20px;
+    bottom: 0;
+    background: rgba(10, 15, 25, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--color-primary);
+    border-radius: 8px;
+    padding: 10px;
+    width: 180px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+}
+
+.palette-menu.hidden {
+    display: none;
+}
+
+.palette-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.palette-option:hover {
+    background: rgba(0, 245, 255, 0.1);
+}
+
+.palette-name {
+    font-family: var(--font-header);
+    font-size: 0.6rem;
+    color: var(--color-primary);
+    letter-spacing: 1px;
+}
+
+.palette-preview {
+    height: 12px;
+    width: 100%;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradients */
+.gradient-bar.classic {
+    background: linear-gradient(to top, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff);
+}
+
+.palette-preview.classic {
+    background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff);
+}
+
+.gradient-bar.stockholm {
+    background: linear-gradient(to top, #2E3440, #4C566A, #81A1C1, #88C0D0, #8FBCBB, #ECEFF4);
+}
+
+.palette-preview.stockholm {
+    background: linear-gradient(to right, #2E3440, #4C566A, #81A1C1, #88C0D0, #8FBCBB, #ECEFF4);
+}
+
+.gradient-bar.copenhagen {
+    background: linear-gradient(to top, #4A4E69, #9A8C98, #C9ADA7, #F2E9E4, #22223B, #822100);
+}
+
+.palette-preview.copenhagen {
+    background: linear-gradient(to right, #4A4E69, #9A8C98, #C9ADA7, #F2E9E4, #22223B, #822100);
+}
+
+.gradient-bar.helsinki {
+    background: linear-gradient(to top, #001219, #005F73, #0A9396, #94D2BD, #E9D8A6, #EE9B00);
+}
+
+.palette-preview.helsinki {
+    background: linear-gradient(to right, #001219, #005F73, #0A9396, #94D2BD, #E9D8A6, #EE9B00);
+}
+
+.gradient-bar.berlin {
+    background: linear-gradient(to top, #2B2D42, #8D99AE, #EDF2F4, #EF233C, #D90429, #FFD700);
+}
+
+.palette-preview.berlin {
+    background: linear-gradient(to right, #2B2D42, #8D99AE, #EDF2F4, #EF233C, #D90429, #FFD700);
+}
+
+.gradient-bar.kyoto {
+    background: linear-gradient(to top, #2D3142, #4F5D75, #BFC0C0, #FFFFFF, #EF8354, #84A59D);
+}
+
+.palette-preview.kyoto {
+    background: linear-gradient(to right, #2D3142, #4F5D75, #BFC0C0, #FFFFFF, #EF8354, #84A59D);
+}
+
+.gradient-bar.brooklyn {
+    background: linear-gradient(to top, #355070, #6D597A, #B56576, #E56B6F, #EAAC8B, #FFB700);
+}
+
+.palette-preview.brooklyn {
+    background: linear-gradient(to right, #355070, #6D597A, #B56576, #E56B6F, #EAAC8B, #FFB700);
+}
+
+.gradient-bar.malmo {
+    background: linear-gradient(to top, #003049, #669BBC, #FDF0D5, #C1121F, #780000, #F4A261);
+}
+
+.palette-preview.malmo {
+    background: linear-gradient(to right, #003049, #669BBC, #FDF0D5, #C1121F, #780000, #F4A261);
 }
 
 .legend-label {
@@ -1006,6 +1129,11 @@ input[type=range]::-moz-range-thumb {
     letter-spacing: 1px;
     opacity: 0.9;
     text-shadow: 0 0 5px var(--color-primary);
+    cursor: pointer;
+}
+
+.legend-label:hover {
+    opacity: 0.7;
 }
 
 /* --- TIMELINE MODE --- */
