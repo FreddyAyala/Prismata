@@ -97,7 +97,7 @@ export class CortexUI {
             border: 1px solid rgba(0, 243, 255, 0.3);
             border-radius: 4px;
             padding: 15px;
-            z-index: 9999;
+            z-index: 1500; /* Lowered from 9999 to allow Menu Overlay */
             font-family: 'Courier New', Courier, monospace;
             box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
             transition: opacity 0.5s, transform 0.3s;
