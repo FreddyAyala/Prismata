@@ -4,9 +4,9 @@ import { pipeline, env } from '@xenova/transformers';
 // Force remote models (CDN) to avoid 404/HTML errors
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
-env.useBrowserCache = false;
+env.useBrowserCache = true;
 
-console.log("🧠 CORTEX CONFIG LOADED: Local=False, Remote=True, Cache=False");
+console.log("🧠 CORTEX CONFIG LOADED: Local=False, Remote=True, Cache=True");
 
 
 class CortexService {
