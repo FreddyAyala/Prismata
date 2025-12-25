@@ -153,13 +153,18 @@ The script outputs a `.ply` file (Point Cloud) which you can view in Prismata.
 
 ## 📜 Changelog
 
-*   **v2.0.0**: **Cinematic Auto-Tour** & **Neural Sonification**.
-    *   Hands-free "Museum Mode" with dynamic camera paths.
-    *   Generative Audio Engine: Unique sound signatures for every model based on their architectural DNA.
-    *   Sci-Fi Soundscapes: Ethereal padding and subtle transitions.
-*   **v1.2.0**: Added **Operation Firewall (Defense Mode)**.
-*   **v1.1.0**: Timeline Expansion (Gemini 3.0, DeepSeek-V3, Qwen 2.5, SmolLM, etc.).
-*   **v1.0.0**: Initial Release.
+*   **v2.1.0**: **The Live Kernel Update**.
+    *   **Live Inference**: Prismata now thinks. Integrated `LaMini-Flan-T5` for real-time, client-side generation.
+    *   **Semantic Resonance**: Visuals now pulse in 3D coordinates that match the *meaning* of user input.
+    *   **Mobile 2.0**: A complete ground-up rewrite of the mobile UX with a dock-based interface.
+*   **v2.0.0**: **Journey Mode**.
+    *   **Interactive Odyssey**: A guided tour through the history of intelligence.
+    *   **Sonification**: Procedural audio generated from model topology.
+*   **v1.5.0**: **The Hypercube Update**.
+    *   **6D Visualization**: Shadow-casting higher dimensional data into 3D.
+    *   **The Archive**: Unlocking 30+ historical models.
+*   **v1.2.0**: **Operation Firewall (Defense Mode)**.
+*   **v1.0.0**: **Initial Release**.
 
 ---
 

@@ -1,3 +1,4 @@
+
 import { CrystalViewer } from './main.js';
 import { archiveManager } from './archive/ArchiveManager.js';
 import { timelineManager } from './timeline/TimelineManager.js';
@@ -5,6 +6,7 @@ import { initGallery } from './ui/Gallery.js';
 import { setupControls } from './ui/Controls.js';
 import { setActivePanelStyle } from './ui/Panels.js';
 import { ModeManager } from './ui/Modes.js';
+import { ReleaseLog } from './ui/ReleaseLog.js'; // NEW IMPORT
 
 // State
 let activeSlot = 'main'; // 'main' or 'compare'
@@ -15,6 +17,9 @@ const viewers = {
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
+  // 0. Init Release Log (Independent)
+  const releaser = new ReleaseLog();
+
   // 1. Init Viewers
   viewers.main = new CrystalViewer('view-main');
   viewers.compare = new CrystalViewer('view-compare');

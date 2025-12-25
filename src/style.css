@@ -82,8 +82,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 2000;
-        /* Boosted to containerize Cortex (1500) */
+    z-index: 100001;
+    /* Boosted above Cortex (9999) for Mobile Menu */
     pointer-events: none;
     /* Let clicks pass through to canvas where empty */
     display: grid;
@@ -106,8 +106,8 @@ body {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
     border-bottom: 1px solid rgba(0, 243, 255, 0.1);
     z-index: 2005;
-        /* Above Timeline Overlay */
-        position: relative;
+    /* Above Timeline Overlay */
+    position: relative;
 }
 
 .logo-text h1 {
@@ -137,69 +137,87 @@ body {
 @media (max-width: 900px) {
     .gallery-header {
         padding: 0 8px;
-            height: 60px;
-            align-items: center;
+        height: 60px;
+        align-items: center;
     }
 
     .logo-text h1 {
         font-size: 1rem;
-            letter-spacing: 1px;
+        letter-spacing: 1px;
         white-space: nowrap;
         margin-left: 5px;
     }
 
     .status-indicator {
         position: relative;
-            /* REQUIRED for dropdown anchoring */
-            gap: 0;
-        }
-        
-        /* Hide text labels on small screens, keep icons/dots */
-        .status-text {
-            display: none;
+        z-index: 100000;
+        /* FORCE TOP LAYER */
+        /* REQUIRED for dropdown anchoring */
+        gap: 0;
+    }
+
+    /* Hide text labels on small screens, keep icons/dots */
+    .status-text {
+        display: none;
     }
 
     .status-indicator .minimal-btn {
         padding: 2px 5px;
-            font-size: 0.5rem;
-            margin-right: 2px;
+        font-size: 0.5rem;
+        margin-right: 2px;
     }
 
     .icon-btn {
         transform: scale(0.8);
-            margin-right: 2px;
-        }
-        
-        .status-indicator .desktop-controls {
-            display: none !important;
-        }
-        
-        .mobile-settings-btn {
-            display: block !important;
-            cursor: pointer;
-        }
-        
-        .mobile-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: #030507;
-            border: 1px solid var(--color-primary);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            min-width: 150px;
-        }
-        
-        .mobile-dropdown.hidden {
-            display: none !important;
-        }
-        }
-        
-        .dropdown-item:active,
-        .dropdown-item:hover {
-            background: rgba(0, 243, 255, 0.1);
-        }
+        margin-right: 2px;
+    }
+
+    .status-indicator .desktop-controls {
+        display: none !important;
+    }
+
+    .mobile-settings-btn {
+        display: block !important;
+        cursor: pointer;
+    }
+
+    .mobile-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: #030507;
+        border: 1px solid var(--color-primary);
+        z-index: 99999;
+        /* Boost above Cortex UI (9999) */
+        display: flex;
+        flex-direction: column;
+        min-width: 150px;
+    }
+
+    .mobile-dropdown.hidden {
+        display: none !important;
+    }
+
+    .dropdown-item {
+        background: transparent;
+        border: none;
+        color: var(--color-primary);
+        padding: 12px;
+        font-family: var(--font-header);
+        font-size: 0.8rem;
+        cursor: pointer;
+        text-align: right;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .dropdown-item:active,
+    .dropdown-item:hover {
+        background: rgba(0, 243, 255, 0.1);
+    }
+}
+
+/* End mobile media query */
 
 /* --- DESKTOP DEFAULTS (Wrapped to prevent Mobile Override) --- */
 @media (min-width: 901px) {
@@ -208,15 +226,17 @@ body {
         align-items: center;
         gap: 8px;
     }
-.mobile-settings-btn {
-    display: none !important;
-}
+
+    .mobile-settings-btn {
+        display: none !important;
+    }
 }
 
 /* Ensure mobile settings button is hidden by default if not caught by media query */
-                .mobile-settings-btn {
+.mobile-settings-btn {
     display: none;
 }
+
 .status-dot {
     width: 8px;
     height: 8px;
@@ -365,6 +385,7 @@ input:checked+.slider:before {
     border-color: var(--color-primary);
     font-weight: bold;
 }
+
 .line-deco {
     width: 100%;
     height: 2px;
@@ -459,13 +480,13 @@ input:checked+.slider:before {
 .artifact-details {
     grid-area: details;
     width: 100%;
-        height: 100%;
-        padding: 20px;
+    height: 100%;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 15px;
-        z-index: 10;
-        pointer-events: none;
+    z-index: 10;
+    pointer-events: none;
     overflow: hidden;
 }
 
@@ -474,19 +495,19 @@ input:checked+.slider:before {
     backdrop-filter: blur(12px);
     border: 1px solid rgba(0, 243, 255, 0.2);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        pointer-events: auto;
-        transition: all 0.3s ease;
-    }
-    
-    .details-content {
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+.details-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     padding: 25px;
-        overflow-y: auto;
-        /* SCROLL IF TALL */
-        min-height: 0;
-        /* Flexbox fix */
+    overflow-y: auto;
+    /* SCROLL IF TALL */
+    min-height: 0;
+    /* Flexbox fix */
 }
 
 .details-content.hidden {
@@ -610,6 +631,7 @@ body.mode-timeline .color-legend {
 body.mode-timeline .color-legend {
     display: none !important;
 }
+
 .meta-item .label {
     font-size: 0.7rem;
     color: var(--color-secondary);
@@ -811,6 +833,7 @@ body.mode-timeline .color-legend {
     display: none;
     /* Fallback */
 }
+
 /* Responsive / Mobile Styles */
 .mobile-menu-btn {
     display: none;
@@ -830,10 +853,10 @@ body.mode-timeline .color-legend {
     .mobile-menu-btn {
         display: flex;
         pointer-events: auto;
-            /* explicit click enable */
-            z-index: 2001;
-            /* Above nav */
-            cursor: pointer;
+        /* explicit click enable */
+        z-index: 2001;
+        /* Above nav */
+        cursor: pointer;
     }
 
     .ui-layer {
@@ -864,7 +887,7 @@ body.mode-timeline .color-legend {
         transform: translateX(-110%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 10001;
-            /* EXTREME z-index to beat Cortex UI (9999) */
+        /* EXTREME z-index to beat Cortex UI (9999) */
         border-right: 1px solid var(--color-primary);
         background: rgba(3, 5, 7, 0.95);
         box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
@@ -882,7 +905,7 @@ body.mode-timeline .color-legend {
         right: 0;
         width: 100%;
         height: 30vh;
-            /* Reduced from 45vh */
+        /* Reduced from 45vh */
         z-index: 90;
         background: rgba(3, 5, 7, 0.95);
         border-top: 1px solid var(--color-primary);
@@ -903,38 +926,39 @@ body.mode-timeline .color-legend {
     /* Adjust Controls */
     .controls-panel {
         bottom: 31vh;
-            /* Move up with panel + gap */
+        /* Move up with panel + gap */
         right: 10px;
         left: 10px;
-            /* Center looks better */
-            width: calc(100% - 20px);
+        /* Center looks better */
+        width: calc(100% - 20px);
         transform: translateY(0);
         transition: bottom 0.3s ease;
     }
 
-                                                                                                                                                                                                                                                                /* Shift controls down if details are hidden (e.g. no selection) 
+    /* Shift controls down if details are hidden (e.g. no selection) 
                                                                                                                                                                                                                                                                    But in mobile, 'no-details' means hide bottom sheet, so controls can go to bottom?
                                                                                                                                                                                                                                                                    Actually, let's just stick to the fixed position for now to be safe.
                                                                                                                                                                                                                                                                 */
-                }
-        /* Color Legend */
+}
+
+/* Color Legend */
 .color-legend {
     position: absolute;
     bottom: 40px;
     left: 320px;
-        /* Right of Sidebar */
-        right: auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-        z-index: 20;
-        /* pointer-events: none; REMOVED to allow button click */
-        background: rgba(0, 0, 0, 0.6);
-        padding: 8px 4px;
-        border-radius: 6px;
-        border: 1px solid rgba(0, 243, 255, 0.2);
-        backdrop-filter: blur(4px);
+    /* Right of Sidebar */
+    right: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    z-index: 20;
+    /* pointer-events: none; REMOVED to allow button click */
+    background: rgba(0, 0, 0, 0.6);
+    padding: 8px 4px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 243, 255, 0.2);
+    backdrop-filter: blur(4px);
     transition: left 0.3s ease;
 }
 
@@ -970,25 +994,28 @@ body.mode-timeline .color-legend {
         /* Middle-ish */
     }
 }
+
 .gradient-bar {
     width: 6px;
     height: 80px;
     /* HSV Gradient: Red(Input) -> Violet(Output) */
     background: linear-gradient(to top,
             #ffaa00 0%,
-                #00f3ff 50%,
-                #ff0055 100%);
+            #00f3ff 50%,
+            #ff0055 100%);
     border-radius: 3px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
-        .legend-label {
-            font-size: 0.5rem;
-            color: var(--color-primary);
-            font-family: var(--font-header);
-            letter-spacing: 1px;
-            opacity: 0.9;
-            text-shadow: 0 0 5px var(--color-primary);
-        }
+
+.legend-label {
+    font-size: 0.5rem;
+    color: var(--color-primary);
+    font-family: var(--font-header);
+    letter-spacing: 1px;
+    opacity: 0.9;
+    text-shadow: 0 0 5px var(--color-primary);
+}
+
 /* --- TIMELINE MODE --- */
 /* --- TIMELINE MODE --- */
 .timeline-overlay {
@@ -999,7 +1026,7 @@ body.mode-timeline .color-legend {
     height: 100%;
     background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.4) 30%, transparent 60%);
     z-index: 100;
-        pointer-events: none;
+    pointer-events: none;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -1031,20 +1058,21 @@ body.mode-timeline .color-legend {
 
 .close-timeline-btn {
     position: relative;
-        /* Reset absolute */
-        top: auto;
-        right: auto;
-        background: rgba(0, 10, 20, 0.8);
+    /* Reset absolute */
+    top: auto;
+    right: auto;
+    background: rgba(0, 10, 20, 0.8);
     border: 1px solid var(--color-accent);
     color: var(--color-accent);
     padding: 10px 24px;
-        font-family: var(--font-header);
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: all 0.3s;
-            text-transform: uppercase;
-            backdrop-filter: blur(4px);
+    font-family: var(--font-header);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    backdrop-filter: blur(4px);
 }
+
 .close-timeline-btn:hover {
     background: var(--color-accent);
     color: #000;
@@ -1087,7 +1115,7 @@ body.mode-timeline .color-legend {
     font-size: 1.2rem;
     color: #ccdeee;
     line-height: 1.6;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.6);
     padding: 15px;
     border-left: 3px solid var(--color-primary);
     backdrop-filter: blur(5px);
@@ -1100,8 +1128,8 @@ body.mode-timeline .color-legend {
     width: 100%;
     padding: 20px;
     padding-bottom: 80px;
-        /* Lift up to clear Cortex UI Status */
-    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    /* Lift up to clear Cortex UI Status */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
 }
 
 .timeline-track {
@@ -1115,6 +1143,7 @@ body.mode-timeline .color-legend {
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
+
 .timeline-track::-webkit-scrollbar {
     display: none;
 }
@@ -1189,44 +1218,46 @@ body.mode-timeline .color-legend {
 @media (max-width: 600px) {
     .timeline-overlay {
         padding-bottom: 90px;
-            /* Pushes track up to clear buttons */
-            justify-content: flex-end;
-        }
+        /* Pushes track up to clear buttons */
+        justify-content: flex-end;
+    }
 
-                .timeline-controls-top {
-                    top: auto;
+    .timeline-controls-top {
+        top: auto;
         bottom: 15px;
-            /* Sits in the white space created by padding */
-            left: 0;
-            right: 0;
-            width: 100%;
+        /* Sits in the white space created by padding */
+        left: 0;
+        right: 0;
+        width: 100%;
         justify-content: center;
-            flex-wrap: wrap;
+        flex-wrap: wrap;
         gap: 15px;
-            background: rgba(0, 0, 0, 0.8);
-            /* Background to ensure readability */
-            padding: 10px 0;
-            border-top: 1px solid var(--color-primary);
-            z-index: 500;
-            /* Ensure on top */
-        }
-                                .close-timeline-btn {
-                                    padding: 8px 12px;
-                                    font-size: 0.75rem;
-                                    border-radius: 4px;
-                                    background: rgba(0, 5, 10, 0.9);
-                                }
+        background: rgba(0, 0, 0, 0.8);
+        /* Background to ensure readability */
+        padding: 10px 0;
+        border-top: 1px solid var(--color-primary);
+        z-index: 500;
+        /* Ensure on top */
+    }
+
+    .close-timeline-btn {
+        padding: 8px 12px;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        background: rgba(0, 5, 10, 0.9);
+    }
+
     .nav-arrow {
         width: 50px;
-            height: 50px;
-            background: rgba(0, 243, 255, 0.1);
-            /* Subtle box */
-            border: 1px solid var(--color-secondary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
+        height: 50px;
+        background: rgba(0, 243, 255, 0.1);
+        /* Subtle box */
+        border: 1px solid var(--color-secondary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
     }
 
     .node-year {
@@ -1239,6 +1270,7 @@ body.mode-timeline .color-legend {
         /* Hide labels on tiny screens to save space? */
     }
 }
+
 .icon-btn {
     background: transparent;
     border: none;
@@ -1312,7 +1344,8 @@ body.mode-timeline .color-legend {
     padding: 10px;
     z-index: 900;
     backdrop-filter: blur(5px);
-    display: none; /* Hidden by default */
+    display: none;
+    /* Hidden by default */
     min-width: 150px;
 }
 
@@ -1364,6 +1397,7 @@ body.mode-timeline .color-legend {
     opacity: 0 !important;
     pointer-events: none !important;
 }
+
 /* Modal System */
 .modal-backdrop {
     position: fixed;
@@ -1425,11 +1459,12 @@ body.mode-timeline .color-legend {
 .gradient-vertical {
     background: linear-gradient(to top, #000, var(--color-primary));
 }
+
 /* --- ADVANCED CONTROLS (Accordion) --- */
 .advanced-controls {
     border-top: 1px solid rgba(0, 243, 255, 0.2);
     margin-top: 10px;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .accordion-toggle {
@@ -1463,14 +1498,15 @@ body.mode-timeline .color-legend {
 .accordion-content {
     padding: 10px 15px;
     border-bottom: 1px solid rgba(0, 243, 255, 0.1);
-    display: none; /* JS toggles this */
+    display: none;
+    /* JS toggles this */
 }
 
 .tab-row {
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tab-btn {
@@ -1514,7 +1550,7 @@ body.mode-timeline .color-legend {
 .control-row input[type="range"] {
     width: 100%;
     height: 4px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
     appearance: none;
 }
@@ -1535,8 +1571,8 @@ body.mode-timeline .color-legend {
 
 .dual-input-row input {
     width: 50%;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
     padding: 4px;
     font-size: 0.7rem;
@@ -1551,9 +1587,10 @@ body.mode-timeline .color-legend {
     background-color: #553300;
 }
 
-input:checked + .slider.gold {
+input:checked+.slider.gold {
     background-color: #ffaa00;
 }
+
 /* --- MOBILE DOCK REFACTOR --- */
 .mobile-dock {
     display: none;
@@ -1573,9 +1610,10 @@ input:checked + .slider.gold {
         pointer-events: none;
     }
 
-                                                                .gallery-header {
-                                                                    pointer-events: auto;
-                                                                }
+    .gallery-header {
+        pointer-events: auto;
+    }
+
     /* Hide redundant menu items since we have the dock */
     #mob-btn-info,
     #btn-toggle-info {
@@ -1705,6 +1743,7 @@ input:checked + .slider.gold {
         display: none;
     }
 }
+
 /* --- TOOLBAR REFACTOR --- */
 .desktop-controls {
     display: flex;
@@ -1793,21 +1832,86 @@ input:checked + .slider.gold {
 
     /* Hide Mode Selector Text on Mobile or make it smaller */
     .cyber-select {
-        padding: 4px 20px 4px 8px;
+        padding: 4px 8px;
+        /* Reduced padding */
         font-size: 0.6rem;
-        margin-right: 5px;
-        /* Optionally hide "MODE:" prefix via text-overflow or just keep it small */
-        max-width: 120px;
+        margin-right: 2px;
+        max-width: 100px;
+        /* Reduced max-width */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Hide Subtitle to save space */
+    .subtitle {
+        display: none !important;
     }
 
     /* Ensure Header items don't wrap */
     .gallery-header {
         flex-wrap: nowrap;
         white-space: nowrap;
+        gap: 5px;
+        /* Add small gap */
     }
 
     /* Force hide desktop controls again just in case */
     .desktop-controls {
         display: none !important;
     }
+}
+
+/* --- RELEASE LOG & NOTIFICATIONS --- */
+.release-log-btn {
+    position: relative;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--color-accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--color-accent);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.notification-badge.hidden {
+    display: none;
+}
+
+.pulse-red {
+    animation: pulseRed 1.5s infinite;
+}
+
+@keyframes pulseRed {
+    0% {
+        transform: scale(0.9);
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(255, 0, 85, 0.7);
+    }
+
+    70% {
+        transform: scale(1.0);
+        opacity: 1;
+        box-shadow: 0 0 0 10px rgba(255, 0, 85, 0);
+    }
+
+    100% {
+        transform: scale(0.9);
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(255, 0, 85, 0);
+    }
+}
+
+.release-entry {
+    transition: all 0.3s;
+}
+
+.release-entry:hover {
+    background: rgba(255, 255, 255, 0.02);
 }
