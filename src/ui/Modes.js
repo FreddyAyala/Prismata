@@ -11,21 +11,9 @@ export class ModeManager {
     if (headerStatus) {
         const modeSelect = document.createElement('select');
         modeSelect.id = 'mode-selector';
-        modeSelect.className = 'minimal-btn';
-        Object.assign(modeSelect.style, {
-            marginRight: '20px',
-            pointerEvents: 'auto',
-            zIndex: '1000',
-            border: '1px solid var(--color-primary)',
-            color: 'var(--color-primary)',
-            outline: 'none',
-            cursor: 'pointer',
-            background: 'rgba(0,0,0,0.5)',
-            textAlign: 'center',
-            textTransform: 'uppercase',
-            fontWeight: 'bold',
-            letterSpacing: '1px'
-        });
+      modeSelect.className = 'cyber-select';
+
+      // Inline styles removed in favor of CSS class 'cyber-select'
 
         const modes = [
         { id: 'workbench', label: 'MODE: WORKBENCH', action: () => this.enterWorkbenchMode() },

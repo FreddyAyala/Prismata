@@ -159,11 +159,18 @@ export function setupControls(context) {
   if (btnToggleInfo) {
     btnToggleInfo.addEventListener('click', () => {
       const panels = document.querySelectorAll('.artifact-details');
-      const isVisible = btnToggleInfo.textContent.includes('HIDE');
+      // Fix: Check active class, not text content (since we are icon-only now)
+      const isVisible = btnToggleInfo.classList.contains('active');
       const newState = !isVisible;
       
       panels.forEach(p => p.style.opacity = newState ? '1' : '0');
-      btnToggleInfo.textContent = newState ? 'HIDE INFO' : 'SHOW INFO';
+      panels.forEach(p => p.style.opacity = newState ? '1' : '0');
+      // btnToggleInfo.textContent = newState ? 'HIDE INFO' : 'SHOW INFO'; // REMOVED: Destroys Icon
+      btnToggleInfo.classList.toggle('active', newState);
+      btnToggleInfo.title = newState ? "Hide Info Panel" : "Show Info Panel";
+
+      // Update icon opacity or color if needed
+      btnToggleInfo.style.opacity = newState ? '1' : '0.5';
 
       // Toggle Cortex UI as well
       if (window.cortexUI) {

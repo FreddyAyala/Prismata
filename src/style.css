@@ -196,31 +196,25 @@ body {
         }
         }
         
-        .dropdown-item {
-            background: transparent;
-            border: none;
-            color: var(--color-primary);
-            padding: 12px;
-            font-family: var(--font-header);
-            font-size: 0.8rem;
-            cursor: pointer;
-            text-align: right;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        
         .dropdown-item:active,
         .dropdown-item:hover {
             background: rgba(0, 243, 255, 0.1);
         }
-        
-        /* Desktop Defaults */
-        .desktop-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+
+/* --- DESKTOP DEFAULTS (Wrapped to prevent Mobile Override) --- */
+@media (min-width: 901px) {
+    .desktop-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 .mobile-settings-btn {
+    display: none !important;
+}
+}
+
+/* Ensure mobile settings button is hidden by default if not caught by media query */
+                .mobile-settings-btn {
     display: none;
 }
 .status-dot {
@@ -1709,5 +1703,111 @@ input:checked + .slider.gold {
     .gallery-footer,
     .interaction-hint {
         display: none;
+    }
+}
+/* --- TOOLBAR REFACTOR --- */
+.desktop-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Consistent spacing */
+    margin-right: 15px;
+    /* Space before status dot */
+    padding-right: 15px;
+    border-right: 1px solid rgba(0, 243, 255, 0.2);
+    /* Divider */
+}
+
+/* New Cyber Select */
+.cyber-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(0, 20, 30, 0.6);
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    padding: 6px 30px 6px 15px;
+    /* Room for arrow */
+    font-family: var(--font-header);
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    outline: none;
+    border-radius: 2px;
+    text-transform: uppercase;
+
+    /* Custom Arrow */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300f3ff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 8px;
+
+    margin-right: 15px;
+    transition: all 0.2s;
+    pointer-events: auto;
+}
+
+.cyber-select:hover {
+    background-color: rgba(0, 243, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+/* Icon Buttons in Header */
+.status-indicator .icon-btn {
+    background: transparent;
+    border: none;
+    /* No border for header icons */
+    color: rgba(0, 243, 255, 0.7);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-indicator .icon-btn:hover {
+    color: var(--color-primary);
+    background: rgba(0, 243, 255, 0.1);
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+}
+
+.status-indicator .icon-btn svg {
+    filter: drop-shadow(0 0 2px rgba(0, 243, 255, 0.3));
+}
+
+/* --- FIX: Mobile Dropdown Leak & Desktop Cleanup --- */
+@media (min-width: 901px) {
+    .mobile-dropdown {
+        display: none !important;
+    }
+
+    .mobile-settings-btn {
+        display: none !important;
+    }
+}
+
+/* --- MOBILE SPECIFIC FIXES --- */
+@media (max-width: 900px) {
+
+    /* Hide Mode Selector Text on Mobile or make it smaller */
+    .cyber-select {
+        padding: 4px 20px 4px 8px;
+        font-size: 0.6rem;
+        margin-right: 5px;
+        /* Optionally hide "MODE:" prefix via text-overflow or just keep it small */
+        max-width: 120px;
+    }
+
+    /* Ensure Header items don't wrap */
+    .gallery-header {
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
+
+    /* Force hide desktop controls again just in case */
+    .desktop-controls {
+        display: none !important;
     }
 }
