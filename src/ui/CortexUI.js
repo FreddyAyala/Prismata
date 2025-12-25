@@ -161,7 +161,44 @@ export class CortexUI {
                 this.container.style.pointerEvents = 'auto';
             } else if (stage === 'paused') {
                 // STANDBY STATE (Waiting for User)
-                this.status.innerHTML = "[ SYSTEM STANDBY ]<br><span style='color:white; opacity:0.7'>TAP TO INITIALIZE NEURAL INTERFACE</span>";
+                // We use a local variable to track selection before activation
+                let selectedMode = 'SIMULATION';
+
+                const renderStandby = () => {
+                    this.status.innerHTML = `
+                        <div style="margin-bottom: 10px; font-size: 14px; letter-spacing: 2px;">
+                            [ <span id="btn-sim" style="cursor:pointer; color:${selectedMode === 'SIMULATION' ? '#00f3ff' : '#666'}; text-decoration:${selectedMode === 'SIMULATION' ? 'underline' : 'none'}">SIMULATION</span> | 
+                              <span id="btn-live" style="cursor:pointer; color:${selectedMode === 'LIVE' ? '#ff0055' : '#666'}; text-decoration:${selectedMode === 'LIVE' ? 'underline' : 'none'}">LIVE KERNEL</span> ]
+                        </div>
+                        <div id="mode-desc" style="color:white; opacity:0.7; font-size: 12px; margin-bottom: 15px;">
+                            ${selectedMode === 'SIMULATION'
+                            ? "PURE SEMANTIC PROJECTION (INSTANT)"
+                            : "⚠️ WARNING: REAL-TIME LLM INFERENCE (REQUIRES 300MB DOWNLOAD)"}
+                        </div>
+                        <span id="btn-init" style="cursor:pointer; padding: 5px 10px; border: 1px solid ${selectedMode === 'SIMULATION' ? '#00f3ff' : '#ff0055'}; color: ${selectedMode === 'SIMULATION' ? '#00f3ff' : '#ff0055'};">
+                            INITIALIZE ${selectedMode}
+                        </span>
+                    `;
+
+                    // Re-bind listeners after render
+                    this.container.querySelector('#btn-sim').onclick = (e) => {
+                        e.stopPropagation();
+                        selectedMode = 'SIMULATION';
+                        renderStandby();
+                        neuralAudio.playGlitch();
+                    };
+                    this.container.querySelector('#btn-live').onclick = (e) => {
+                        e.stopPropagation();
+                        selectedMode = 'LIVE';
+                        renderStandby();
+                        neuralAudio.playGlitch();
+                    };
+                    this.container.querySelector('#btn-init').onclick = (e) => {
+                        e.stopPropagation();
+                        activate();
+                    };
+                };
+
                 this.status.style.color = '#00f3ff';
 
                 // Force Visibility robustly
@@ -169,7 +206,7 @@ export class CortexUI {
                 this.container.style.opacity = '1';
                 this.container.style.transform = 'translateX(-50%) scaleY(1)';
 
-                this.container.style.cursor = 'pointer';
+                this.container.style.cursor = 'default'; // Cursor handled by buttons
                 this.container.style.pointerEvents = 'auto';
                 this.input.style.display = 'none';
 
@@ -177,39 +214,52 @@ export class CortexUI {
                     // AUDIO WAKE UP
                     if (!neuralAudio.ctx) neuralAudio.init();
                     neuralAudio.resume();
-                    if (neuralAudio.isMuted) neuralAudio.toggleMute(); // Force Unmute on interaction
-                    neuralAudio.playGlitch(); // SFX
+                    if (neuralAudio.isMuted) neuralAudio.toggleMute();
+                    neuralAudio.playGlitch();
 
-                    this.status.innerHTML = "ESTABLISHING NEURAL LINK... <span style='color:#ffaa00'>DOWNLOADING MODEL (20MB)</span>";
-                    this.container.removeEventListener('click', activate);
-                    this.container.style.cursor = 'default';
+                    // REMOVE LISTENERS
+                    this.status.innerHTML = "ESTABLISHING NEURAL LINK...";
 
-                    cortex.init((s, p) => {
-                        // Handle 'initiate', 'download', 'progress' from Transformers.js
-                        if (s === 'loading' || s === 'progress' || s === 'download') {
-                            const pct = p ? Math.round(p) : 0;
-                            this.status.innerHTML = `DOWNLOADING NEURAL ENGINE... <span style='color:#00f3ff'>${pct}%</span>`;
-                        }
-                        if (s === 'ready' || s === 'done') {
-                            // Use Scramble Effect for final ready state
-                            this.scrambleText(this.status, "NEURAL LINK: ESTABLISHED");
-                            this.status.style.color = '#00ffaa';
-
-                            this.input.style.display = 'block';
-                            this.input.placeholder = "Query Neural Database...";
-                            this.input.focus();
-                            neuralAudio.playGlitch(); // SFX
-                        }
-                        if (s === 'error') {
-                            this.status.innerHTML = "CONNECTION FAILED: <span style='color:#ff0055'>RETRY?</span>";
-                            this.status.style.color = '#ff0055';
-                            // Re-enable click to retry
-                            this.container.addEventListener('click', activate);
-                            this.container.style.cursor = 'pointer';
-                        }
-                    }, true);
+                    // ACTIVATE SELECTED MODE
+                    if (selectedMode === 'LIVE') {
+                        this.status.innerHTML = "BOOTING LIVE KERNEL... <span style='color:#ffaa00'>DOWNLOADING MODEL...</span>";
+                        cortex.activateLiveMode((s, p) => {
+                            if (s === 'progress' || s === 'download') {
+                                const pct = p ? Math.round(p) : 0;
+                                this.status.innerHTML = `DOWNLOADING KERNEL... <span style='color:#ff0055'>${pct}%</span>`;
+                            }
+                            if (s === 'ready') this.onCortexReady();
+                            if (s === 'error') this.onCortexError();
+                        });
+                    } else {
+                        // SIMULATION (Default)
+                        this.status.innerHTML = "CONNECTING TO ARCHIVE... <span style='color:#00f3ff'>LOADING MAPS...</span>";
+                        cortex.init((s, p) => {
+                            if (s === 'ready' || s === 'done') this.onCortexReady();
+                            if (s === 'error') this.onCortexError();
+                        }, true);
+                    }
                 };
-                this.container.addEventListener('click', activate);
+
+                // Helper for Ready State (Shared)
+                this.onCortexReady = () => {
+                    this.scrambleText(this.status, "NEURAL LINK: ESTABLISHED");
+                    this.status.style.color = '#00ffaa';
+                    this.input.style.display = 'block';
+                    this.input.placeholder = "Query Neural Database...";
+                    this.input.focus();
+                    neuralAudio.playGlitch();
+                };
+
+                this.onCortexError = () => {
+                    this.status.innerHTML = "CONNECTION FAILED: <span style='color:#ff0055'>RETRY</span>";
+                    this.status.style.color = '#ff0055';
+                    this.container.addEventListener('click', () => location.reload()); // Simple reload for now
+                };
+
+                // Initial Render
+                renderStandby();
+
 
             } else if (stage === 'error') {
                 this.status.innerText = "CORTEX FAILURE: OFFLINE";
@@ -410,30 +460,32 @@ export class CortexUI {
             }
         }
 
-        // --- PATH B: MODERN SEMANTIC SEARCH ---
-        const result = await cortex.think(text);
+        // --- PATH B: MODERN SEMANTIC SEARCH (+ LIVE KERNEL) ---
+        // Pass a callback for streaming
+        const result = await cortex.think(text, (token) => {
+            // Live Streaming Callback
+            this.status.innerText = `KERNEL OUTPUT: ${token}`;
+            this.status.style.color = '#00ffaa';
+            // Optional: SFX on token? Might be too noisy.
+        });
 
         if (result) {
             console.log("Thought Vector:", result.focus);
 
-            // Success Effect
-            this.container.classList.add('cortex-active');
-            this.status.innerText = `ACTIVATION: ${text.toUpperCase()}`;
+            // Final Display (if not already streamed)
+            if (!result.isLive) {
+                this.status.innerText = `ACTIVATION: ${text.toUpperCase()}`;
+            } else {
+                // Clean up final text
+                // this.status.innerText = `KERNEL > ${result.text}`;
+            }
+
             this.status.style.color = '#00ffaa';
 
             // SFX: HARD DATA PROCESSING
             if (neuralAudio && neuralAudio.ctx) {
-                neuralAudio.playGlitch();
-                const count = 30;
-                for (let i = 0; i < count; i++) {
-                    setTimeout(() => {
-                        const freq = Math.random() > 0.5
-                            ? 2000 + Math.random() * 2000
-                            : 100 + Math.random() * 200;
-                        const type = Math.random() > 0.5 ? 'square' : 'sawtooth';
-                        neuralAudio.playSound(freq, type, 0.03, 0.05, 0, 0.005);
-                    }, i * 15);
-                }
+                // Play a burst
+                if (!result.isLive) neuralAudio.playGlitch(); 
             }
 
             // Visualize

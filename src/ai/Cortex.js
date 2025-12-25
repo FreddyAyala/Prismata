@@ -12,9 +12,49 @@ console.log("🧠 CORTEX CONFIG LOADED: Local=False, Remote=True, Cache=True");
 class CortexService {
     constructor() {
         this.extractor = null;
+        this.generator = null; // New: For text generation (SmolLM)
         this.status = 'offline'; // offline, loading, ready
+        this.mode = 'OFFLINE'; // New: OFFLINE, LIVE, PAUSED (for MiniLM only)
         this.modelName = 'Xenova/all-MiniLM-L6-v2';
         this.onProgress = null;
+    }
+
+    async activateLiveMode(progressCallback) {
+        console.log("🧠 Cortex: Activating Live Mode (SmolLM)...");
+        this.status = 'loading';
+        this.mode = 'LIVE';
+
+        try {
+            // 1. Ensure Visual Core (MiniLM) is ready
+            if (!this.extractor) {
+                if (progressCallback) progressCallback('loading', 10);
+                this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+                    quantized: true
+                });
+            }
+
+            // 2. Load Reasoning Core (LaMini 77M - Reliable Fallback)
+            // CACHE BREAK: FORCING NEW MODULE HASH [TIMESTAMP 16:34]
+            if (!this.generator) {
+                console.log("🧠 Cortex: Downloading Generation Pipeline (LaMini-77M)...");
+                if (progressCallback) progressCallback('download', 0);
+                this.generator = await pipeline('text2text-generation', 'Xenova/LaMini-Flan-T5-77M', {
+                    quantized: true,
+                    progress_callback: (x) => {
+                        if (progressCallback) progressCallback(x.status, x.progress);
+                    }
+                });
+            }
+
+            this.status = 'ready';
+            if (progressCallback) progressCallback('ready', 100);
+            console.log("🧠 Cortex: Live Kernel Ready");
+
+        } catch (e) {
+            console.error("Cortex Load Error:", e);
+            this.status = 'error';
+            if (progressCallback) progressCallback('error', 0);
+        }
     }
 
     async init(progressCallback, force = false) {
@@ -141,24 +181,55 @@ class CortexService {
         return vector;
     }
 
-    async think(text, context = {}) {
+    async think(text, onTokenCallback) {
         if (this.status !== 'ready') return null;
 
-        // Run inference
-        const output = await this.extractor(text, { pooling: 'mean', normalize: true });
+        // 1. VISUAL ANCHOR (MiniLM) - Always run for visuals
+        let vector3 = { x: 0, y: 0, z: 0 };
+        try {
+            if (this.extractor) {
+                const output = await this.extractor(text, { pooling: 'mean', normalize: true });
+                vector3 = this.projectTo3D(output);
+                vector3 = this.applyArchitectureBias(vector3, text, 'Transformer');
+            }
+        } catch (err) {
+            console.warn("Visual Anchor failed:", err);
+        }
 
-        // Project
-        let vector3 = this.projectTo3D(output);
+        // 2. LIVE GENERATION (LaMini)
+        if (this.mode === 'LIVE' && this.generator) {
+            // T5 is text2text, usually doesn't need complex prompt templates.
+            // Just pass the instruction directly.
+            const prompt = `Answer concisely: ${text}`;
 
-        // APPLY ARCHITECTURAL BIAS
-        // We assume 'context.arch' is passed, e.g., "CNN", "Transformer"
-        vector3 = this.applyArchitectureBias(vector3, text, context.arch || 'Transformer');
+            const result = await this.generator(prompt, {
+                max_new_tokens: 100,
+                temperature: 0.7,
+                do_sample: true,
+                callback_function: (beams) => {
+                    if (onTokenCallback) {
+                        const decoded = this.generator.tokenizer.decode(beams[0].output_token_ids, { skip_special_tokens: true });
+                        onTokenCallback(decoded);
+                    }
+                }
+            });
 
-        return {
-            text: text,
-            embedding: output,
-            focus: vector3
-        };
+            // Final return
+            const final = result[0].generated_text;
+            return {
+                text: final,
+                focus: vector3,
+                isLive: true
+            };
+
+        } else {
+            // 3. SIMULATION (Echo)
+            return {
+                text: text, // In Sim mode, we just echo input usually or mocked response
+                embedding: null,
+                focus: vector3
+            };
+        }
     }
 
 
