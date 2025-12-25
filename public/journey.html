@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Prismata: The Evolution of Intelligence</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding-bottom: 60px;
+      align-items: center;
+      background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.95));
+    }
+
+    #text-container {
+      max-width: 800px;
+      text-align: center;
+      pointer-events: auto;
+      margin-bottom: 40px;
+      transition: all 0.5s ease;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 25px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin: 0 0 15px 0;
+      color: #00ffff;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    p {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: #e0e0e0;
+      margin-bottom: 30px;
+      min-height: 50px;
+      font-weight: 300;
+    }
+
+    .btn {
+      background: rgba(0, 255, 255, 0.05);
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 12px 40px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.3s ease;
+      margin: 0 10px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: #00ffff;
+      color: #000;
+      box-shadow: 0 0 25px #00ffff;
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+      border-color: #555;
+      color: #555;
+      box-shadow: none;
+      transform: none;
+    }
+
+    #enter-btn {
+      display: none;
+      background: #00ffff;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      padding: 15px 50px;
+      font-size: 1.2rem;
+      box-shadow: 0 0 30px #00ffff;
+      margin-top: 20px;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    #enter-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 50px #00ffff;
+    }
+
+    #progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: #111;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: #00ffff;
+      width: 0%;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 10px #00ffff;
+    }
+
+    /* CONTROL BAR */
+    #control-bar {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      display: flex;
+      gap: 15px;
+      pointer-events: auto;
+      z-index: 1000;
+    }
+
+    .ctrl-btn {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      color: #00ffff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1.2rem;
+    }
+
+    .ctrl-btn:hover {
+      background: #00ffff;
+      color: #000;
+      box-shadow: 0 0 15px #00ffff;
+      transform: scale(1.1);
+    }
+
+    .ctrl-btn.active {
+      background: #00ffff;
+      color: #000;
+      box-shadow: 0 0 10px #00ffff;
+    }
+
+    #chapter-indicator {
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-left: 2px solid #00ffff;
+      padding-left: 15px;
+    }
+
+    #chapter-num {
+      color: #fff;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+  </style>
+  <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.2/dist/tween.esm.js"
+            }
+        }
+    </script>
+</head>
+
+<body>
+  <div id="progress">
+    <div id="progress-bar"></div>
+  </div>
+  <div id="ui-layer">
+    <!-- CONTROL BAR -->
+    <div id="control-bar">
+      <div id="sound-btn" class="ctrl-btn" title="Toggle Sound">
+        <!-- Speaker Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      </div>
+      <div id="play-btn" class="ctrl-btn" title="Toggle Autoplay">
+        <!-- Play Icon -->
+        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <!-- Pause Icon -->
+        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+      </div>
+    </div>
+
+    <div id="chapter-indicator"><span id="chapter-num">1</span> / 10<br>PHASE: CONCEPTUALIZATION</div>
+    <button id="enter-btn" onclick="window.location.href='/'">ENTER PRISMATA</button>
+    <div id="text-container">
+      <h1 id="step-title">Initializing...</h1>
+      <p id="step-desc">Loading visualization engine...</p>
+      <div>
+        <button class="btn" id="btn-prev" onclick="changeStep(-1)">Back</button>
+        <button class="btn" id="btn-next" onclick="changeStep(1)">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
+    import TWEEN from '@tweenjs/tween.js';
+
+    // --- STATE ---
+    let currentStep = 0;
+    let isAutoplay = false;
+    let isSoundOn = false;
+    let autoplayTimer = null;
+    const AUTOPLAY_DELAY = 8000; // 8 seconds per step
+
+    // --- CONTROLS DOM ---
+    const playBtn = document.getElementById('play-btn');
+    const soundBtn = document.getElementById('sound-btn');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+
+    // --- CONTROLS LOGIC ---
+    function toggleAutoplay() {
+      isAutoplay = !isAutoplay;
+      if (isAutoplay) {
+        playIcon.style.display = 'none';
+        pauseIcon.style.display = 'block';
+        playBtn.classList.add('active');
+        advanceAutoplay();
+      } else {
+        playIcon.style.display = 'block';
+        pauseIcon.style.display = 'none';
+        playBtn.classList.remove('active');
+        clearTimeout(autoplayTimer);
+      }
+    }
+
+    window.toggleAutoplay = toggleAutoplay; // Expose to global if needed
+
+    function advanceAutoplay() {
+      clearTimeout(autoplayTimer);
+      autoplayTimer = setTimeout(() => {
+        if (isAutoplay && currentStep < steps.length - 1) {
+          changeStep(1);
+          advanceAutoplay();
+        } else if (currentStep >= steps.length - 1) {
+          toggleAutoplay(); // Stop at end
+        }
+      }, AUTOPLAY_DELAY);
+    }
+
+    function toggleSound() {
+      isSoundOn = !isSoundOn;
+      if (isSoundOn) {
+        soundBtn.classList.add('active');
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        soundBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        `;
+        SciFiAudio.play(currentStep);
+      } else {
+        soundBtn.classList.remove('active');
+        // No need to "cancel" procedural audio broadly unless we add a stop method
+        soundBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+        `;
+      }
+    }
+
+    playBtn.addEventListener('click', toggleAutoplay);
+    soundBtn.addEventListener('click', toggleSound);
+
+    // --- AUDIO ENGINE (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const SciFiAudio = {
+      masterGain: null,
+
+      init() {
+        if (!this.masterGain) {
+          this.masterGain = audioCtx.createGain();
+          this.masterGain.gain.value = 0.25; // Keep it subtle
+          this.masterGain.connect(audioCtx.destination);
+        }
+      },
+
+      play(stepIndex) {
+        if (!isSoundOn) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        this.init();
+
+        console.log(`[SciFiAudio] Playing sound for step ${stepIndex}`);
+
+        switch (stepIndex) {
+          case 0: console.log('-> Blueprint'); this.playBlueprint(); break;
+          case 1: console.log('-> Atom'); this.playAtom(); break;
+          case 2: console.log('-> Chaos'); this.playChaos(); break; // CHAOS FM
+          case 3: console.log('-> Training'); this.playTraining(); break; // Digital Rain
+          case 4: console.log('-> Artifact'); this.playArtifact(); break; // Mysterious
+          case 5: console.log('-> Dimensions'); this.playDimensions(); break; // Question
+          case 6: console.log('-> Projection'); this.playProjection(); break; // Awesome
+          case 7: console.log('-> Revelation'); this.playRevelation(); break;
+          case 8: console.log('-> Foundation'); this.playBase(); break;
+          case 9: console.log('-> Core'); this.playCore(); break;
+          case 10: console.log('-> Prediction'); this.playTip(); break;
+        }
+      },
+
+      createOsc(type, freq, startEnv, endEnv, dur, delay = 0) {
+        // Safe creation wrapper
+        const start = audioCtx.currentTime + delay;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(startEnv, start + 0.05); // slightly slower attack
+        gain.gain.exponentialRampToValueAtTime(endEnv, start + dur);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(start);
+        osc.stop(start + dur);
+        return osc;
+      },
+
+      playBlueprint() {
+        // Step 1: Blueprint - Structural, Rhythmic, precise.
+        // A sequence of short "clicks" or "ticks" like a clock or drafting.
+        for (let i = 0; i < 4; i++) {
+          this.createOsc('square', 880, 0.05, 0.001, 0.1, i * 0.25);
+          this.createOsc('square', 440, 0.05, 0.001, 0.1, i * 0.25 + 0.125);
+        }
+      },
+
+      playAtom() {
+        // Step 2: Vector - Single, Pure, Directional.
+        // One clean sine wave ping.
+        this.createOsc('sine', 440, 0.2, 0.001, 2.0);
+      },
+
+      playChaos() {
+        // Step 3: Potentials - "Chaos" - Discordant, Random, noisy.
+        // FM Synthesis for "metallic" noise.
+        const osc = audioCtx.createOscillator();
+        const mod = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        mod.frequency.value = 237; // Non-integer ratio
+        const modGain = audioCtx.createGain();
+        modGain.gain.value = 500; // Heavy modulation
+
+        mod.connect(modGain);
+        modGain.connect(osc.frequency);
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        // Pitch slide down to simulate "loss" or confusion
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 2);
+
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.5);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start();
+        mod.start();
+        osc.stop(audioCtx.currentTime + 3);
+        mod.stop(audioCtx.currentTime + 3);
+      },
+
+      playTraining() {
+        // Step 4: Digital Rain + Harmony
+        // Harmony Pad
+        [220, 261.63, 329.63].forEach(f => { // A Minor
+          this.createOsc('sine', f, 0.05, 0.001, 3.0);
+        });
+
+        // Digital Rain (Arpeggios)
+        for (let i = 0; i < 15; i++) {
+          const freq = 440 + Math.random() * 880;
+          const time = i * 0.15;
+          this.createOsc('square', freq, 0.05, 0.001, 0.05, time);
+        }
+      },
+
+      playArtifact() {
+        // Step 5: Mysterious (Sub-bass + Detuned Drone)
+        this.createOsc('sine', 55, 0.3, 0.001, 4.0);
+        this.createOsc('sine', 57, 0.3, 0.001, 4.0); // Beat frequency = Throbbing
+      },
+
+      playDimensions() {
+        // Step 6: Challenge / Question (Unresolved Rising)
+        // Diminished Arpeggio
+        const freqs = [329.63, 392.00, 466.16, 554.37]; // E Dim7
+        freqs.forEach((f, i) => {
+          this.createOsc('sine', f, 0.1, 0.001, 1.5, i * 0.2);
+        });
+      },
+
+      playProjection() {
+        // Step 7: Solution / Awesome (Major Swell)
+        // C Major spread
+        const freqs = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+        freqs.forEach((f, i) => {
+          // Staggered entry for "swelling" feel
+          this.createOsc('triangle', f, 0.1, 0.001, 3.0, i * 0.05);
+        });
+      },
+
+      playRevelation() {
+        // Step 8: The Crystal. Pure, Major Chord.
+        // C Major (Roots)
+        this.createOsc('triangle', 130.81, 0.2, 0.001, 5.0); // C3
+        this.createOsc('triangle', 261.63, 0.2, 0.001, 5.0); // C4
+        this.createOsc('triangle', 329.63, 0.15, 0.001, 5.0); // E4
+        this.createOsc('triangle', 392.00, 0.15, 0.001, 5.0); // G4
+      },
+
+      playBase() {
+        // Step 9: Foundation (Cyan). Gritty, Raw.
+        // Sawtooth bass.
+        this.createOsc('sawtooth', 65.41, 0.1, 0.001, 2.0); // C2
+      },
+
+      playCore() {
+        // Step 10: Core (Magenta). Warm, Logic.
+        // Square wave with soft attack.
+        this.createOsc('square', 261.63, 0.1, 0.001, 2.0); // C4
+      },
+
+      playTip() {
+        // Step 11: Tip (Red). Sharp, Final.
+        // High Sine Ping.
+        this.createOsc('sine', 1046.50, 0.2, 0.001, 1.0); // C6
+      }
+    };
+
+    const steps = [
+      {
+        title: "1. The Blueprint (Architecture)",
+        phase: "CONCEPTUALIZATION",
+        desc: "Structure first. Before any learning happens, we design the mathematical skeleton—layers of potential connections. This defines *how* the AI can think, but it knows nothing yet.",
+        setup: setupBlueprint,
+        animate: animateBlueprint
+      },
+      {
+        title: "2. The Atom (The Vector)",
+        phase: "VECTORIZATION",
+        desc: "This is a **Vector**. In math, it is a sequence of numbers (coordinates). In AI, it is an Arrow. Its **Direction** represents its **Meaning**. Concepts that are similar point in similar directions.",
+        setup: setupVector,
+        animate: null
+      },
+      {
+        title: "3. The Potentials (Chaos)",
+        phase: "EMBEDDING INITIALIZATION",
+        desc: "We fill the skeleton with billions of these Vectors. Initially, they are random. They point everywhere. Pure noise. Potential without form.",
+        setup: setupChaos,
+        animate: null
+      },
+      {
+        title: "4. The Teacher (Training)",
+        phase: "OPTIMIZATION",
+        desc: "We feed it **Data**. The model learns, and the vectors align into precise geometry. Chaos aligns into Structure (The Hypercube).",
+        setup: setupTraining,
+        animate: animateTraining
+      },
+      {
+        title: "5. The Artifact (The Black Box)",
+        phase: "CRYSTALLIZATION",
+        desc: "The model is now a finished Product. A file on a disk. Used in apps, Copilots, and Agents. It is functional, but opaque. We can use it, but we strictly cannot *see* inside.",
+        setup: setupArtifact,
+        animate: animateArtifact
+      },
+      {
+        title: "6. The Challenge (Dimensions)",
+        phase: "HIGH-DIMENSIONAL SPACE",
+        desc: "Why can't we see it? Because it operates in **4,096 dimensions**. Our human perception is limited to 3 dimensions. The true shape of this intelligence is invisible to us.",
+        setup: setupChallenge,
+        animate: null
+      },
+      {
+        title: "7. The Solution (Projection)",
+        phase: "DIMENSIONAL REDUCTION",
+        desc: "We use Mathematics (PCA) to translate. We project the 4096D structure down to a **3D Shadow**, preserving the most vital topological relationships.",
+        setup: setupProjection,
+        animate: null
+      },
+      {
+        title: "8. The Revelation (The Weights)",
+        phase: "INTELLIGIBILITY",
+        desc: "This is it. The **WEIGHTS**. A frozen crystalline structure of pure knowledge. It isn't random; it is the physical shape of intelligence formed by the training process. Every point here is a parameter learned from billions of text tokens.",
+        setup: setupRevelation,
+        animate: animateRevelation
+      },
+      {
+        title: "9. The Foundation (Input & Syntax)",
+        phase: "SYNTAX ANALYSIS",
+        desc: "We look at the **Cyan Base**. This structure is formed by the collision of **Architecture** (the plan) and **Data** (the training). These points are the **WEIGHTS**—the dense, learned reality of the AI. This chaotic bottom layer handles the raw syntax of human language.",
+        setup: setupFoundation,
+        animate: null
+      },
+      {
+        title: "10. The Core (Reasoning & Context)",
+        phase: "SEMANTIC PROCESSING",
+        desc: "Moving to the **Magenta Core**. Notice the density. This is where **Architecture** allowed the **Data** to carve out logic. These weights represent the model's 'understanding'—abstract concepts connected in thousands of dimensions.",
+        setup: setupCore,
+        animate: null
+      },
+      {
+        title: "11. The Prediction (Output Generation)",
+        phase: "INFERENCE",
+        desc: "Finally, **The Tip**. The shape tapers to a point. Why? because the **Architecture** forces the **Weights** to narrow down infinite possibilities into **one single prediction**.",
+        setup: setupPrediction,
+        animate: null
+      }
+    ];
+
+    // --- THREE JS SETUP ---
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000000, 0.03);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0x404040, 2);
+    scene.add(ambientLight);
+    const pointLight1 = new THREE.PointLight(0x00ffff, 2, 20);
+    pointLight1.position.set(5, 5, 5);
+    scene.add(pointLight1);
+    const pointLight2 = new THREE.PointLight(0xff00ff, 2, 20);
+    pointLight2.position.set(-5, -5, 5);
+    scene.add(pointLight2);
+
+    // Stage
+    const stage = new THREE.Group();
+    scene.add(stage);
+
+    // Assets Cache
+    const assets = {
+      hypercube: null,
+      nemotron: null
+    };
+
+    // --- HELPERS ---
+    // --- HELPERS ---
+    function clearStage(resetCamera = true) {
+      // Cleanup
+      while (stage.children.length > 0) {
+        const obj = stage.children[0];
+        // Don't remove Nemotron if we are in the crystal steps (hacky but effective for continuity)
+        // actually better: setup functions manage adding it back.
+        // But we want to avoid re-adding if it's there?
+        // Let's just remove everything.
+        if (obj.geometry) obj.geometry.dispose();
+        stage.remove(obj);
+      }
+      controls.autoRotateSpeed = 0.5;
+      document.getElementById('enter-btn').style.display = 'none';
+
+      // Reset Camera smoothly ONLY if requested
+      if (resetCamera) {
+        new TWEEN.Tween(camera.position)
+          .to({ x: 0, y: 0, z: 8 }, 1000)
+          .easing(TWEEN.Easing.Cubic.Out)
+          .start();
+      }
+    }
+
+    // ... (Steps 1-7 omitted for brevity usually, but this is replace_file_content so be careful or use multi_replace)
+    // Actually, I can't easily edit clearStage AND step 8 in one block if they are far apart.
+    // I will do clearStage first, then the loader/steps.
+
+
+    // --- SCENES ---
+
+    // 1. BLUEPRINT (ARCHITECTURE)
+    function setupBlueprint() {
+      clearStage();
+
+      // We want a clear "Neural Network" skeleton: Nodes + Connections
+      const layers = [
+        { z: -2, count: 5, color: 0x00ffff }, // Input
+        { z: 0, count: 7, color: 0xff00ff },  // Hidden
+        { z: 2, count: 4, color: 0xffaa00 }   // Output
+      ];
+
+      const layerNodes = [];
+
+      layers.forEach(layer => {
+        const nodes = [];
+        const step = 4;
+        const startX = -((layer.count - 1) * step) / 4;
+
+        for (let i = 0; i < layer.count; i++) {
+          const x = startX + (i * step / 2);
+          const pos = new THREE.Vector3(x, 0, layer.z * 1.5);
+
+          // Node Visual
+          const geo = new THREE.SphereGeometry(0.15, 16, 16);
+          const mat = new THREE.MeshBasicMaterial({ color: layer.color, wireframe: true });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.copy(pos);
+          stage.add(mesh);
+          nodes.push(pos);
+        }
+        layerNodes.push(nodes);
+      });
+
+      // Draw Connections (The Skeleton)
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.3 });
+      const linePoints = [];
+
+      for (let l = 0; l < layerNodes.length - 1; l++) {
+        const current = layerNodes[l];
+        const next = layerNodes[l + 1];
+
+        current.forEach(p1 => {
+          next.forEach(p2 => {
+            linePoints.push(p1);
+            linePoints.push(p2);
+          });
+        });
+      }
+
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+      const lines = new THREE.LineSegments(lineGeo, lineMat);
+      stage.add(lines);
+
+      // Rotate slightly to show depth
+      stage.rotation.y = Math.PI / 4;
+      stage.rotation.x = 0.2;
+    }
+
+    function animateBlueprint() {
+      stage.rotation.y += 0.002;
+    }
+
+    // 2. THE VECTOR (ATOM)
+    function setupVector() {
+      clearStage();
+
+      // Single Large Arrow
+      const dir = new THREE.Vector3(1, 1, 0).normalize();
+      const origin = new THREE.Vector3(0, -2, 0);
+      const length = 5;
+      const hex = 0x00ffff; // Cyan
+
+      const arrowHelper = new THREE.ArrowHelper(dir, origin, length, hex, 1, 0.5);
+      // Make line thicker? Three.js ArrowHelper line width is always 1px on WebGL usually
+      // Instead, let's use a Cylinder + Cone
+
+      const group = new THREE.Group();
+
+      // Shaft
+      const shaftGeo = new THREE.CylinderGeometry(0.1, 0.1, 4, 32);
+      const mat = new THREE.MeshPhongMaterial({ color: 0x00ffff, shininess: 100 });
+      const shaft = new THREE.Mesh(shaftGeo, mat);
+      shaft.position.y = 0;
+      group.add(shaft);
+
+      // Head
+      const headGeo = new THREE.ConeGeometry(0.4, 1, 32);
+      const head = new THREE.Mesh(headGeo, mat);
+      head.position.y = 2.5;
+      group.add(head);
+
+      group.rotation.z = -Math.PI / 4;
+      stage.add(group);
+
+      // Add "Coordinates" text effect? maybe too complex for plain Three.js without FontLoader. 
+      // Keep it visual.
+    }
+
+    // 3. CHAOS (POTENTIALS)
+    function setupChaos() {
+      clearStage();
+      const count = 500;
+      const geometry = new THREE.BufferGeometry();
+      const positions = [];
+      const colors = [];
+
+      for (let i = 0; i < count; i++) {
+        const x = (Math.random() - 0.5) * 10;
+        const y = (Math.random() - 0.5) * 10;
+        const z = (Math.random() - 0.5) * 10;
+        // Vector direction (Random)
+        const dx = (Math.random() - 0.5);
+        const dy = (Math.random() - 0.5);
+        const dz = (Math.random() - 0.5);
+
+        positions.push(x, y, z);
+        positions.push(x + dx, y + dy, z + dz);
+
+        colors.push(0, 1, 1); // Cyan start
+        colors.push(1, 0, 0.5); // Pink end
+      }
+
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+      const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6 });
+      const segments = new THREE.LineSegments(geometry, material);
+      stage.add(segments);
+    }
+
+    // 3 -> 4 TRAINING
+    let trainingDataParticles = [];
+    let trainingVectorsMesh = null;
+
+    function setupTraining() {
+      clearStage();
+      const count = 200;
+      const starts = [];
+      const ends = [];
+
+      for (let i = 0; i < count; i++) {
+        const s = new THREE.Vector3((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+        starts.push(s);
+        const e = new THREE.Vector3().copy(s).add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5));
+        ends.push(e);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      const posAttr = new THREE.Float32BufferAttribute(new Float32Array(count * 6), 3);
+      geo.setAttribute('position', posAttr);
+
+      const mat = new THREE.LineBasicMaterial({ color: 0x00ffff });
+      trainingVectorsMesh = new THREE.LineSegments(geo, mat);
+      trainingVectorsMesh.userData = { starts: starts, ends: ends, frame: 0 };
+      stage.add(trainingVectorsMesh);
+
+      updateTrainingGeo();
+      trainingDataParticles = [];
+    }
+
+    function updateTrainingGeo() {
+      const mesh = trainingVectorsMesh;
+      const positions = mesh.geometry.attributes.position.array;
+      const starts = mesh.userData.starts;
+      const ends = mesh.userData.ends;
+
+      for (let i = 0; i < starts.length; i++) {
+        const s = starts[i];
+        const e = ends[i];
+        positions[i * 6 + 0] = s.x; positions[i * 6 + 1] = s.y; positions[i * 6 + 2] = s.z;
+        positions[i * 6 + 3] = e.x; positions[i * 6 + 4] = e.y; positions[i * 6 + 5] = e.z;
+      }
+      mesh.geometry.attributes.position.needsUpdate = true;
+    }
+
+    function animateTraining() {
+      if (trainingDataParticles.length < 50 && Math.random() > 0.5) {
+        const p = {
+          pos: new THREE.Vector3((Math.random() - 0.5) * 10, 10, (Math.random() - 0.5) * 10),
+          vel: new THREE.Vector3(0, -0.2, 0)
+        };
+        trainingDataParticles.push(p);
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 4, 4), new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
+        mesh.position.copy(p.pos);
+        stage.add(mesh);
+        p.mesh = mesh;
+      }
+      trainingDataParticles.forEach(p => {
+        p.pos.add(p.vel);
+        p.mesh.position.copy(p.pos);
+        if (p.pos.y < -5) p.pos.set((Math.random() - 0.5) * 10, 10, (Math.random() - 0.5) * 10);
+      });
+      const mesh = trainingVectorsMesh;
+      mesh.userData.frame++;
+      if (mesh.userData.frame > 100) {
+        const starts = mesh.userData.starts;
+        const ends = mesh.userData.ends;
+        for (let i = 0; i < starts.length; i++) {
+          const targetS = starts[i].clone().normalize().multiplyScalar(3);
+          const targetE = targetS.clone().add(starts[i].clone().normalize());
+          starts[i].lerp(targetS, 0.01);
+          ends[i].lerp(targetE, 0.01);
+        }
+        updateTrainingGeo();
+      }
+    }
+
+    // 5. THE ARTIFACT
+    function setupArtifact() {
+      clearStage();
+      const boxGeo = new THREE.BoxGeometry(3, 3, 3);
+      const boxMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.9 });
+      const box = new THREE.Mesh(boxGeo, boxMat);
+      const edges = new THREE.EdgesGeometry(boxGeo);
+      const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ffff }));
+      box.add(line);
+
+      const coreGeo = new THREE.SphereGeometry(1, 32, 32);
+      const coreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+
+      stage.add(box);
+      stage.add(core);
+    }
+
+    function animateArtifact() {
+      const box = stage.children[0];
+      box.rotation.y += 0.005;
+      box.rotation.z += 0.005;
+    }
+
+    // 6. THE CHALLENGE (HYPERCUBE)
+    function setupChallenge() {
+      clearStage();
+      const loader = new PLYLoader();
+      loader.load('crystals/hypercube/structure.ply', function (geo) {
+        // 1. Points
+        const mat = new THREE.PointsMaterial({ size: 0.15, color: 0xff00ff });
+        const mesh = new THREE.Points(geo, mat);
+
+        geo.computeBoundingSphere();
+        const center = geo.boundingSphere.center;
+        mesh.position.sub(center);
+        mesh.scale.set(2, 2, 2);
+        stage.add(mesh);
+
+        // 2. Edges (Hamming Distance Logic)
+        const positions = geo.attributes.position.array;
+        const linePoints = [];
+        const numVertices = 64;
+
+        for (let i = 0; i < numVertices; i++) {
+          for (let j = i + 1; j < numVertices; j++) {
+            // Hamming Distance Check
+            let diff = 0;
+            let x = i ^ j;
+            while (x > 0) {
+              if ((x & 1) === 1) diff++;
+              x >>= 1;
+            }
+
+            if (diff === 1) {
+              // Connect
+              const p1 = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]).sub(center).multiplyScalar(2);
+              const p2 = new THREE.Vector3(positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2]).sub(center).multiplyScalar(2);
+              linePoints.push(p1, p2);
+            }
+          }
+        }
+
+        if (linePoints.length > 0) {
+          const lineGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+          const lineMat = new THREE.LineBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.3 });
+          const lines = new THREE.LineSegments(lineGeo, lineMat);
+          stage.add(lines);
+        }
+
+      });
+      controls.autoRotateSpeed = 1.0;
+    }
+
+    // 7. PROJECTION
+    function setupProjection() {
+      clearStage();
+      const loader = new PLYLoader();
+      loader.load('crystals/hypercube/structure.ply', function (geometry) {
+        const materialStruc = new THREE.PointsMaterial({ size: 0.15, color: 0x00ffff });
+        const meshStruc = new THREE.Points(geometry, materialStruc);
+        meshStruc.position.y = 2;
+        stage.add(meshStruc);
+
+        const shadowGeo = geometry.clone();
+        const shadowMat = new THREE.PointsMaterial({ size: 0.15, color: 0x555555 });
+        const meshShadow = new THREE.Points(shadowGeo, shadowMat);
+        meshShadow.scale.set(1, 0.01, 1);
+        meshShadow.position.y = -2;
+        stage.add(meshShadow);
+
+        const pos = geometry.attributes.position.array;
+        const linePos = [];
+        for (let i = 0; i < pos.length; i += 3) {
+          const x = pos[i]; const y = pos[i + 1]; const z = pos[i + 2];
+          linePos.push(x, y + 2, z); linePos.push(x, -2, z);
+        }
+        const lines = new THREE.LineSegments(
+          new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3)),
+          new THREE.LineBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.2 })
+        );
+        stage.add(lines);
+      });
+    }
+
+    // 8. PRISMATA (THE EXPERIENCE)
+    // 8. THE FOUNDATION (SYNTAX)
+    // SHARED LOADER & UTILS
+    // SHARED LOADER & UTILS
+    // Shader Uniforms for isolation
+    const crystalUniforms = {
+      uMinY: { value: -Infinity },
+      uMaxY: { value: Infinity },
+      uFade: { value: 0.1 },
+      uHighlightColor: { value: new THREE.Color(1, 1, 1) },
+      uTintStrength: { value: 0.0 }
+    };
+
+    function isolateSection(minY, maxY, colorHex, strength = 0.8) {
+      new TWEEN.Tween(crystalUniforms.uMinY).to({ value: minY }, 1000).start();
+      new TWEEN.Tween(crystalUniforms.uMaxY).to({ value: maxY }, 1000).start();
+
+      if (colorHex !== undefined) {
+        new TWEEN.Tween(crystalUniforms.uHighlightColor.value)
+          .to(new THREE.Color(colorHex), 500)
+          .start();
+        new TWEEN.Tween(crystalUniforms.uTintStrength)
+          .to({ value: strength }, 1000)
+          .start();
+      } else {
+        new TWEEN.Tween(crystalUniforms.uTintStrength)
+          .to({ value: 0.0 }, 1000)
+          .start();
+      }
+    }
+
+    function loadNemotron(onReady) {
+      if (assets.nemotron) {
+        if (onReady) onReady();
+        return;
+      }
+
+      const loader = new PLYLoader();
+      // Cache Buster added
+      loader.load('crystals/nemotron/structure_layers.ply?v=' + Date.now(), function (geometry) {
+
+        geometry.computeBoundingBox();
+        const s = new THREE.Vector3();
+        geometry.boundingBox.getSize(s);
+        // Nemotron is natively Y-Up in this ply. No rotation needed.
+        // Original Size: x:2.29, y:4.65, z:0.69
+
+        // Center Geometry
+        geometry.computeBoundingBox();
+        geometry.center();
+
+        const finalSize = new THREE.Vector3();
+        geometry.boundingBox.getSize(finalSize);
+
+        // Custom Shader Material for Isolation Effect
+        const material = new THREE.ShaderMaterial({
+          uniforms: crystalUniforms,
+          vertexShader: `
+                 attribute vec3 color;
+                 varying vec3 vColor;
+                 varying float vOpacity;
+                 uniform float uMinY;
+                 uniform float uMaxY;
+                 uniform float uFade;
+                 uniform vec3 uHighlightColor;
+                 uniform float uTintStrength;
+                 
+                 void main() {
+                     float h = position.y; // Y is Height
+                     bool isActive = (h >= uMinY && h <= uMaxY);
+                     vOpacity = isActive ? 1.0 : uFade;
+                     
+                     vec3 finalColor = color;
+                     if(isActive) {
+                         finalColor = mix(color, uHighlightColor, uTintStrength);
+                     }
+                     vColor = finalColor;
+                     
+                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                     gl_PointSize = 6.0 * (10.0 / -mvPosition.z); 
+                     gl_Position = projectionMatrix * mvPosition;
+                 }
+             `,
+          fragmentShader: `
+                 varying vec3 vColor;
+                 varying float vOpacity;
+                 
+                 void main() {
+                     vec2 coord = gl_PointCoord - vec2(0.5);
+                     if(length(coord) > 0.5) discard;
+                     gl_FragColor = vec4(vColor, vOpacity);
+                 }
+             `,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
+
+        const mesh = new THREE.Points(geometry, material);
+        // Metric Scale
+        mesh.scale.set(2, 2, 2);
+
+        const height = finalSize.y;
+
+        assets.nemotron = mesh;
+        assets.stats = {
+          height: height * 2, // World Height (Scale 2)
+          geoHeight: height   // Local Geometry Height (for Shader)
+        };
+
+        stage.add(mesh);
+
+        if (onReady) onReady();
+      });
+    }
+
+    // 8. THE REVELATION (FULL CRYSTAL)
+    function setupRevelation() {
+      clearStage();
+      document.getElementById('enter-btn').style.display = 'none';
+
+      loadNemotron(() => {
+        if (!stage.children.includes(assets.nemotron)) stage.add(assets.nemotron);
+
+        // Show FULL Crystal (Reset isolation)
+        isolateSection(-Infinity, Infinity);
+
+        // Camera: Orbit View (Zoomed out to 15, shifted view down to -2 to Push Crystal UP)
+        camera.position.set(15, 0, 15);
+        camera.lookAt(0, -2, 0);
+        controls.target.set(0, -2, 0);
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2.0; // Faster rotation for the reveal
+      });
+    }
+
+    function animateRevelation() {
+      // Optional: dynamic pulse?
+    }
+
+    // 9. THE FOUNDATION (SYNTAX)
+    function setupFoundation() {
+      // Don't reset camera, fly from Revelation view
+      clearStage(false);
+      document.getElementById('enter-btn').style.display = 'none';
+
+      loadNemotron(() => {
+        if (!stage.children.includes(assets.nemotron)) stage.add(assets.nemotron);
+
+        const worldH = assets.stats.height;
+        const geoH = assets.stats.geoHeight;
+        const halfGeoH = geoH / 2;
+        const halfWorldH = worldH / 2;
+
+        // Isolate Bottom (Cyan) - USE GEO HEIGHT for Shader
+        // Bottom 40%
+        isolateSection(-Infinity, -halfGeoH + (geoH * 0.4), 0x00ffff, 0.8);
+
+        // Camera: Fly to Bottom - USE WORLD HEIGHT for Camera
+        const targetY = -halfWorldH + (worldH * 0.1);
+
+        new TWEEN.Tween(camera.position)
+          .to({ x: 4, y: targetY, z: 6 }, 1500)
+          .easing(TWEEN.Easing.Cubic.InOut)
+          .onUpdate(() => camera.lookAt(0, targetY, 0))
+          .start();
+
+        new TWEEN.Tween(controls.target)
+          .to({ x: 0, y: targetY, z: 0 }, 1500)
+          .easing(TWEEN.Easing.Cubic.InOut)
+          .start();
+
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+      });
+    }
+
+    // 10. THE CORE (REASONING)
+    function setupCore() {
+      clearStage(false);
+      document.getElementById('enter-btn').style.display = 'none';
+
+      loadNemotron(() => {
+        if (!stage.children.includes(assets.nemotron)) stage.add(assets.nemotron);
+
+        const geoH = assets.stats.geoHeight;
+        const halfGeoH = geoH / 2;
+
+        // Isolate Middle (Magenta) - USE GEO HEIGHT
+        // Middle 30% (+- 15% from center?? No, +- 30% from center?)
+        // Let's do Middle 40% (from -0.2 to +0.2 relative to H?)
+        // Range: [-halfH + 0.3H, halfH - 0.3H] -> This is the middle 40%
+        isolateSection(-halfGeoH + (geoH * 0.3), halfGeoH - (geoH * 0.3), 0xff00ff, 0.8);
+
+        new TWEEN.Tween(camera.position)
+          .to({ x: 6, y: 0, z: 2 }, 1500)
+          .easing(TWEEN.Easing.Cubic.InOut)
+          .onUpdate(() => camera.lookAt(0, 0, 0))
+          .start();
+
+        new TWEEN.Tween(controls.target)
+          .to({ x: 0, y: 0, z: 0 }, 1500).start();
+      });
+    }
+
+    // 11. THE PREDICTION (OUTPUT)
+    function setupPrediction() {
+      clearStage(false);
+
+      loadNemotron(() => {
+        if (!stage.children.includes(assets.nemotron)) stage.add(assets.nemotron);
+
+        const worldH = assets.stats.height;
+        const geoH = assets.stats.geoHeight;
+        const halfGeoH = geoH / 2;
+        const halfWorldH = worldH / 2;
+
+        // Isolate Top (Red) - USE GEO HEIGHT
+        // Top 40%
+        isolateSection(halfGeoH - (geoH * 0.4), Infinity, 0xff0000, 1.0);
+
+        const targetY = halfWorldH - (worldH * 0.05);
+
+        // Camera: Frontal View (Centered)
+        new TWEEN.Tween(camera.position)
+          .to({ x: 0, y: targetY, z: 7 }, 1500)
+          .onUpdate(() => camera.lookAt(0, targetY, 0))
+          .start();
+
+        new TWEEN.Tween(controls.target)
+          .to({ x: 0, y: targetY, z: 0 }, 1500).start();
+
+        const btn = document.getElementById('enter-btn');
+        btn.style.display = 'block';
+        btn.innerText = "LAUNCH PRISMATA ENGINE";
+      });
+    }
+
+    // --- CORE ---
+
+    window.changeStep = function (delta) {
+      // Clear autoplay if user manually intervenes
+      if (autoplayTimer) {
+        clearTimeout(autoplayTimer);
+      }
+
+      let next = currentStep + delta;
+      if (next < 0) next = 0;
+      if (next >= steps.length) next = steps.length - 1;
+
+      if (next !== currentStep || stage.children.length === 0) {
+        currentStep = next;
+        updateStep();
+
+        // Restart autoplay timer if active
+        if (isAutoplay && currentStep < steps.length - 1) {
+          advanceAutoplay();
+        } else if (isAutoplay && currentStep >= steps.length - 1) {
+          // End of journey
+          toggleAutoplay();
+        }
+      }
+    };
+
+    function updateStep() {
+      const s = steps[currentStep];
+
+      document.getElementById('step-title').innerText = s.title;
+      document.getElementById('step-desc').innerHTML = s.desc.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // Update Phase Indicator safely
+      const indicator = document.getElementById('chapter-indicator');
+      indicator.innerHTML = `<span id="chapter-num">${currentStep + 1}</span> / ${steps.length}<br>PHASE: ${s.phase}`;
+
+      const pct = ((currentStep) / (steps.length - 1)) * 100;
+      document.getElementById('progress-bar').style.width = pct + "%";
+
+      document.getElementById('btn-prev').disabled = (currentStep === 0);
+      document.getElementById('btn-next').disabled = (currentStep === steps.length - 1);
+
+      if (isSoundOn) {
+        SciFiAudio.play(currentStep);
+      }
+
+      s.setup();
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      TWEEN.update();
+      controls.update();
+
+      if (steps[currentStep].animate) {
+        steps[currentStep].animate();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    updateStep();
+    animate();
+  </script>
+</body>
+
+</html>

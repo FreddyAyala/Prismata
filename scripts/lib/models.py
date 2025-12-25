@@ -408,3 +408,44 @@ class SimplePhi35(nn.Module):
             layer.self_attn.k_proj = nn.Linear(hidden_dim, hidden_dim) 
             layer.self_attn.v_proj = nn.Linear(hidden_dim, hidden_dim)
             self.layers.append(layer)
+
+
+class SimpleHypercube(nn.Module):
+    """
+    The Hypercube (Concept).
+    A synthetic model representing a 6-Dimensional Hypercube (64 vertices).
+    Used to demonstrate how PCA projects high-dimensional Geometry down to 3D.
+    """
+    def __init__(self):
+        super(SimpleHypercube, self).__init__()
+        # self.layers = nn.ModuleList() # REMOVED to avoid get_model_structure finding empty list
+        
+        # We want to create vertices of a 6D cube.
+        # 6 dimensions = 2^6 = 64 vertices.
+        # Coordinates are all combinations of [-1, 1].
+        
+        import itertools
+        dims = 6
+        vertices = list(itertools.product([-1, 1], repeat=dims))
+        
+        # Convert to Tensor (64, 6)
+        weights = torch.tensor(vertices, dtype=torch.float32)
+        
+        # ROTATION: To see the "Shadow" logic, we must rotate the 6D cube 
+        # so that PCA doesn't just pick the first 3 aligned axes (which hides the rest).
+        # We generate a random orthogonal matrix.
+        q, r = torch.linalg.qr(torch.randn(dims, dims))
+        weights = weights @ q # Rotate the hypercube in 6D space
+        
+        # We want the extractor (which does .T) to see (64, 6).
+        # Extractor returns W.T. 
+        # So W must be (6, 64).
+        # Linear(in, out) has W (out, in).
+        # So we want Out=6, In=64.
+        self.fc = nn.Linear(2**dims, dims, bias=False) 
+        
+        with torch.no_grad():
+            self.fc.weight.data = weights.T
+            
+        # self.layers.append(layer) # No longer using list, using single fc
+

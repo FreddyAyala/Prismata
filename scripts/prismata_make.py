@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from plyfile import PlyData, PlyElement
 from transformers import AutoModel
 
-from lib.models import SimpleAlexNet, SimpleDeepSeekMOE, SimpleVGG16, SimplePerceptron, SimpleInception, SimpleGPT4, SimpleGemini3, SimpleKimiK2, SimpleClaude35, SimplePhi35, SimpleWord2Vec, SimpleNemotron, get_model_structure
+from lib.models import SimpleAlexNet, SimpleDeepSeekMOE, SimpleVGG16, SimplePerceptron, SimpleInception, SimpleGPT4, SimpleGemini3, SimpleKimiK2, SimpleClaude35, SimplePhi35, SimpleWord2Vec, SimpleNemotron, SimpleHypercube, get_model_structure
 from lib.extractors import extract_weights, get_activations
 from lib.rendering import get_color
 
@@ -27,6 +27,10 @@ def extract_and_crystallize(model_name='bert-base-uncased', step=2, mode='layers
         elif model_name == 'inception':
             model = SimpleInception()
             print("   ⚠️  Using manually defined Inception-v1/GoogLeNet (Mock).")
+
+        elif model_name == 'hypercube':
+            model = SimpleHypercube()
+            print("   ⚠️  Using manually defined 6D Hypercube (Concept).")
 
         elif model_name == 'gpt4':
             model = SimpleGPT4()
@@ -83,8 +87,12 @@ def extract_and_crystallize(model_name='bert-base-uncased', step=2, mode='layers
     try:
         # Try Global PCA (Best for Transformers)
         full_matrix = np.vstack(all_layer_data)
-        print(f"   ↳ Compressing {full_matrix.shape} dimensions (Global PCA)...")
-        pca = PCA(n_components=2)
+        
+        # Determine PCA components based on model type
+        n_comps = 3 if model_name == 'hypercube' else 2
+        
+        print(f"   ↳ Compressing {full_matrix.shape} dimensions (Global PCA {n_comps}D)...")
+        pca = PCA(n_components=n_comps)
         projected_matrix = pca.fit_transform(full_matrix)
         
         # Normalize Global
@@ -139,9 +147,15 @@ def extract_and_crystallize(model_name='bert-base-uncased', step=2, mode='layers
             if isinstance(current_layer_acts, (float, int, np.float32, np.float64)):
                  current_layer_acts = np.zeros(1) # dummy
 
-        for i, (x, y) in enumerate(layer_projection):
-            z = layer_idx * 0.15 
-            points.append((x*1.5, z, y*1.5)) # Scale up slightly for visibility
+        for i, point_data in enumerate(layer_projection):
+            if len(point_data) == 3:
+                x, y, z_pca = point_data
+                # For Hypercube, we want full 3D rotation, not flattened layers
+                points.append((x*2.0, y*2.0, z_pca*2.0)) 
+            else:
+                x, y = point_data
+                z = layer_idx * 0.15 
+                points.append((x*1.5, z, y*1.5)) # Scale up slightly for visibility
             
             # COLOR LOGIC
             weight_magnitude = np.mean(np.abs(layer_weights[i]))
