@@ -157,6 +157,44 @@ class SimpleDeepSeekMOE(nn.Module):
             self.layers.append(layer)
 
 
+class SimpleNemotron(nn.Module):
+    """
+    Nemotron 3 Nano Mock (The Agent).
+    Hybrid Latent MoE: A dense core with sparse, specialized extensions.
+    """
+    def __init__(self):
+        super(SimpleNemotron, self).__init__()
+        self.layers = nn.ModuleList()
+        # 30B parameters / 3B active -> High sparsity but dense core
+        hidden_dim = 1200 
+        num_layers = 48
+        
+        for i in range(num_layers):
+            layer = nn.Module()
+            layer.self_attn = nn.Module()
+            proj = nn.Linear(hidden_dim, hidden_dim)
+            
+            with torch.no_grad():
+                # Hybrid Structure: 
+                # Central "Brain Stem" (Dense) + Specialized "Limbs" (Sparse)
+                
+                # 1. Background Sparse Noise (The Experts)
+                mask = torch.rand_like(proj.weight) > 0.85 # 15% active
+                proj.weight *= mask.float()
+                
+                # 2. Dense Core (The Latent Router)
+                # Middle 20% of neurons are highly connected
+                center = hidden_dim // 2
+                span = hidden_dim // 10
+                proj.weight.data[center-span:center+span, center-span:center+span] *= 1.2
+                proj.weight.data[center-span:center+span, center-span:center+span] += 0.05 # Ensure non-zero
+            
+            layer.self_attn.q_proj = proj
+            layer.self_attn.k_proj = nn.Linear(hidden_dim, hidden_dim)
+            layer.self_attn.v_proj = nn.Linear(hidden_dim, hidden_dim)
+            self.layers.append(layer)
+
+
 class SimpleGPT4(nn.Module):
     """
     GPT-4 Mock (The Colossus).

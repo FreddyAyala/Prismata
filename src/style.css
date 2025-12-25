@@ -572,9 +572,7 @@ input:checked+.slider:before {
 }
 
 /* --- TIMELINE MODE FIXES --- */
-display: flex;
-flex-direction: column;
-}
+
 
 /* --- TIMELINE MODE FIXES --- */
 .timeline-overlay {

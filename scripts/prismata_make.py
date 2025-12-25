@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from plyfile import PlyData, PlyElement
 from transformers import AutoModel
 
-from lib.models import SimpleAlexNet, SimpleDeepSeekMOE, SimpleVGG16, SimplePerceptron, SimpleInception, SimpleGPT4, SimpleGemini3, SimpleKimiK2, SimpleClaude35, SimplePhi35, SimpleWord2Vec, get_model_structure
+from lib.models import SimpleAlexNet, SimpleDeepSeekMOE, SimpleVGG16, SimplePerceptron, SimpleInception, SimpleGPT4, SimpleGemini3, SimpleKimiK2, SimpleClaude35, SimplePhi35, SimpleWord2Vec, SimpleNemotron, get_model_structure
 from lib.extractors import extract_weights, get_activations
 from lib.rendering import get_color
 
@@ -27,6 +27,7 @@ def extract_and_crystallize(model_name='bert-base-uncased', step=2, mode='layers
         elif model_name == 'inception':
             model = SimpleInception()
             print("   ⚠️  Using manually defined Inception-v1/GoogLeNet (Mock).")
+
         elif model_name == 'gpt4':
             model = SimpleGPT4()
             print("   ⚠️  Using manually defined GPT-4 (Mock MoE).")

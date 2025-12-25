@@ -12,12 +12,6 @@
         "name": "The Graph",
         "file": "crystals/nemotron/structure_layers.ply",
         "desc": "Hybrid Latent MoE topology."
-      },
-      {
-        "id": "intelligence",
-        "name": "Thought: Intelligence",
-        "file": "crystals/nemotron/activation_intelligence.ply",
-        "desc": "'Intelligence is the efficient compression of information.'"
       }
     ]
   },
