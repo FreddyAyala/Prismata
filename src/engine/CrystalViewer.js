@@ -193,7 +193,7 @@ export class CrystalViewer {
 
       // Focus Decay (Auto fade out thought)
       if (this.customUniforms.uFocusStr && this.customUniforms.uFocusStr.value > 0.001) {
-        this.customUniforms.uFocusStr.value *= 0.995; // Fade out 0.5% per frame (Very Slow)
+        this.customUniforms.uFocusStr.value *= 0.98; // Medium Decay (2% per frame)
       }
     }
 
@@ -317,5 +317,11 @@ export class CrystalViewer {
 
     // Auto-fadeout mechanic could go in animate loop or here via tween
     // For now, let's keep it manual or decay in loop if we want.
+  }
+
+  clearFocus() {
+    if (this.customUniforms) {
+      this.customUniforms.uFocusStr.value = 0.0;
+    }
   }
 }

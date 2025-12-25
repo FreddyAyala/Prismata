@@ -63,8 +63,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
   // 8. Init Cortex UI (Neural Interface)
-  const { CortexUI } = await import('./ui/CortexUI.js');
-  window.cortexUI = new CortexUI(viewers.main);
+  try {
+    console.log("🖥️ UI: Initializing Cortex UI...");
+    const { CortexUI } = await import('./ui/CortexUI.js');
+    window.cortexUI = new CortexUI(viewers.main);
+    console.log("✅ UI: Cortex UI Mounted to DOM");
+  } catch (err) {
+    console.error("❌ UI: Cortex UI Failed to Load:", err);
+  }
 
 
   // 7. Panel Click Listeners

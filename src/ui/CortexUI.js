@@ -69,18 +69,17 @@ export class CortexUI {
                 .cortex-terminal {
                     width: 95% !important;
                     height: auto !important;
-                    top: 80px !important; /* Move to TOP to clear bottom Timeline/Dock */
+                    top: 100px !important; /* Adjusted for better visibility on mobile */
                     bottom: auto !important;
                     left: 50% !important;
                     transform: translateX(-50%) !important; 
-                    padding: 15px !important;
+                    padding: 10px !important;
                     border: 1px solid var(--color-primary) !important;
-                    box-shadow: 0 -5px 20px rgba(0,0,0,0.8) !important;
-                    border-bottom: none !important; /* Merge with dock visually if desired, or keep separated */
-                    border-radius: 10px 10px 0 0 !important;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.9) !important;
+                    border-radius: 8px !important;
                 }
                 .cortex-terminal input {
-                    font-size: 16px !important;
+                    font-size: 16px !important; /* Prevents iOS zoom */
                 }
             }
         `;
@@ -97,7 +96,7 @@ export class CortexUI {
             border: 1px solid rgba(0, 243, 255, 0.3);
             border-radius: 4px;
             padding: 15px;
-            z-index: 1500; /* Lowered from 9999 to allow Menu Overlay */
+            z-index: 9999; /* Boosted for visibility */
             font-family: 'Courier New', Courier, monospace;
             box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
             transition: opacity 0.5s, transform 0.3s;
@@ -160,16 +159,16 @@ export class CortexUI {
                 this.status.innerText = "CORTEX_LINK: ONLINE";
                 this.container.style.animation = 'termOpen 0.4s forwards';
                 this.container.style.pointerEvents = 'auto';
-            } else if (stage === 'error') {
-                this.status.innerText = "CORTEX FAILURE: OFFLINE";
-                this.status.style.color = '#ff0055';
-                this.container.style.opacity = '1';
-                this.container.style.transform = 'translateX(-50%) scaleY(1)';
             } else if (stage === 'paused') {
                 // STANDBY STATE (Waiting for User)
                 this.status.innerHTML = "[ SYSTEM STANDBY ]<br><span style='color:white; opacity:0.7'>TAP TO INITIALIZE NEURAL INTERFACE</span>";
                 this.status.style.color = '#00f3ff';
-                this.container.style.animation = 'termOpen 0.5s forwards'; // Open effect
+
+                // Force Visibility robustly
+                this.container.style.display = 'block';
+                this.container.style.opacity = '1';
+                this.container.style.transform = 'translateX(-50%) scaleY(1)';
+
                 this.container.style.cursor = 'pointer';
                 this.container.style.pointerEvents = 'auto';
                 this.input.style.display = 'none';
@@ -186,10 +185,12 @@ export class CortexUI {
                     this.container.style.cursor = 'default';
 
                     cortex.init((s, p) => {
-                        if (s === 'loading') {
-                            this.status.innerText = `DOWNLOADING NEURAL ENGINE... ${Math.round(p)}%`;
+                        // Handle 'initiate', 'download', 'progress' from Transformers.js
+                        if (s === 'loading' || s === 'progress' || s === 'download') {
+                            const pct = p ? Math.round(p) : 0;
+                            this.status.innerHTML = `DOWNLOADING NEURAL ENGINE... <span style='color:#00f3ff'>${pct}%</span>`;
                         }
-                        if (s === 'ready') {
+                        if (s === 'ready' || s === 'done') {
                             // Use Scramble Effect for final ready state
                             this.scrambleText(this.status, "NEURAL LINK: ESTABLISHED");
                             this.status.style.color = '#00ffaa';
@@ -199,9 +200,22 @@ export class CortexUI {
                             this.input.focus();
                             neuralAudio.playGlitch(); // SFX
                         }
+                        if (s === 'error') {
+                            this.status.innerHTML = "CONNECTION FAILED: <span style='color:#ff0055'>RETRY?</span>";
+                            this.status.style.color = '#ff0055';
+                            // Re-enable click to retry
+                            this.container.addEventListener('click', activate);
+                            this.container.style.cursor = 'pointer';
+                        }
                     }, true);
                 };
                 this.container.addEventListener('click', activate);
+
+            } else if (stage === 'error') {
+                this.status.innerText = "CORTEX FAILURE: OFFLINE";
+                this.status.style.color = '#ff0055';
+                this.container.style.opacity = '1';
+                this.container.style.transform = 'translateX(-50%) scaleY(1)';
             }
         });
     }
@@ -210,6 +224,8 @@ export class CortexUI {
         this.currentModel = model;
         // Reset state
         this.container.style.display = 'block';
+        requestAnimationFrame(() => this.container.style.opacity = '1');
+
         if (this.isInit) {
             this.status.innerHTML = "CORTEX_LINK: READY";
             this.input.placeholder = "Query Neural Database...";
@@ -431,6 +447,9 @@ export class CortexUI {
                 if (this.status.innerText.includes(text.toUpperCase())) {
                     this.status.innerText = "CORTEX_LINK: READY";
                     this.status.style.color = '#00f3ff';
+                }
+                if (this.viewer && this.viewer.clearFocus) {
+                    this.viewer.clearFocus();
                 }
             }, 3000);
         }

@@ -18,7 +18,10 @@ class CortexService {
     }
 
     async init(progressCallback, force = false) {
-        if (this.status === 'ready') return;
+        if (this.status === 'ready') {
+            if (progressCallback) progressCallback('ready', 100);
+            return;
+        }
 
         // DEFAULT TO PAUSED (Opt-in Flow)
         // We now require explicit activation for everyone to show the "Start" UI
