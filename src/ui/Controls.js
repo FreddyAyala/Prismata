@@ -228,23 +228,18 @@ export function setupControls(context) {
         });
       });
 
-      // Default to INFO on load (if mobile)
+      // Default to INFO on load (if mobile) - DISABLED for Clean Start
       if (window.innerWidth < 768) {
-        // Don't auto-click if we want a clean start, 
-        // OR click it to show info by default. Let's show info but allow toggle off.
-        const infoBtn = document.getElementById('dock-btn-info');
-        if (infoBtn) {
-          // Simulate click to activate
-          infoBtn.click();
-        }
+        // CLEAN START: Do not auto-open anything.
+        // const infoBtn = document.getElementById('dock-btn-info');
+        // if (infoBtn) infoBtn.click();
       }
     }
 
-    // Mobile Default: Hide Info
-    if (window.innerWidth < 900) {
-      // Trigger it to hide
-      btnToggleInfo.click();
-    }
+    // Mobile Default: Hide Info - REMOVED (Was accidentally toggling ON)
+    // if (window.innerWidth < 900) {
+    //   btnToggleInfo.click();
+    // }
   }
 
   // About Modal

@@ -150,15 +150,21 @@ export class CortexUI {
 
         // Initialize Cortex AI
         cortex.init((stage, progress) => {
+            const isMobile = window.innerWidth < 900;
+
             if (stage === 'loading') {
                 this.status.innerText = `INITIALIZING NEURAL ENGINE... ${Math.round(progress)}%`;
-                // Animate Open
-                this.container.style.animation = 'termOpen 0.4s forwards';
-                this.container.style.pointerEvents = 'auto';
+                // Animate Open (Desktop Only)
+                if (!isMobile) {
+                    this.container.style.animation = 'termOpen 0.4s forwards';
+                    this.container.style.pointerEvents = 'auto';
+                }
             } else if (stage === 'ready') {
                 this.status.innerText = "CORTEX_LINK: ONLINE";
-                this.container.style.animation = 'termOpen 0.4s forwards';
-                this.container.style.pointerEvents = 'auto';
+                if (!isMobile) {
+                    this.container.style.animation = 'termOpen 0.4s forwards';
+                    this.container.style.pointerEvents = 'auto';
+                }
             } else if (stage === 'paused') {
                 // STANDBY STATE (Waiting for User)
                 // We use a local variable to track selection before activation
@@ -201,10 +207,16 @@ export class CortexUI {
 
                 this.status.style.color = '#00f3ff';
 
-                // Force Visibility robustly
-                this.container.style.display = 'block';
-                this.container.style.opacity = '1';
-                this.container.style.transform = 'translateX(-50%) scaleY(1)';
+                // Force Visibility robustly (Desktop Only)
+                if (!isMobile) {
+                    this.container.style.display = 'block';
+                    this.container.style.opacity = '1';
+                    this.container.style.transform = 'translateX(-50%) scaleY(1)';
+                } else {
+                    // Start Hidden on Mobile
+                    this.container.style.display = 'none';
+                    this.container.style.opacity = '0';
+                }
 
                 this.container.style.cursor = 'default'; // Cursor handled by buttons
                 this.container.style.pointerEvents = 'auto';
@@ -273,8 +285,11 @@ export class CortexUI {
     setModel(model) {
         this.currentModel = model;
         // Reset state
-        this.container.style.display = 'block';
-        requestAnimationFrame(() => this.container.style.opacity = '1');
+        const isMobile = window.innerWidth < 900;
+        if (!isMobile) {
+            this.container.style.display = 'block';
+            requestAnimationFrame(() => this.container.style.opacity = '1');
+        }
 
         if (this.isInit) {
             this.status.innerHTML = "CORTEX_LINK: READY";
