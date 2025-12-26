@@ -840,23 +840,25 @@ body.mode-timeline .color-legend {
 /* Enhanced Close Button for Mobile */
 .modal-close-large {
     position: absolute;
-    top: 10px;
+    top: 15px;
     right: 15px;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8);
     border: 1px solid var(--color-primary);
     color: var(--color-primary);
-    font-size: 2.5rem;
-    line-height: 2.5rem;
-    width: 50px;
-    height: 50px;
+    font-size: 2rem;
+        /* Balanced Size */
+        line-height: 2rem;
+        width: 44px;
+        /* Standard Touch Target */
+        height: 44px;
     display: flex;
     justify-content: center;
     align-items: center;
     border-radius: 50%;
     cursor: pointer;
-    z-index: 200002;
-    /* Above modal content */
-    backdrop-filter: blur(4px);
+    z-index: 200005;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
 }
 
 .modal-close-large:hover {
@@ -1678,6 +1680,10 @@ input:checked+.slider.gold {
         z-index: 1000;
     }
 
+        /* FIX: Hide Dock in Timeline Mode */
+        body.mode-timeline .mobile-dock {
+            display: none !important;
+        }
     .dock-btn {
         background: none;
         border: none;

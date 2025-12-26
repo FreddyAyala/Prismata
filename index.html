@@ -336,64 +336,64 @@
                     LEFT CLICK: ROTATE // RIGHT CLICK: PAN // SCROLL: ZOOM
                 </div>
             </footer>
-            <!-- About Modal -->
-            <div id="about-modal" class="modal-overlay hidden">
-                <div class="modal-content glass-panel"
-                    style="background: rgba(10, 20, 30, 0.95); max-width: 600px; padding: 30px;">
-                    <button id="btn-close-modal" class="modal-close-large">&times;</button>
-                    <h2 style="color:var(--color-primary); margin-top:0;">THE PRISMATA PROJECT</h2>
-                    <div class="modal-body">
-                        <p class="highlight" style="font-size:1.1rem; color:#fff; margin-bottom:20px;">Visualizing the
-                            invisible
-                            geometry of intelligence.</p>
-                        <p style="margin-bottom:20px; color:#ccc;">Prismata transforms the raw mathematical weights of
-                            Neural Networks into 3D crystalline structures. By applying PCA (Principal Component Analysis) to layer weights, we
-                            reveal the unique "fingerprint" of each architecture.</p>
-                            
-                            <div
-                                style="background: rgba(0,243,255,0.02); padding: 15px; border-left: 2px solid var(--color-secondary); margin-bottom: 20px;">
-                                <h3 style="font-size:0.8rem; color:var(--color-primary); letter-spacing:1px; margin-top:0;">NEW: CORTEX INTERFACE
-                                </h3>
-                                <ul style="font-size:0.8rem; color:#aaa; padding-left:15px; margin:5px 0;">
-                                    <li><strong>Real-time Inference:</strong> In-browser neural search.</li>
-                                    <li><strong>Sonification:</strong> Generative audio signatures for every model.</li>
-                                    <li><strong>???:</strong> Rumors of a defensive anomaly in the Archive...</li>
-                                </ul>
-                            </div>
+        </div>
+        
+        <!-- MOVED: About Modal (Root Level for correct Z-Index) -->
+        <div id="about-modal" class="modal-overlay hidden">
+            <div class="modal-content glass-panel" style="background: rgba(10, 20, 30, 0.95); max-width: 600px; padding: 30px;">
+                <button id="btn-close-modal" class="modal-close-large">&times;</button>
+                <h2 style="color:var(--color-primary); margin-top:0;">THE PRISMATA PROJECT</h2>
+                <div class="modal-body">
+                    <p class="highlight" style="font-size:1.1rem; color:#fff; margin-bottom:20px;">Visualizing the
+                        invisible
+                        geometry of intelligence.</p>
+                    <p style="margin-bottom:20px; color:#ccc;">Prismata transforms the raw mathematical weights of
+                        Neural Networks into 3D crystalline structures. By applying PCA (Principal Component Analysis) to layer
+                        weights, we
+                        reveal the unique "fingerprint" of each architecture.</p>
+        
+                    <div
+                        style="background: rgba(0,243,255,0.02); padding: 15px; border-left: 2px solid var(--color-secondary); margin-bottom: 20px;">
+                        <h3 style="font-size:0.8rem; color:var(--color-primary); letter-spacing:1px; margin-top:0;">NEW: CORTEX
+                            INTERFACE
+                        </h3>
+                        <ul style="font-size:0.8rem; color:#aaa; padding-left:15px; margin:5px 0;">
+                            <li><strong>Real-time Inference:</strong> In-browser neural search.</li>
+                            <li><strong>Sonification:</strong> Generative audio signatures for every model.</li>
+                            <li><strong>???:</strong> Rumors of a defensive anomaly in the Archive...</li>
+                        </ul>
+                    </div>
 
-                        <div
-                            style="margin: 20px 0; padding: 15px; background: rgba(0,243,255,0.05); border-left: 2px solid var(--color-primary);">
-                            <h3 style="font-size:0.8rem; color:var(--color-secondary); letter-spacing:1px;">AUTHORS</h3>
-                            <p style="margin-bottom:10px;">Created by <a href="https://www.linkedin.com/in/freddyayala/"
-                                    target="_blank" style="color:#fff; text-decoration:underline;">Frederic Ayala</a>
-                            </p>
+                    <div
+                        style="margin: 20px 0; padding: 15px; background: rgba(0,243,255,0.05); border-left: 2px solid var(--color-primary);">
+                        <h3 style="font-size:0.8rem; color:var(--color-secondary); letter-spacing:1px;">AUTHORS</h3>
+                        <p style="margin-bottom:10px;">Created by <a href="https://www.linkedin.com/in/freddyayala/" target="_blank"
+                                style="color:#fff; text-decoration:underline;">Frederic Ayala</a>
+                        </p>
 
-                            <h3
-                                style="font-size:0.8rem; color:var(--color-secondary); letter-spacing:1px; margin-top:10px;">
-                                CONTRIBUTE</h3>
-                            <p>Follow the <a href="https://github.com/FreddyAyala/Prismata/blob/main/CONTRIBUTING.md"
-                                    target="_blank" style="color:#fff; text-decoration:underline;">Contribution
-                                    Guide</a> on GitHub.
-                            </p>
+                        <h3 style="font-size:0.8rem; color:var(--color-secondary); letter-spacing:1px; margin-top:10px;">
+                            CONTRIBUTE</h3>
+                        <p>Follow the <a href="https://github.com/FreddyAyala/Prismata/blob/main/CONTRIBUTING.md" target="_blank"
+                                style="color:#fff; text-decoration:underline;">Contribution
+                                Guide</a> on GitHub.
+                        </p>
                         </div>
 
-                        <div class="upload-section"
-                            style="border-top:1px solid rgba(255,255,255,0.1); padding-top:20px; margin-top:20px;">
-                            <h3 style="color:var(--color-secondary); font-size:0.9rem;">PREVISUALIZE CUSTOM CRYSTAL</h3>
-                            <p style="font-size:0.8rem; margin-bottom:10px; color:#ccc;">Upload a generated
-                                <code>.ply</code> file
-                                to view it instantly.
-                            </p>
-                            <label class="minimal-btn" style="display:inline-block; cursor:pointer; padding: 8px 16px;">
-                                UPLOAD .PLY
-                                <input type="file" id="file-upload" accept=".ply" style="display:none;">
-                            </label>
-<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(0,243,255,0.2); text-align: center;">
-    <h3 style="color:#00ffff; font-size:1.0rem; letter-spacing: 2px; margin-bottom: 10px;">THE ORIGIN STORY</h3>
-    <button onclick="window.location.href='/public/journey.html'" class="cyber-btn"
-        style="width: 100%; padding: 15px; font-size: 1.1rem; border: 1px solid #00ffff; background: rgba(0,243,255,0.1); color: #00ffff; text-shadow: 0 0 10px #00ffff; cursor: pointer;">BEGIN
-        JOURNEY</button>
-</div>
+                    <div class="upload-section" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:20px; margin-top:20px;">
+                        <h3 style="color:var(--color-secondary); font-size:0.9rem;">PREVISUALIZE CUSTOM CRYSTAL</h3>
+                        <p style="font-size:0.8rem; margin-bottom:10px; color:#ccc;">Upload a generated
+                            <code>.ply</code> file
+                            to view it instantly.
+                        </p>
+                        <label class="minimal-btn" style="display:inline-block; cursor:pointer; padding: 8px 16px;">
+                            UPLOAD .PLY
+                            <input type="file" id="file-upload" accept=".ply" style="display:none;">
+                        </label>
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(0,243,255,0.2); text-align: center;">
+                            <h3 style="color:#00ffff; font-size:1.0rem; letter-spacing: 2px; margin-bottom: 10px;">THE ORIGIN STORY</h3>
+                            <button onclick="window.location.href='/public/journey.html'" class="cyber-btn"
+                                style="width: 100%; padding: 15px; font-size: 1.1rem; border: 1px solid #00ffff; background: rgba(0,243,255,0.1); color: #00ffff; text-shadow: 0 0 10px #00ffff; cursor: pointer;">BEGIN
+                                JOURNEY</button>
                         </div>
                     </div>
                 </div>
