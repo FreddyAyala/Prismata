@@ -57,7 +57,7 @@ body {
     background: radial-gradient(circle at center, #0a111a 0%, #000000 100%);
     overflow: hidden;
     touch-action: none;
-        /* KEY FIX: Prevents browser scrolling so canvas gets touch events */
+    /* KEY FIX: Prevents browser scrolling so canvas gets touch events */
 }
 
 .viewport.hidden {
@@ -824,7 +824,7 @@ body.mode-timeline .color-legend {
     justify-content: center;
     align-items: center;
     z-index: 200001;
-        /* Fix: Above everything */
+    /* Fix: Above everything */
     backdrop-filter: blur(8px);
     opacity: 1;
     transition: opacity 0.3s ease;
@@ -846,25 +846,26 @@ body.mode-timeline .color-legend {
     border: 1px solid var(--color-primary);
     color: var(--color-primary);
     font-size: 2rem;
-        /* Balanced Size */
-        line-height: 2rem;
-        width: 44px;
-        /* Standard Touch Target */
-        height: 44px;
+    /* Balanced Size */
+    line-height: 2rem;
+    width: 44px;
+    /* Standard Touch Target */
+    height: 44px;
     display: flex;
     justify-content: center;
     align-items: center;
     border-radius: 50%;
     cursor: pointer;
     z-index: 200005;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
 }
 
 .modal-close-large:hover {
     background: var(--color-primary);
     color: #000;
 }
+
 /* Responsive / Mobile Styles */
 .mobile-menu-btn {
     display: none;
@@ -1439,7 +1440,7 @@ body.mode-timeline .color-legend {
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(5px);
     z-index: 200000;
-        /* FORCE TOP (Above Everything) */
+    /* FORCE TOP (Above Everything) */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1449,6 +1450,7 @@ body.mode-timeline .color-legend {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
+
 .modal-content {
     background: rgba(10, 20, 30, 0.95);
     border: 1px solid var(--color-primary);
@@ -1639,19 +1641,19 @@ input:checked+.slider.gold {
     .ui-layer {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr auto;
-            /* Let middle grow */
+        /* Let middle grow */
         grid-template-areas:
             "header"
             "content"
             "dock";
         pointer-events: none !important;
-            /* CRITICAL: Pass events to canvas */
+        /* CRITICAL: Pass events to canvas */
     }
 
-                                .gallery-header,
-                                .mobile-dock {
-                                    pointer-events: auto !important;
-                                    /* Only these elements capture touches */
+    .gallery-header,
+    .mobile-dock {
+        pointer-events: auto !important;
+        /* Only these elements capture touches */
     }
 
     /* Hide redundant menu items since we have the dock */
@@ -1680,14 +1682,14 @@ input:checked+.slider.gold {
         z-index: 1000;
     }
 
-        /* FIX: Hide Dock in Timeline Mode */
-        body.mode-timeline .mobile-dock {
-            display: none !important;
-        }
+    /* FIX: Hide Dock in Timeline Mode (Robust) */
+    body.mode-timeline .mobile-dock,
+    body.node-timeline .mobile-dock,
+    body[class*="timeline"] .mobile-dock {
+        display: none !important;
+    }
+
     .dock-btn {
-        background: none;
-        border: none;
-        color: rgba(255, 255, 255, 0.4);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1767,8 +1769,14 @@ input:checked+.slider.gold {
         background: rgba(10, 15, 20, 0.95);
         border: 1px solid var(--color-secondary);
         padding: 15px;
-        max-height: 50vh;
+        max-height: 75vh;
+        /* Increased height */
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Smooth scroll */
+        overscroll-behavior: contain;
+        pointer-events: auto;
+        /* Ensure clickable */
     }
 
     .artifact-details.mobile-active-controls .controls-panel {

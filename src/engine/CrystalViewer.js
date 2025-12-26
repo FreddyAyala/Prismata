@@ -61,6 +61,7 @@ export class CrystalViewer {
     };
 
     this.baseNodeSize = 0.15; // Default
+    this.isHorizontal = false; // PERSIST: Horizontal Loop State
 
     this.init();
   }
@@ -127,6 +128,9 @@ export class CrystalViewer {
         points.material.size = this.baseNodeSize;
       }
 
+      // RE-APPLY ORIENTATION (Fix Persistence)
+      this.setOrientation(this.isHorizontal, false); // False = No re-fit yet
+
       // TIGHT ZOOM Logic via Rig
       const box = new THREE.Box3().setFromObject(this.crystalGroup);
       this.rig.fitToBox(box);
@@ -146,6 +150,22 @@ export class CrystalViewer {
     if (this.crystalGroup) {
       const box = new THREE.Box3().setFromObject(this.crystalGroup);
       this.rig.fitToBox(box);
+    }
+  }
+
+  setOrientation(isHorizontal, fitToBox = true) {
+    this.isHorizontal = isHorizontal; // Save State
+
+    if (this.crystalGroup) {
+      // Rotate 90 degrees on Z to make it horizontal
+      // Target: -PI/2 (90 deg clockwise) so top becomes right
+      const targetAll = isHorizontal ? -Math.PI / 2 : 0;
+
+      // Check if we want to animate this? For now, direct set.
+      this.crystalGroup.rotation.z = targetAll;
+
+      // Re-center/Fit
+      if (fitToBox) this.resetView();
     }
   }
 

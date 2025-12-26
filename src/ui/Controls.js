@@ -398,7 +398,21 @@ export function setupControls(context) {
 
     // Reset Camera Position too
     applyToViewers(v => v.resetView && v.resetView());
+    // Reset Orientation
+    const horizToggle = document.getElementById('horizontal-toggle');
+    if (horizToggle) {
+      horizToggle.checked = false;
+      applyToViewers(v => v.setOrientation && v.setOrientation(false));
+    }
   };
+
+  const btnHoriz = document.getElementById('horizontal-toggle');
+  if (btnHoriz) {
+    btnHoriz.addEventListener('change', (e) => {
+      const isHoriz = e.target.checked;
+      applyToViewers(v => v.setOrientation && v.setOrientation(isHoriz));
+    });
+  }
 
   if (btnResetAdv) {
     btnResetAdv.addEventListener('click', resetAdvancedDefaults);
