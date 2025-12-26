@@ -7,6 +7,7 @@ import { setupControls } from './ui/Controls.js';
 import { setActivePanelStyle } from './ui/Panels.js';
 import { ModeManager } from './ui/Modes.js';
 import { ReleaseLog } from './ui/ReleaseLog.js'; // NEW IMPORT
+import { injectTemplates } from './ui/Templates.js'; // TEMPLATES
 
 // State
 let activeSlot = 'main'; // 'main' or 'compare'
@@ -17,7 +18,10 @@ const viewers = {
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-  // 0. Init Release Log (Independent)
+  // 0. Inject Templates (Refactor)
+  injectTemplates();
+
+  // 0b. Init Release Log (Independent)
   const releaser = new ReleaseLog();
 
   // 1. Init Viewers
