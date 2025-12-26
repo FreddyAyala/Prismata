@@ -87,6 +87,8 @@ export class ModeManager {
 
     if (models) {
         archiveManager.enterArchive(models);
+      // Explicitly hide Cortex UI in Archive Mode
+      if (window.cortexUI) window.cortexUI.toggleDisplay(false);
     }
   }
 }

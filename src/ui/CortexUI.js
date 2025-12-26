@@ -136,6 +136,11 @@ export class CortexUI {
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Backquote') {
                 e.preventDefault();
+                // Check if Archive Mode is active (container is visible)
+                const archiveContainer = document.getElementById('archive-root'); // Assuming ID from ArchiveManager
+                if (archiveContainer && !archiveContainer.classList.contains('hidden')) {
+                    return; // Disable Cortex in Archive Mode
+                }
                 const isHidden = this.container.style.display === 'none' || this.container.style.opacity === '0';
                 this.toggleDisplay(isHidden);
             }
