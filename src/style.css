@@ -136,90 +136,7 @@ body {
     color: var(--color-primary);
 }
 
-@media (max-width: 900px) {
-    .gallery-header {
-        padding: 0 8px;
-        height: 60px;
-        align-items: center;
-    }
 
-    .logo-text h1 {
-        font-size: 1rem;
-        letter-spacing: 1px;
-        white-space: nowrap;
-        margin-left: 5px;
-    }
-
-    .status-indicator {
-        position: relative;
-        z-index: 100000;
-        /* FORCE TOP LAYER */
-        /* REQUIRED for dropdown anchoring */
-        gap: 0;
-    }
-
-    /* Hide text labels on small screens, keep icons/dots */
-    .status-text {
-        display: none;
-    }
-
-    .status-indicator .minimal-btn {
-        padding: 2px 5px;
-        font-size: 0.5rem;
-        margin-right: 2px;
-    }
-
-    .icon-btn {
-        transform: scale(0.8);
-        margin-right: 2px;
-    }
-
-    .status-indicator .desktop-controls {
-        display: none !important;
-    }
-
-    .mobile-settings-btn {
-        display: block !important;
-        cursor: pointer;
-    }
-
-    .mobile-dropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background: #030507;
-        border: 1px solid var(--color-primary);
-        z-index: 99999;
-        /* Boost above Cortex UI (9999) */
-        display: flex;
-        flex-direction: column;
-        min-width: 150px;
-    }
-
-    .mobile-dropdown.hidden {
-        display: none !important;
-    }
-
-    .dropdown-item {
-        background: transparent;
-        border: none;
-        color: var(--color-primary);
-        padding: 12px;
-        font-family: var(--font-header);
-        font-size: 0.8rem;
-        cursor: pointer;
-        text-align: right;
-        transition: all 0.2s;
-        white-space: nowrap;
-    }
-
-    .dropdown-item:active,
-    .dropdown-item:hover {
-        background: rgba(0, 243, 255, 0.1);
-    }
-}
-
-/* End mobile media query */
 
 /* --- DESKTOP DEFAULTS (Wrapped to prevent Mobile Override) --- */
 @media (min-width: 901px) {
@@ -882,14 +799,10 @@ body.mode-timeline .color-legend {
         display: none;
     }
 
-    .mobile-menu-btn {
-        display: flex;
-        pointer-events: auto;
-        /* explicit click enable */
-        z-index: 2001;
-        /* Above nav */
-        cursor: pointer;
+    .subtitle {
+        display: none;
     }
+
 
     .ui-layer {
         grid-template-columns: 1fr;
@@ -1635,166 +1548,53 @@ input:checked+.slider.gold {
     /* Desktop: Hidden */
 }
 
-@media (max-width: 768px) {
 
-    /* 1. Hide Standard Layout Elements on Mobile */
-    .ui-layer {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr auto;
-        /* Let middle grow */
-        grid-template-areas:
-            "header"
-            "content"
-            "dock";
-        pointer-events: none !important;
-        /* CRITICAL: Pass events to canvas */
-    }
-
-    .gallery-header,
-    .mobile-dock {
-        pointer-events: auto !important;
-        /* Only these elements capture touches */
-    }
-
-    /* Hide redundant menu items since we have the dock */
-    #mob-btn-info,
-    #btn-toggle-info {
-        display: none !important;
-    }
-
-
-
-    .color-legend {
-        display: none;
-        /* Hide Legend on Mobile */
-    }
-
-    /* 2. Mobile Dock Styling */
-    .mobile-dock {
-        grid-area: dock;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        background: rgba(3, 5, 7, 0.95);
-        border-top: 1px solid rgba(0, 243, 255, 0.2);
-        pointer-events: auto;
-        padding-bottom: env(safe-area-inset-bottom);
-        z-index: 1000;
-    }
-
-    /* FIX: Hide Dock in Timeline Mode (Robust) */
-    body.mode-timeline .mobile-dock,
-    body.node-timeline .mobile-dock,
-    body[class*="timeline"] .mobile-dock {
-        display: none !important;
-    }
-
-    .dock-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        font-family: var(--font-header);
-        font-size: 0.6rem;
-        letter-spacing: 1px;
-        padding: 10px;
-        width: 100%;
-    }
-
-    .dock-btn.active {
-        color: var(--color-primary);
-        text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
-    }
-
-    .dock-btn svg {
-        filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
-    }
-
-    /* 3. Panel Overrides for Centered Modal View */
-    .artifact-details {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.95);
-        width: 96%;
-        /* Takes more horizontal space */
-        max-width: 500px;
-        /* Allow wider on tablets/large phones */
-        height: auto;
-        max-height: 80vh;
-        /* Takes more vertical space */
-        z-index: 10000 !important;
-        pointer-events: none;
-        /* Invisible by default */
-        opacity: 0;
-        /* transition removed to fix blink glitch */
-        border: none;
-        background: transparent;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    /* INFO PANEL ACTIVE */
-    .artifact-details.mobile-active-info {
-        opacity: 1 !important;
-        pointer-events: auto;
-        transform: translate(-50%, -50%) scale(1);
-    }
-
-    /* Make the glass panel visible/centered */
-    .artifact-details.mobile-active-info .glass-panel:not(.controls-panel) {
-        background: rgba(10, 15, 20, 0.95);
-        border: 1px solid var(--color-primary);
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-        display: block !important;
-        /* Force show if active */
-    }
-
-    /* STRICTLY HIDE CONTROLS IN INFO MODE */
-    .artifact-details.mobile-active-info .advanced-controls,
-    .artifact-details.mobile-active-info .controls-panel {
-        display: none !important;
-    }
-
-    /* CONTROLS PANEL ACTIVE */
-    .artifact-details.mobile-active-controls {
-        opacity: 1 !important;
-        pointer-events: auto;
-        transform: translate(-50%, -50%) scale(1);
-    }
-
-    .artifact-details.mobile-active-controls .advanced-controls {
-        display: block !important;
-        background: rgba(10, 15, 20, 0.95);
-        border: 1px solid var(--color-secondary);
-        padding: 15px;
-        max-height: 75vh;
-        /* Increased height */
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        /* Smooth scroll */
-        overscroll-behavior: contain;
-        pointer-events: auto;
-        /* Ensure clickable */
-    }
-
-    .artifact-details.mobile-active-controls .controls-panel {
-        display: block !important;
-        margin-top: 10px;
-    }
-
-    /* Hide Info logic when Controls active */
-    .artifact-details.mobile-active-controls .glass-panel:not(.controls-panel) {
-        display: none !important;
-    }
-
-    /* Footer Elements Hide */
-    .gallery-footer,
-    .interaction-hint {
-        display: none;
-    }
+/* 2. Mobile Dock Styling */
+.mobile-dock {
+    grid-area: dock;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: #000 !important;
+    border-top: 1px solid rgba(0, 243, 255, 0.2);
+    pointer-events: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 1000;
 }
+
+/* FIX: Hide Dock in Timeline Mode (Robust) */
+body.mode-timeline .mobile-dock,
+body.node-timeline .mobile-dock,
+body[class*="timeline"] .mobile-dock {
+    display: none !important;
+}
+
+.dock-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-header);
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    padding: 10px;
+    width: 100%;
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    cursor: pointer;
+}
+
+.dock-btn.active {
+    color: var(--color-primary);
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.dock-btn svg {
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+}
+
+
 
 /* --- TOOLBAR REFACTOR --- */
 .desktop-controls {

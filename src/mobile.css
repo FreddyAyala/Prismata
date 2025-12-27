@@ -1,0 +1,266 @@
+/* =========================================
+   PRISMATA MOBILE STYLES
+   ========================================= */
+
+/* 1. GLOBAL MOBILE RESETS */
+@media (max-width: 900px) {
+
+  /* Prevent default touch actions (scrolling/zooming) on the app container */
+  /* This ensures touches go to the 3D Canvas (OrbitControls) */
+  html,
+  body,
+  #app,
+  .viewer-layout,
+  canvas {
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+    overflow: hidden !important;
+    -webkit-overflow-scrolling: auto;
+    /* Prevent elastic scroll */
+  }
+
+  /* 2. LAYOUT OVERRIDES */
+  .ui-layer {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr auto !important;
+    /* Header, Content, Dock */
+    grid-template-areas:
+      "header"
+      "content"
+      "dock" !important;
+    pointer-events: none !important;
+  }
+
+  /* 3. VISIBILITY TOGGLES */
+  /* Hide Desktop-only elements */
+  .gallery-nav:not(.active),
+  /* Only hide if NOT active */
+  .desktop-controls,
+  .color-legend,
+  .status-text,
+  .controls-panel,
+  .interaction-hint,
+  .gallery-footer {
+    display: none !important;
+  }
+
+  /* Active Mobile Nav */
+  .gallery-nav.active {
+    display: flex !important;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    bottom: 70px;
+    /* Stop at dock */
+    width: 75%;
+    /* Wider */
+    height: auto;
+    z-index: 200002 !important;
+    /* Above UI layer */
+    pointer-events: auto !important;
+    background: rgba(5, 10, 15, 0.98);
+    /* Almost opaque */
+    border-right: 1px solid var(--color-primary);
+    box-shadow: 10px 0 50px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  /* Show Mobile-only elements */
+  .mobile-settings-btn {
+    display: flex !important;
+    pointer-events: auto;
+  }
+
+  /* 4. HEADER ADJUSTMENTS */
+  .gallery-header {
+    height: 60px;
+    padding: 0 10px;
+    pointer-events: auto !important;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo-text h1 {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    /* Force Visible */
+    pointer-events: auto !important;
+    cursor: pointer;
+    z-index: 20000;
+    /* Ensure high z-index */
+    background: transparent;
+    border: none;
+    color: var(--color-primary);
+    padding: 10px;
+    /* Larger touch target */
+    margin-right: 5px;
+  }
+
+  .mobile-menu-btn svg {
+    filter: drop-shadow(0 0 2px rgba(0, 243, 255, 0.5));
+  }
+
+  .subtitle {
+    display: none;
+    /* Too cluttered on mobile */
+  }
+
+  /* 5. MOBILE DOCK (Bottom Bar) */
+  .mobile-dock {
+    grid-area: dock;
+    display: flex !important;
+    /* Force show */
+    justify-content: space-around;
+    align-items: center;
+    background: #000 !important;
+    /* Hard Black */
+    border-top: 1px solid rgba(0, 243, 255, 0.2);
+    pointer-events: auto !important;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 9999;
+    height: 70px;
+    /* Fixed height touch target */
+  }
+
+  .dock-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-family: var(--font-header);
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    padding: 5px;
+    width: 100%;
+    height: 100%;
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .dock-btn.active {
+    color: var(--color-primary) !important;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+  }
+
+  .dock-btn svg {
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+  }
+
+  /* Hide Dock in specific modes if needed */
+  body.mode-timeline .mobile-dock {
+    display: none !important;
+  }
+
+  /* 6. CENTERED MODALS / PANELS */
+  .artifact-details {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: 90vw;
+    max-width: 400px;
+    max-height: 70vh;
+    z-index: 10000 !important;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .artifact-details.mobile-active-info {
+    opacity: 1 !important;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  /* Make the glass panel visible/centered */
+  .artifact-details.mobile-active-info .glass-panel:not(.controls-panel) {
+    background: rgba(10, 15, 20, 0.95);
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    display: block !important;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  /* STRICTLY HIDE CONTROLS IN INFO MODE */
+  .artifact-details.mobile-active-info .advanced-controls,
+  .artifact-details.mobile-active-info .controls-panel {
+    display: none !important;
+  }
+
+  /* CONTROLS PANEL ACTIVE */
+  .artifact-details.mobile-active-controls {
+    opacity: 1 !important;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .artifact-details.mobile-active-controls .advanced-controls {
+    display: block !important;
+    background: rgba(10, 15, 20, 0.95);
+    border: 1px solid var(--color-secondary);
+    padding: 15px;
+    max-height: 75vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+  }
+
+  .artifact-details.mobile-active-controls .controls-panel {
+    display: block !important;
+    margin-top: 10px;
+  }
+
+  /* Hide Info logic when Controls active */
+  .artifact-details.mobile-active-controls .glass-panel:not(.controls-panel) {
+    display: none !important;
+  }
+
+  /* 7. MOBILE DROPDOWN MENU */
+  .mobile-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #030507;
+    border: 1px solid var(--color-primary);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+  }
+
+  .mobile-dropdown.hidden {
+    display: none !important;
+  }
+
+  .dropdown-item {
+    background: transparent;
+    border: none;
+    color: var(--color-primary);
+    padding: 12px;
+    font-family: var(--font-header);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-align: right;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .dropdown-item:active,
+  .dropdown-item:hover {
+    background: rgba(0, 243, 255, 0.1);
+  }
+}

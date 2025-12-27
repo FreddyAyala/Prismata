@@ -325,8 +325,14 @@ export function setupControls(context) {
   // Mobile Menu
   const btnMobileMenu = document.getElementById('btn-mobile-menu');
   if (btnMobileMenu) {
-    btnMobileMenu.addEventListener('click', () => {
-      document.querySelector('.gallery-nav').classList.toggle('active');
+    btnMobileMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nav = document.querySelector('.gallery-nav');
+      if (nav) {
+        nav.classList.toggle('active');
+        nav.classList.toggle('mobile-nav'); // Check if this class is needed for mobile specific styling
+        console.log('Mobile Menu Toggled. Active:', nav.classList.contains('active'));
+      }
     });
   }
 
