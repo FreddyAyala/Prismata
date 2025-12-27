@@ -166,67 +166,89 @@
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(0.95);
-    width: 90vw;
-    max-width: 400px;
-    max-height: 70vh;
+    transform: translate(-50%, -50%);
+      /* Center perfectly */
+      width: 94vw;
+      /* Slightly less than full width */
+      max-width: 500px;
+      max-height: 75vh;
+      /* User requested 75% height */
     z-index: 10000 !important;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.2s;
     display: flex;
     flex-direction: column;
+    padding: 10px 0;
+      /* Add vertical padding consideration */
   }
 
   .artifact-details.mobile-active-info {
     opacity: 1 !important;
     pointer-events: auto;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%);
   }
 
-  /* Make the glass panel visible/centered */
+    /* --- PANEL VISIBILITY LOGIC (ROBUST) --- */
+  
+    /* 1. INFO MODE ACTIVE */
   .artifact-details.mobile-active-info .glass-panel:not(.controls-panel) {
-    background: rgba(10, 15, 20, 0.95);
-    border: 1px solid var(--color-primary);
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
     display: block !important;
-    max-height: 80vh;
-    overflow-y: auto;
+      /* Show Info Panels */
+      max-height: 100%;
+      /* Fill container */
+      overflow-y: auto;
+      /* Scroll internally */
+    }
+    
+    .artifact-details.mobile-active-info .detail-header,
+    .artifact-details.mobile-active-info .detail-body,
+    .artifact-details.mobile-active-info .reading-guide {
+      display: block !important;
   }
 
-  /* STRICTLY HIDE CONTROLS IN INFO MODE */
+    /* Force Hide Controls in Info Mode */
   .artifact-details.mobile-active-info .advanced-controls,
   .artifact-details.mobile-active-info .controls-panel {
     display: none !important;
   }
 
-  /* CONTROLS PANEL ACTIVE */
-  .artifact-details.mobile-active-controls {
-    opacity: 1 !important;
-    pointer-events: auto;
-    transform: translate(-50%, -50%) scale(1);
+    /* 2. CONTROLS MODE ACTIVE */
+    .artifact-details.mobile-active-controls .advanced-controls,
+    .artifact-details.mobile-active-controls .controls-panel {
+      display: block !important;
+    }
+  
+    /* Force Hide Info Elements in Controls Mode */
+    .artifact-details.mobile-active-controls .glass-panel:not(.controls-panel),
+    .artifact-details.mobile-active-controls .reading-guide,
+    .artifact-details.mobile-active-controls #panel-a,
+    .artifact-details.mobile-active-controls #panel-b {
+      display: none !important;
+    }
+  
+    /* 3. MOBILE CONTROLS LAYOUT */
+    /* Remove Accordion behavior on mobile - Always show content */
+    .artifact-details.mobile-active-controls .accordion-toggle {
+      display: none !important;
+      /* Hide "Advanced Controls" header/chevron */
+    }
+  
+    .artifact-details.mobile-active-controls .accordion-content {
+      display: block !important;
+      /* Always expanded */
+      background: transparent !important;
+      /* Blend in */
+      padding: 0 !important;
   }
-
+  
   .artifact-details.mobile-active-controls .advanced-controls {
-    display: block !important;
-    background: rgba(10, 15, 20, 0.95);
-    border: 1px solid var(--color-secondary);
-    padding: 15px;
-    max-height: 75vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    pointer-events: auto;
-  }
-
-  .artifact-details.mobile-active-controls .controls-panel {
-    display: block !important;
-    margin-top: 10px;
-  }
-
-  /* Hide Info logic when Controls active */
-  .artifact-details.mobile-active-controls .glass-panel:not(.controls-panel) {
-    display: none !important;
+      background: rgba(5, 10, 15, 0.95) !important;
+        border: 1px solid var(--color-secondary);
+      max-height: 100%;
+        /* Fill container (which is 75vh) */
+        overflow-y: auto;
+      overscroll-behavior: contain;
   }
 
   /* 7. MOBILE DROPDOWN MENU */
