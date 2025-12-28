@@ -420,6 +420,19 @@ export function setupControls(context) {
     });
   }
 
+  // FESTIVE TOGGLE
+  const btnFestive = document.getElementById('festive-toggle');
+  if (btnFestive) {
+    btnFestive.addEventListener('change', (e) => {
+      const val = e.target.checked;
+      localStorage.setItem('prismata_festive_enabled', val);
+      applyToViewers(v => v.checkFestive && v.checkFestive());
+    });
+    // Set initial state
+    const stored = localStorage.getItem('prismata_festive_enabled');
+    btnFestive.checked = stored !== 'false'; // Default TRUE
+  }
+
   if (btnResetAdv) {
     btnResetAdv.addEventListener('click', resetAdvancedDefaults);
   }

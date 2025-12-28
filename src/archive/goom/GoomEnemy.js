@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { festiveManager } from '../../engine/FestiveManager.js';
 
 export class GlitchEnemy {
   static tempDir = new THREE.Vector3();
@@ -63,6 +64,23 @@ export class GlitchEnemy {
     this.mesh.position.copy(position);
 
     this.buildVisuals();
+
+    // FESTIVE HAT
+    if (localStorage.getItem('prismata_festive_enabled') !== 'false') {
+      const hat = festiveManager.getHat();
+      if (hat) {
+        let yOffset = 0.8; // Default Head Height
+        if (type === 'tank') yOffset = 1.6;
+        else if (type === 'imp') yOffset = 0.5;
+        else if (type === 'scout') yOffset = 0.5;
+        else if (type === 'wraith') yOffset = 0.5;
+
+        hat.position.y += yOffset;
+        hat.rotation.y = (Math.random() - 0.5) * 0.5;
+        this.mesh.add(hat);
+      }
+    }
+
     this.createHitbox();
 
     this.mesh.scale.set(this.scale, this.scale, this.scale);

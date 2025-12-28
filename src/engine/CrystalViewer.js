@@ -3,6 +3,7 @@ import { PLYParser } from './PLYParser.js';
 import { Environment } from './Environment.js';
 import { CameraRig } from './CameraRig.js';
 import * as THREE from 'three';
+import { festiveManager } from './FestiveManager.js';
 
 export class CrystalViewer {
   constructor(containerId) {
@@ -135,10 +136,52 @@ export class CrystalViewer {
       const box = new THREE.Box3().setFromObject(this.crystalGroup);
       this.rig.fitToBox(box);
 
+      // CHECK FESTIVE HAT
+      this.checkFestive();
+
       return stats;
     } catch (err) {
       console.error("Load failed:", err);
       throw err;
+    }
+  }
+
+  checkFestive() {
+    if (!this.crystalGroup) return;
+
+    // Find existing hat
+    let existingHat = this.crystalGroup.children.find(c => c.userData.isHat);
+
+    const isFestive = localStorage.getItem('prismata_festive_enabled') !== 'false';
+
+    if (isFestive) {
+      if (!existingHat) {
+        const hat = festiveManager.getHat();
+        if (hat) {
+          // Determine Bounds to place hat nicely
+          const box = new THREE.Box3().setFromObject(this.crystalGroup);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+
+          // Scale Hat based on Crystal Size
+          // Assume Hat roughly 1 unit high/wide default
+          // Crystal size varies, usually ~10-20 units?
+          const scale = Math.max(size.x, size.z) * 0.3;
+          hat.scale.set(scale, scale, scale);
+
+          // Position on Top
+          hat.position.set(center.x, box.max.y, center.z);
+
+          // Add to Group
+          this.crystalGroup.add(hat);
+        }
+      }
+    } else {
+      if (existingHat) {
+        this.crystalGroup.remove(existingHat);
+      }
     }
   }
 
