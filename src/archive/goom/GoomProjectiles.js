@@ -15,6 +15,9 @@ export class GoomProjectiles {
 
     // DOOM STYLE AUTO AIM: Finds best target in center vertical column
     getAutoAimTarget() {
+        // DESKTOP SAFEGUARD: Only enable Auto-Aim on Mobile
+        if (window.innerWidth > 900) return null;
+
         const candidates = [];
         this.game.enemies.forEach(e => candidates.push(e.mesh));
         if (this.game.boss) candidates.push(this.game.boss.mesh);
