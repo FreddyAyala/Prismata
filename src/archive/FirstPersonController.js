@@ -141,14 +141,14 @@ export class FirstPersonController {
             const look = this.mobileControls.lookVector;
             if (look.x !== 0 || look.y !== 0) {
                 // Rotation Speed (Rad/Frame)
-                // Adjust sensitivity here. 
-                // e.g., 2.0 * delta per axis
-                const rotSpeed = 2.0;
+                // LOWERED for better precision
+                const rotSpeed = 1.2;
 
                 // Yaw (Y-axis) -> Left/Right Stick X
                 this.camera.rotation.y -= look.x * rotSpeed * delta;
 
                 // Pitch (X-axis) -> Up/Down Stick Y
+                // Subtracting Y makes Stick UP -> Look UP (Standard)
                 this.camera.rotation.x -= look.y * rotSpeed * delta;
 
                 // Clamp Pitch

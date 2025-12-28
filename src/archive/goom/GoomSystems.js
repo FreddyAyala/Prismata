@@ -11,7 +11,7 @@ export class GoomSystems {
     }
 
     createExplosion(pos, color, isBig, life = 0.5) {
-        const count = isBig ? 20 : 8; // Fewer but bigger chunks
+        const count = isBig ? 12 : 6; // Reduced for performance
         const spread = isBig ? 8.0 : 1.5;
 
         // Use a shared geometry for debris
@@ -48,7 +48,7 @@ export class GoomSystems {
         }
 
         // Add a central flash sphere
-        const flashGeo = new THREE.SphereGeometry(isBig ? 4.0 : 1.0, 8, 8);
+        const flashGeo = new THREE.SphereGeometry(isBig ? 4.0 : 1.0, 4, 4); // Lower poly sphere
         const flashMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 });
         const flash = new THREE.Mesh(flashGeo, flashMat);
         flash.position.copy(pos);
@@ -58,7 +58,7 @@ export class GoomSystems {
 
     createTeleportEffect(pos) {
         // A tall cyberpunk cylinder beam
-        const geometry = new THREE.CylinderGeometry(2, 2, 20, 8, 1, true);
+        const geometry = new THREE.CylinderGeometry(2, 2, 20, 6, 1, true); // Lower poly cylinder
         const material = new THREE.MeshBasicMaterial({
             color: 0x00ffff,
             transparent: true,
