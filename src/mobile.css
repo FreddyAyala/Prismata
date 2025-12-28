@@ -171,7 +171,7 @@
       width: 94vw;
       /* Slightly less than full width */
       max-width: 500px;
-      max-height: 75vh;
+      max-height: 80vh;
       /* User requested 75% height */
     z-index: 10000 !important;
     pointer-events: none;
@@ -192,18 +192,30 @@
     /* --- PANEL VISIBILITY LOGIC (ROBUST) --- */
   
     /* 1. INFO MODE ACTIVE */
-  .artifact-details.mobile-active-info .glass-panel:not(.controls-panel) {
-    display: block !important;
-      /* Show Info Panels */
-      max-height: 100%;
-      /* Fill container */
+    /* Main Content Panel (A or B) - Takes remaining space and scrolls */
+    .artifact-details.mobile-active-info .details-content {
+      display: block !important;
+      flex: 1 1 auto;
+        min-height: 0;
       overflow-y: auto;
-      /* Scroll internally */
-    }
-    
-    .artifact-details.mobile-active-info .detail-header,
-    .artifact-details.mobile-active-info .detail-body,
-    .artifact-details.mobile-active-info .reading-guide {
+      margin-bottom: 5px;
+        background: rgba(10, 15, 20, 0.95);
+        border: 1px solid var(--color-primary);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+      }
+      
+      /* Reading Guide - Fixed height, no scroll */
+      .artifact-details.mobile-active-info .reading-guide {
+        display: block !important;
+        flex: 0 0 auto;
+        /* Don't grow/shrink */
+        margin-bottom: 0;
+        background: rgba(10, 15, 20, 0.95);
+        border-left: 2px solid var(--color-primary);
+      }
+      
+      .artifact-details.mobile-active-info .detail-header,
+    .artifact-details.mobile-active-info .detail-body {
       display: block !important;
   }
 
@@ -220,35 +232,37 @@
     }
   
     /* Force Hide Info Elements in Controls Mode */
-    .artifact-details.mobile-active-controls .glass-panel:not(.controls-panel),
+    .artifact-details.mobile-active-controls .glass-panel,
+    /* Catch-all for glass panels */
     .artifact-details.mobile-active-controls .reading-guide,
-    .artifact-details.mobile-active-controls #panel-a,
-    .artifact-details.mobile-active-controls #panel-b {
+    .artifact-details.mobile-active-controls .details-content {
       display: none !important;
     }
   
     /* 3. MOBILE CONTROLS LAYOUT */
-    /* Remove Accordion behavior on mobile - Always show content */
-    .artifact-details.mobile-active-controls .accordion-toggle {
+    .accordion-toggle {
       display: none !important;
-      /* Hide "Advanced Controls" header/chevron */
-    }
+  
   
     .artifact-details.mobile-active-controls .accordion-content {
       display: block !important;
-      /* Always expanded */
       background: transparent !important;
-      /* Blend in */
       padding: 0 !important;
   }
   
   .artifact-details.mobile-active-controls .advanced-controls {
       background: rgba(5, 10, 15, 0.95) !important;
-        border: 1px solid var(--color-secondary);
-      max-height: 100%;
-        /* Fill container (which is 75vh) */
+      border: 1px solid var(--color-secondary);
+      flex: 1 1 auto;
+        /* Take remaining space */
+        min-height: 0;
         overflow-y: auto;
-      overscroll-behavior: contain;
+      margin-bottom: 10px;
+      }
+      
+      .artifact-details.mobile-active-controls .controls-panel {
+        flex: 0 0 auto;
+        display: block !important;
   }
 
   /* 7. MOBILE DROPDOWN MENU */
