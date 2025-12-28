@@ -111,9 +111,10 @@ class ArchiveManager {
         this.camera.position.set(0, 10, 50);
         this.scene.add(this.camera); // REQUIRED for weapon to be visible
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        // FORCE 1.0 Pixel Ratio for Max Performance
+        this.renderer.setPixelRatio(1.0);
         this.container.appendChild(this.renderer.domElement);
 
         this.environment = new ArchiveEnvironment(this.scene);
@@ -332,6 +333,7 @@ class ArchiveManager {
             let color = 0x00f3ff;
             if (model.type === 'LLM') color = 0xff0055;
             if (model.type === 'Multimodal') color = 0xffaa00;
+            if (model.type === 'Vision') color = 0xaa00ff;
 
             // Standard Material
             const material = new THREE.PointsMaterial({
@@ -339,7 +341,8 @@ class ArchiveManager {
                 size: 0.15,
                 transparent: true,
                 opacity: 0.8,
-                blending: THREE.AdditiveBlending
+                blending: THREE.AdditiveBlending,
+                sizeAttenuation: true
             });
 
             const mesh = new THREE.Points(geometry, material);
