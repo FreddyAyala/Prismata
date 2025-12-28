@@ -148,8 +148,10 @@ export class FirstPersonController {
                 this.camera.rotation.y -= look.x * rotSpeed * delta;
 
                 // Pitch (X-axis) -> Up/Down Stick Y
-                // Subtracting Y makes Stick UP -> Look UP (Standard)
-                this.camera.rotation.x -= look.y * rotSpeed * delta;
+                // INVERTED Y FIX: Adding instead of subtracting
+                // Stick Up (Neg Y) -> Look Up (Pos X rotation?)
+                // Actually, just flipped the sign from previous.
+                this.camera.rotation.x += look.y * rotSpeed * delta;
 
                 // Clamp Pitch
                 this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
