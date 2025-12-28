@@ -140,21 +140,20 @@ export class FirstPersonController {
             // Handle Look (Twin Stick)
             const look = this.mobileControls.lookVector;
             if (look.x !== 0 || look.y !== 0) {
-                // Rotation Speed (Rad/Frame)
-                // LOWERED for better precision
-                const rotSpeed = 1.2;
+                // DOOM STYLE CONTROLS
+                // FAST Turning (Yaw)
+                const yawSpeed = 4.0; // Much faster as requested
+                this.camera.rotation.y -= look.x * yawSpeed * delta;
 
-                // Yaw (Y-axis) -> Left/Right Stick X
-                this.camera.rotation.y -= look.x * rotSpeed * delta;
-
-                // Pitch (X-axis) -> Up/Down Stick Y
-                // INVERTED Y FIX: Adding instead of subtracting
-                // Stick Up (Neg Y) -> Look Up (Pos X rotation?)
-                // Actually, just flipped the sign from previous.
-                this.camera.rotation.x += look.y * rotSpeed * delta;
-
-                // Clamp Pitch
-                this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
+                // LOCKED Vertical (Pitch)
+                // User requested "lock vertical axis to straight line"
+                // We ignore stick Y for look, and instead auto-level the camera.
+                this.camera.rotation.x = THREE.MathUtils.lerp(this.camera.rotation.x, 0, 10 * delta);
+            } else {
+                // Even if not touching, auto-level just in case
+                if (Math.abs(this.camera.rotation.x) > 0.01) {
+                    this.camera.rotation.x = THREE.MathUtils.lerp(this.camera.rotation.x, 0, 5 * delta);
+                }
             }
 
             // Handle Jump

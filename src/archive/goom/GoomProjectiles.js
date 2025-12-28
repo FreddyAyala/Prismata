@@ -13,9 +13,77 @@ export class GoomProjectiles {
         this.sharedTracerMats = {};
     }
 
+    // DOOM STYLE AUTO AIM: Finds best target in center vertical column
+    getAutoAimTarget() {
+        const candidates = [];
+        this.game.enemies.forEach(e => candidates.push(e.mesh));
+        if (this.game.boss) candidates.push(this.game.boss.mesh);
+        if (this.game.ui && this.game.ui.crystals) {
+            this.game.ui.crystals.forEach(c => {
+                if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted) candidates.push(c.mesh);
+            });
+        }
+
+        let bestTarget = null;
+        let minAngle = Infinity;
+        const maxAngle = 0.5; // ~30 degrees horizontal tolerance
+
+        const camDir = new THREE.Vector3();
+        this.camera.getWorldDirection(camDir);
+        camDir.y = 0; camDir.normalize(); // Flatten to XZ plane
+
+        const camPos = this.camera.position;
+
+        for (const c of candidates) {
+            if (!c.visible) continue;
+
+            const toTarget = new THREE.Vector3().subVectors(c.position, camPos);
+            toTarget.y = 0; // Flatten
+            const dist = toTarget.length();
+            if (dist > 200) continue; // Too far
+
+            toTarget.normalize();
+
+            // Angle check
+            const angle = camDir.angleTo(toTarget);
+            if (angle < maxAngle && angle < minAngle) {
+                // Determine if we have line of sight? (Optional, maybe skip for classic Doom feel)
+                minAngle = angle;
+                bestTarget = c;
+            }
+        }
+        return bestTarget;
+    }
+
     fireHitscan(weapon, spread = 0) {
         const coords = new THREE.Vector2((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread);
         this.raycaster.setFromCamera(coords, this.camera);
+
+        // DOOM AUTO-AIM OVERRIDE
+        const autoTarget = this.getAutoAimTarget();
+        if (autoTarget) {
+            const start = this.raycaster.ray.origin;
+            const targetPos = autoTarget.position.clone();
+
+            // Aim at center of mass? slightly higher/lower logic?
+            // Goom enemies center is y=0 usually? No they float.
+            // Let's rely on their position.
+
+            let dir = new THREE.Vector3().subVectors(targetPos, start).normalize();
+            // We want to KEEP variables spread but adjust base direction.
+            // For hitscan, we just override direction if spread is low? 
+            // Or just set direction to target + spread.
+
+            // Apply spread to the perfect aim
+            if (spread > 0) {
+                dir.x += (Math.random() - 0.5) * spread;
+                dir.y += (Math.random() - 0.5) * spread;
+                dir.z += (Math.random() - 0.5) * spread;
+                dir.normalize();
+            }
+
+            this.raycaster.ray.direction.copy(dir);
+        }
 
         // Calculate a point far down the ray for the "miss" tracer
         const maxDist = (weapon.name === 'SHOTGUN') ? 100.0 : 500.0;
@@ -50,43 +118,6 @@ export class GoomProjectiles {
             const hit = intersections[0];
             hitPoint = hit.point;
             target = hit.object;
-        }
-
-        // FUZZY AIM AID: Check if we missed but were "close enough" to a Crystal
-        if ((!target || (target.userData && !target.userData.enemy)) && this.game.ui && this.game.ui.crystals) {
-            let closestCrystal = null;
-            let closestDistSq = Infinity;
-            const threshold = 2.5; // generous hit radius (radius of "magnetism")
-            const thresholdSq = threshold * threshold;
-            const camPos = this.camera.position;
-
-            this.game.ui.crystals.forEach(c => {
-                if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted) {
-                    // Check distance from Ray to Crystal Center
-                    // Project crystal center onto ray
-                    const vToCenter = new THREE.Vector3().subVectors(c.mesh.position, this.raycaster.ray.origin);
-                    const directionDist = vToCenter.dot(this.raycaster.ray.direction);
-
-                    if (directionDist > 0) { // In front of us
-                        const projectedPoint = this.raycaster.ray.origin.clone().add(this.raycaster.ray.direction.clone().multiplyScalar(directionDist));
-                        const distToRaySq = c.mesh.position.distanceToSquared(projectedPoint);
-
-                        if (distToRaySq < thresholdSq) {
-                            // It's a "hit" candidate. Is it closer than our current hit?
-                            const distFromCamSq = c.mesh.position.distanceToSquared(camPos);
-                            if (distFromCamSq < closestDistSq && (!hitPoint || distFromCamSq < camPos.distanceToSquared(hitPoint))) {
-                                closestDistSq = distFromCamSq;
-                                closestCrystal = c.mesh;
-                                hitPoint = projectedPoint; // Snap hit point to the closest point on ray
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (closestCrystal) {
-                target = closestCrystal;
-            }
         }
 
         // VISUALS FIRST: Guaranteed Tracer
@@ -159,34 +190,28 @@ export class GoomProjectiles {
             start.add(dir.multiplyScalar(1.0));
         }
 
-        this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+        let velocityDir;
 
-        const objects = this.game.enemies.map(e => e.hitbox).filter(h => h);
-        if (this.game.ui && this.game.ui.crystals) {
-            this.game.ui.crystals.forEach(c => {
-                if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted) {
-                    objects.push(c.mesh);
-                }
-            });
-        }
-        if (this.game.boss) objects.push(this.game.boss.mesh);
-
-        let targetPoint = new THREE.Vector3();
-        const hits = this.raycaster.intersectObjects(objects, true);
-
-        if (hits.length > 0) {
-            targetPoint.copy(hits[0].point);
+        // DOOM AUTO-AIM
+        const autoTarget = this.getAutoAimTarget();
+        if (autoTarget) {
+            velocityDir = new THREE.Vector3().subVectors(autoTarget.position, start).normalize();
+        // Small compensation for projectile speed vs target movement? Nah, minimal.
         } else {
+            // Standard Aim
+            this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+            const targetPoint = new THREE.Vector3();
             this.raycaster.ray.at(100, targetPoint);
+
+            // Floor clamp logic from original?
             if (this.raycaster.ray.direction.y < -0.05) {
                 const t = (0 - this.raycaster.ray.origin.y) / this.raycaster.ray.direction.y;
                 if (t > 0 && t < 200) {
                     this.raycaster.ray.at(t, targetPoint);
                 }
             }
+            velocityDir = new THREE.Vector3().subVectors(targetPoint, start).normalize();
         }
-
-        const velocityDir = new THREE.Vector3().subVectors(targetPoint, start).normalize();
 
         const geo = new THREE.IcosahedronGeometry(weapon.type === 'projectile_fast' ? 0.2 : 0.5, 0);
         const mat = new THREE.MeshBasicMaterial({ color: weapon.color, wireframe: false });
