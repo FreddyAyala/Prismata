@@ -140,12 +140,17 @@ export class MobileControls {
             knob.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
 
             // Normalize (-1 to 1)
-            vectorOut.x = x / this.maxRadius;
-            vectorOut.y = y / this.maxRadius;
+            let nx = x / this.maxRadius;
+            let ny = y / this.maxRadius;
 
             // Deadzone
-            if (Math.abs(vectorOut.x) < this.deadZone) vectorOut.x = 0;
-            if (Math.abs(vectorOut.y) < this.deadZone) vectorOut.y = 0;
+            if (Math.abs(nx) < 0.05) nx = 0;
+            if (Math.abs(ny) < 0.05) ny = 0;
+
+            // EXPONENTIAL CURVE (Quadratic) for finer control
+            // Sign * Value^2
+            vectorOut.x = Math.sign(nx) * nx * nx;
+            vectorOut.y = Math.sign(ny) * ny * ny;
         };
 
         const resetStick = (knob, vectorOut) => {
