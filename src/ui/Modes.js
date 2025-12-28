@@ -69,12 +69,20 @@ export class ModeManager {
     timelineManager.exit();
     if (archiveManager.active) archiveManager.exitArchive();
 
+    // RESUME MAIN RENDERER
+    if (viewers.main) {
+      viewers.main.resume();
+      viewers.main.onResize();
+    }
+
     if (window.updateModeUI) window.updateModeUI('workbench');
-    if (viewers.main) viewers.main.onResize();
   }
 
   enterArchiveMode(models) {
-    const { timelineManager, archiveManager } = this.context;
+    const { timelineManager, archiveManager, viewers } = this.context;
+
+    // PAUSE MAIN RENDERER (Critical for Performance)
+    if (viewers.main) viewers.main.pause();
     
     const layout = document.querySelector('.viewer-layout');
     const ui = document.querySelector('.ui-layer');
