@@ -173,8 +173,18 @@ export class CrystalViewer {
     this.rig.onResize();
   }
 
+  pause() {
+    this.paused = true;
+  }
+
+  resume() {
+    this.paused = false;
+  }
+
   animate() {
     this.animationId = requestAnimationFrame(() => this.animate());
+
+    if (this.paused) return; // SKIP RENDER LOOP WHEN PAUSED
 
     // 1. FPS Calculation
     this.fpsFrames++;
