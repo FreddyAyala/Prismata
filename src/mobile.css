@@ -242,7 +242,7 @@
     /* 3. MOBILE CONTROLS LAYOUT */
     .accordion-toggle {
       display: none !important;
-  
+    
   
     .artifact-details.mobile-active-controls .accordion-content {
       display: block !important;

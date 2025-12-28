@@ -97,7 +97,37 @@ export class GoomUI {
                         background:rgba(0,0,0,0.85); display:flex; flex-direction:column; justify-content:center; align-items:center;
                         z-index:5000; pointer-events:auto; color:white; font-family:'Orbitron', sans-serif;`;
 
-        div.innerHTML = `
+        const isMobile = window.innerWidth <= 900;
+
+        if (isMobile) {
+            // Simplified Mobile Layout
+            div.innerHTML = `
+                <img src="/unnamed_8.jpg" style="max-height:100px; border:2px solid #ff0033; margin-bottom:20px; box-shadow:0 0 20px red;">
+                <h1 style="font-size:30px; color:#ff0033; margin-bottom:10px; text-shadow:0 0 20px red; text-align:center;">OPERATION FIREWALL</h1>
+                <div style="font-size:14px; color:#aaa; margin-bottom:20px; text-align:center;">CRITICAL SYSTEM BREACH</div>
+
+                <div style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #444; border-radius:10px; width:90%; text-align:center; margin-bottom:20px;">
+                    <h3 style="color:#00ff88; margin-top:0;">DEFENSE PROTOCOLS</h3>
+                    <div style="font-size:14px; line-height:1.6;">
+                         <b style="color:#ffaa00;">USE ON-SCREEN CONTROLS</b><br>
+                         LEFT STICK: MOVE<br>
+                         RIGHT SIDE: AIM<br>
+                         BUTTONS: FIRE / JUMP / WEAPON
+                    </div>
+                </div>
+
+                <button id="goom-start-btn" style="padding: 15px 40px; font-size:20px; background:#ff0033; color:white; border:none; cursor:pointer; 
+                            box-shadow: 0 0 20px #ff0033; font-family:'Orbitron', sans-serif;">
+                    TAP TO ENGAGE
+                </button>
+                <div style="margin-top:15px; font-size:12px; color:#666;">(TAP ELSEWHERE TO CANCEL)</div>
+            `;
+
+            // Allow tap on background to cancel? No, might be annoying.
+            // Let's rely on the button.
+        } else {
+        // Desktop Layout (Original)
+            div.innerHTML = `
                 <img src="/unnamed_8.jpg" style="max-height:150px; border:2px solid #ff0033; margin-bottom:20px; box-shadow:0 0 20px red;">
                 <h1 style="font-size:50px; color:#ff0033; margin-bottom:10px; text-shadow:0 0 20px red; text-align:center;">OPERATION FIREWALL</h1>
                 <div style="font-size:20px; color:#aaa; margin-bottom:30px; text-align:center;">CRITICAL SYSTEM BREACH DETECTED</div>
@@ -120,8 +150,8 @@ export class GoomUI {
                     <!-- RIGHT COLUMN: THREAT DATABASE -->
                     <div style="width:50%; text-align:left;">
                         <h3 style="color:#ff0033; border-bottom:1px solid #ff0033; padding-bottom:5px; margin-top:0;">THREAT DATABASE</h3>
-
-                        <!-- IMP -->
+                        <!-- ... (same items) ... -->
+                         <!-- IMP -->
                         <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
                             <img src="${this.generateEnemySnapshot('imp')}" style="width:50px; height:50px; border:1px solid #ff4400; margin-right:10px; background:#000;">
                             <div>
@@ -156,7 +186,6 @@ export class GoomUI {
                                 <div style="color:#aaa; font-size:11px; font-style:italic;">"Classified. Do not approach."</div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
@@ -170,7 +199,9 @@ export class GoomUI {
                         (ESC TO CANCEL)
                     </div>
                 </div>
-        `;
+            `;
+        }
+
         this.hud.appendChild(div);
 
         let started = false;

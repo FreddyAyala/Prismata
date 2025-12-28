@@ -71,11 +71,17 @@ export class GoomGame {
       console.log("DEBUG: Showing Instructions...");
       this.ui.showInstructions(() => {
         this.startGame();
-        document.body.requestPointerLock();
+        if (!this.player.mobileControls) document.body.requestPointerLock();
       });
     } else {
       this.startGame();
-      document.body.requestPointerLock();
+      if (!this.player.mobileControls) document.body.requestPointerLock();
+    }
+
+    // Enable Mobile Combat Controls
+    if (this.player && this.player.mobileControls) {
+      this.player.enableMobile();
+      this.player.mobileControls.enableCombatMode();
     }
 
     if (this.audio && this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
@@ -181,6 +187,11 @@ export class GoomGame {
 
     this.ui.removeHUD();
     this.systems.clear();
+
+    // Disable Mobile Combat Controls
+    if (this.player && this.player.mobileControls) {
+      this.player.mobileControls.disableCombatMode();
+    }
   }
 
   cleanupLevel() {
@@ -241,6 +252,20 @@ export class GoomGame {
     }
 
     this.projectiles.update(delta);
+
+
+    // Mobile Combat Integration
+    if (this.player && this.player.mobileControls) {
+      if (this.player.mobileControls.getFire()) {
+        this.shoot();
+      }
+      if (this.player.mobileControls.getSwap()) {
+        // Cycle Weapon
+        this.currentWeaponIdx = (this.currentWeaponIdx + 1) % this.weapons.length;
+        this.updateWeaponVisuals();
+        this.ui.updateHUD();
+      }
+    }
 
     this.systems.updateParticles(delta);
     this.systems.updatePickups(delta, this.camera.position, (type) => this.onPickup(type));

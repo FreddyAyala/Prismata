@@ -46,20 +46,27 @@ class ArchiveManager {
             ui.style.width = '100%';
             ui.style.height = '100%';
             ui.style.cursor = 'pointer'; // Show it's clickable
+
+            const isMobile = window.innerWidth <= 900;
+            const titleText = isMobile ? "ARCHIVE ACCESS" : "ARCHIVE ACCESS";
+            const subText = isMobile ? "TAP TO CONNECT" : "CLICK ANYWHERE TO ENTER";
+            const instrText = isMobile ? "USE VIRTUAL JOYSTICK TO MOVE" : "WASD TO MOVE | MOUSE TO LOOK | ESC TO DISCONNECT";
+
             ui.innerHTML = `
                 <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:#00ff88; font-family:'Orbitron', sans-serif;">
-                    <h1 style="font-size:3rem; margin-bottom:10px; text-shadow:0 0 20px #00ff88;">ARCHIVE ACCESS</h1>
-                    <p style="pointer-events:none;">CLICK ANYWHERE TO ENTER</p>
-                    <div style="margin-top:20px; font-size:0.8rem; opacity:0.7;">WASD TO MOVE | MOUSE TO LOOK | ESC TO DISCONNECT</div>
+                    <h1 style="font-size:3rem; margin-bottom:10px; text-shadow:0 0 20px #00ff88;">${titleText}</h1>
+                    <p style="pointer-events:none;">${subText}</p>
+                    <div style="margin-top:20px; font-size:0.8rem; opacity:0.7;">${instrText}</div>
                 </div>
             `;
             div.appendChild(ui);
 
             // Interaction: Bind click to the UI layer specifically
-            ui.addEventListener('click', () => {
+            ui.addEventListener('click', (e) => {
                 if (this.active && this.player && !this.player.isLocked) {
-                    this.player.lock();
+                    this.player.lock(); // On mobile this enables overlay
                     ui.style.opacity = 0;
+                    ui.style.pointerEvents = 'none'; // Prevent blocking
                 }
             });
         }

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
+import { MobileControls } from './MobileControls.js';
+
 export class FirstPersonController {
     constructor(camera, domElement) {
         this.camera = camera;
@@ -25,6 +27,13 @@ export class FirstPersonController {
         this.speed = 30.0;
         this.isLocked = false;
 
+        // Mobile support
+        this.mobileControls = null;
+        if (window.innerWidth <= 900) { // Simple mobile check
+            this.mobileControls = new MobileControls(document.body);
+            console.log("Mobile Controls Initialized");
+        }
+
         this._setupListeners();
     }
 
@@ -34,6 +43,14 @@ export class FirstPersonController {
 
         document.addEventListener('keydown', (e) => this._onKeyDown(e));
         document.addEventListener('keyup', (e) => this._onKeyUp(e));
+    }
+
+    enableMobile() {
+        if (this.mobileControls) this.mobileControls.show();
+    }
+
+    disableMobile() {
+        if (this.mobileControls) this.mobileControls.hide();
     }
 
     _onKeyDown(event) {
@@ -48,13 +65,7 @@ export class FirstPersonController {
             case 'KeyD': this.moveRight = true; break;
             case 'ShiftLeft':
             case 'ShiftRight': this.isSprinting = true; break;
-            case 'Space':
-                if (this.canJump) {
-                    this.velocity.y += 18.0; // Jump Force
-                    this.canJump = false;
-                    if (this.onJump) this.onJump();
-                }
-                break;
+            case 'Space': this._tryJump(); break;
         }
     }
 
@@ -73,12 +84,31 @@ export class FirstPersonController {
         }
     }
 
+    _tryJump() {
+        if (this.canJump) {
+            this.velocity.y += 18.0; // Jump Force
+            this.canJump = false;
+            if (this.onJump) this.onJump();
+        }
+    }
+
     lock() {
-        this.controls.lock();
+        if (this.mobileControls) {
+            // On mobile, "locking" just means showing controls
+            this.enableMobile();
+            this.isLocked = true; // Fake lock state
+        } else {
+            this.controls.lock();
+        }
     }
 
     unlock() {
-        this.controls.unlock();
+        if (this.mobileControls) {
+            this.disableMobile();
+            this.isLocked = false;
+        } else {
+            this.controls.unlock();
+        }
     }
 
     update(delta) {
@@ -89,8 +119,50 @@ export class FirstPersonController {
         this.velocity.z -= this.velocity.z * 10.0 * delta;
         this.velocity.y -= 45.0 * delta; // Gravity
 
+        // Input Gathering
+        let inputZ = Number(this.moveForward) - Number(this.moveBackward);
+        let inputX = Number(this.moveRight) - Number(this.moveLeft);
+
+        // Merge Mobile Input
+        if (this.mobileControls && this.mobileControls.active) {
+            const mVec = this.mobileControls.moveVector;
+            // Joystick Y is usually strictly up/down. 
+            // -1 is Up (Forward), 1 is Down (Back) in screen coords usually?
+            // Wait, standard joystick: Up is Y < 0 usually in DOM, but my calc uses (touch - center).
+            // (touchY - centerY): Up is Negative.
+            // moveForward needs +1 for direction vector?
+            // Let's check logic: direction.z = forward - backward.
+            // If I push UP, Y is Negative. I want Forward (+1). So -Y.
+
+            if (Math.abs(mVec.y) > 0.1) inputZ -= mVec.y; // Invert Y for forward
+            if (Math.abs(mVec.x) > 0.1) inputX += mVec.x;
+
+            // Handle Look (Twin Stick)
+            const look = this.mobileControls.lookVector;
+            if (look.x !== 0 || look.y !== 0) {
+                // Rotation Speed (Rad/Frame)
+                // Adjust sensitivity here. 
+                // e.g., 2.0 * delta per axis
+                const rotSpeed = 2.0;
+
+                // Yaw (Y-axis) -> Left/Right Stick X
+                this.camera.rotation.y -= look.x * rotSpeed * delta;
+
+                // Pitch (X-axis) -> Up/Down Stick Y
+                this.camera.rotation.x -= look.y * rotSpeed * delta;
+
+                // Clamp Pitch
+                this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
+            }
+
+            // Handle Jump
+            if (this.mobileControls.getJump()) {
+                this._tryJump();
+            }
+        }
+
         // Stamina Logic
-        const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
+        const isMoving = Math.abs(inputZ) > 0.1 || Math.abs(inputX) > 0.1;
         if (this.isSprinting && isMoving && this.stamina > 0) {
             this.stamina = Math.max(0, this.stamina - 25 * delta);
         } else {
@@ -103,12 +175,17 @@ export class FirstPersonController {
             currentSpeed *= 2.2; // Buffed sprint speed
         }
 
-        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        this.direction.normalize();
+        this.direction.z = inputZ;
+        this.direction.x = inputX;
+        this.direction.normalize(); // This might kill analog magnitude? 
+        // If I want analog speed, I shouldn't normalize blindly if magnitude < 1.
+        // But for consistency let's leave it normalized for now, otherwise diagonal is faster.
+        // Valid improvement: restrict magnitude to 1.
 
-        if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * currentSpeed * 10.0 * delta;
-        if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * currentSpeed * 10.0 * delta;
+        if (inputZ || inputX) {
+            this.velocity.z -= this.direction.z * currentSpeed * 10.0 * delta;
+            this.velocity.x -= this.direction.x * currentSpeed * 10.0 * delta;
+        }
 
         this.controls.moveRight(-this.velocity.x * delta);
         this.controls.moveForward(-this.velocity.z * delta);
