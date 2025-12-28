@@ -152,7 +152,7 @@ export class CrystalViewer {
     // Find existing hat
     let existingHat = this.crystalGroup.children.find(c => c.userData.isHat);
 
-    const isFestive = localStorage.getItem('prismata_festive_enabled') !== 'false';
+    const isFestive = localStorage.getItem('prismata_festive_enabled') === 'true';
 
     if (isFestive) {
       if (!existingHat) {

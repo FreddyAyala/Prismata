@@ -118,7 +118,7 @@ export const Templates = {
                             <div class="control-row checkbox-row">
                                 <label class="gold-text">FESTIVE MODE</label>
                                 <label class="toggle-switch small">
-                                    <input type="checkbox" id="festive-toggle" checked>
+                                    <input type="checkbox" id="festive-toggle">
                                     <span class="slider gold"></span>
                                 </label>
                             </div>
