@@ -162,14 +162,13 @@ export class GlitchEnemy {
     this.hpTex.needsUpdate = true;
   }
 
-  update(delta, playerPos) {
+  update(delta, playerObj) {
     if (!this.active) return 'remove';
     if (this.retaliationTimer > 0) this.retaliationTimer -= delta;
 
     // TARGETING LOGIC
     let targetPos = null;
 
-    // Default: Target the assigned crystal/model if it exists (removed .visible check)
     // Default: Target the assigned crystal/model if it exists and is alive
     const isTargetAlive = this.target && this.target.userData && (this.target.userData.health > 0) && !this.target.userData.isCorrupted;
 
@@ -179,7 +178,7 @@ export class GlitchEnemy {
 
     // RETARGETING: If target dead OR if Destroyer is targeting Player (Fallback)
     // We want Destroyers to switch back to crystals ASAP if they get distracted
-    if ((!isTargetAlive || (this.role === 'destroyer' && this.target === playerPos)) && this.onFindTarget) {
+    if ((!isTargetAlive || (this.role === 'destroyer' && this.target === playerObj)) && this.onFindTarget) {
       const newTarget = this.onFindTarget(this.mesh.position);
       if (newTarget) {
         this.target = newTarget;
@@ -187,11 +186,26 @@ export class GlitchEnemy {
       }
     }
 
+    // OPPORTUNISTIC TARGETING (Crystal Collision)
+    // If we are close to a Crystal (even if hunting Player), attack it!
+    // This solves "Enemies blocked by crystals" issue
+    if (playerObj && this.onFindTarget) {
+      const potentialCrystal = this.onFindTarget(this.mesh.position);
+      if (potentialCrystal && potentialCrystal.position) {
+        const distToCrystal = this.mesh.position.distanceToSquared(potentialCrystal.position);
+        if (distToCrystal < 64.0) { // Very Close (8 units)
+          this.target = potentialCrystal;
+          targetPos = potentialCrystal.position;
+          this.isTargetingPlayer = false; // Distracted by Shiny Object
+        }
+      }
+    }
+
     this.isTargetingPlayer = false;
 
     // Aggro Overrides: Hunt Player if close OR Retaliating
-    if (!this.isWraith && playerPos) {
-      const distSq = this.mesh.position.distanceToSquared(playerPos);
+    if (!this.isWraith && playerObj) {
+      const distSq = this.mesh.position.distanceToSquared(playerObj.position);
       let aggroRadiusSq = 14400; // Buffed Hunter: 120u (was 75u)
 
       // STRICT DESTROYER LOGIC
@@ -201,16 +215,18 @@ export class GlitchEnemy {
       }
 
       if (this.type !== 'berzerker' && (distSq < aggroRadiusSq || this.retaliationTimer > 0)) {
-        this.target = this.camera;
+        this.target = playerObj;
         this.isTargetingPlayer = true;
+        targetPos = playerObj.position;
       } else if (this.role === 'destroyer' && !this.isTargetingPlayer) {
         // Keep targeting crystal
       }
     }
 
     // Safety: If no target (crystal dead and player far), wander or hunt player anyway
-    if (!targetPos && playerPos) {
-      targetPos = playerPos; // Fallback to player
+    if (!targetPos && playerObj) {
+      this.target = playerObj;
+      targetPos = playerObj.position; // Fallback to player
       this.isTargetingPlayer = true;
     }
 

@@ -357,10 +357,25 @@ export class GoomGame {
     const validTargets = this.ui.crystals.filter(c => c.mesh && c.mesh.visible && c.mesh.userData.health > 0 && !c.mesh.userData.isCorrupted).map(c => c.mesh);
 
     let spawnPoint = this.arena.getRandomSpawnPoint();
-    for (let i = 0; i < 5; i++) {
+
+    // VISIBLE SPAWNS: Try 10 times to find a spot in front of the player
+    // This reduces "Enemies spawning behind me" frustration
+    const forward = new THREE.Vector3();
+    this.camera.getWorldDirection(forward);
+    forward.y = 0; forward.normalize();
+
+    for (let i = 0; i < 10; i++) {
       const potential = this.arena.getRandomSpawnPoint();
-      const dist = potential.distanceTo(this.camera.position);
-      if (dist > 15 && dist < 45) { // Closer, more intense spawns (15-45 range)
+      const toPotential = new THREE.Vector3().subVectors(potential, this.camera.position);
+      const dist = toPotential.length();
+      toPotential.y = 0; toPotential.normalize();
+
+      const dot = forward.dot(toPotential); // > 0 means in front (roughly)
+
+      // Criteria: 
+      // 1. Distance: 20-55 units (Close but not on top)
+      // 2. Visible: Dot > 0.3 (Within ~70 degree cone in front)
+      if (dist > 20 && dist < 55 && dot > 0.3) { 
         spawnPoint = potential;
         break;
       }
@@ -422,7 +437,7 @@ export class GoomGame {
   updateEnemies(delta) {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
-      const result = e.update(delta, this.camera.position);
+      const result = e.update(delta, this.camera);
 
       const distToPlayerSq = e.mesh.position.distanceToSquared(this.camera.position);
       if (distToPlayerSq < 25.0) {
