@@ -46,12 +46,27 @@
   /* Only hide if NOT active */
   .desktop-controls,
   .color-legend,
-                                                                                                                                .status-text,
+        .status-text,
   .interaction-hint,
-  .gallery-footer {
+        .gallery-footer,
+        .release-log-btn {
     display: none !important;
   }
 
+        /* RE-ENABLE MODE SELECTOR FOR MOBILE */
+        #mode-selector {
+          display: block !important;
+          position: absolute;
+          top: 15px;
+          right: 50px;
+          width: auto;
+          font-size: 0.7rem;
+          padding: 4px 8px;
+          height: 28px;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
+          z-index: 20002;
+        }
                                                                                                                                 /* Explicitly control controls-panel visibility separately */
                                                                                                                                 .controls-panel {
                                                                                                                                   display: none !important;
@@ -343,33 +358,46 @@
   }
 
   /* 7. MOBILE DROPDOWN MENU */
+    /* Default Hidden State */
   .mobile-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: #030507;
-    border: 1px solid var(--color-primary);
-    z-index: 99999;
-    display: flex;
-    flex-direction: column;
-    min-width: 150px;
-  }
-
-  .mobile-dropdown.hidden {
     display: none !important;
   }
 
+    /* Active State - Force Absolute Position & Styling */
+    #mobile-dropdown:not(.hidden) {
+      display: flex !important;
+      flex-direction: column !important;
+      position: absolute !important;
+      top: 100% !important;
+      right: 0 !important;
+      width: 200px !important;
+      background: rgba(3, 5, 7, 0.95) !important;
+      backdrop-filter: blur(10px) !important;
+      border: 1px solid var(--color-primary) !important;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) !important;
+      z-index: 99999 !important;
+      border-bottom-left-radius: 10px !important;
+      padding: 10px 0 !important;
+  }
+
   .dropdown-item {
+    display: block;
+      width: 100%;
     background: transparent;
     border: none;
     color: var(--color-primary);
-    padding: 12px;
+    padding: 12px 15px;
     font-family: var(--font-header);
     font-size: 0.8rem;
     cursor: pointer;
     text-align: right;
     transition: all 0.2s;
     white-space: nowrap;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+    }
+    
+    .dropdown-item:last-child {
+      border-bottom: none;
   }
 
   .dropdown-item:active,

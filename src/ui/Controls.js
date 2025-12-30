@@ -302,11 +302,9 @@ export function setupControls(context) {
 
     // Wire up Dropdown Items
     const btnMobAbout = document.getElementById('mob-btn-about');
-    const btnMobInfo = document.getElementById('mob-btn-info');
     const btnMobEgg = document.getElementById('mob-btn-egg');
 
     if (btnMobAbout) btnMobAbout.onclick = () => document.getElementById('btn-about').click();
-    if (btnMobInfo) btnMobInfo.onclick = () => document.getElementById('btn-toggle-info').click();
     if (btnMobEgg) btnMobEgg.onclick = () => document.getElementById('btn-easter-egg').click();
   }
 

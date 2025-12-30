@@ -54,7 +54,7 @@ export class ReleaseLog {
       if (mobileDropdown) {
         console.log("🔔 ReleaseLog: Injecting Mobile Menu Item");
         this.mobileItem = document.createElement('button');
-        this.mobileItem.className = 'dropdown-item';
+        this.mobileItem.className = 'dropdown-item release-log-mobile-item';
         this.mobileItem.style.position = 'relative'; // For badge
         this.mobileItem.innerHTML = `
                     WHAT'S NEW

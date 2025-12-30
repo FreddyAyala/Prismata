@@ -19,6 +19,9 @@
     user-select: none;
 }
 
+.hidden {
+    display: none !important;
+}
 body {
     background-color: var(--color-bg);
     color: var(--color-text);
