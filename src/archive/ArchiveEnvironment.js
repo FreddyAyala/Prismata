@@ -40,7 +40,7 @@ export class ArchiveEnvironment {
         }
 
         // Secret Platform (DOOM MODE TRIGGER)
-        // Closer to start (Player starts at 0, 0, 50). Let's put it at (10, 0, 20)
+        // Moved to 35 (Further Right)
         const secretGeo = new THREE.PlaneGeometry(5, 5);
         const secretMat = new THREE.MeshStandardMaterial({
             color: 0xff0000,
@@ -50,31 +50,78 @@ export class ArchiveEnvironment {
         });
         const secretPlatform = new THREE.Mesh(secretGeo, secretMat);
         secretPlatform.rotation.x = -Math.PI / 2;
-        secretPlatform.position.set(10, 0.2, 20);
+        secretPlatform.position.set(35, 0.2, 10);
         secretPlatform.name = 'SECRET_DOOM_PLATFORM';
         this.scene.add(secretPlatform);
 
-        // Rotating Doom Icon (Floating above platform)
-        const iconGeo = new THREE.BoxGeometry(2, 2, 2);
-        const iconMat = new THREE.MeshStandardMaterial({
+        // Rotating Doom Icon (High-Res Voxel Question Mark)
+        const qGroup = new THREE.Group();
+        qGroup.position.set(35, 3, 10);
+
+        const qMat = new THREE.MeshStandardMaterial({
             color: 0x000000,
             emissive: 0xff0055,
             emissiveIntensity: 3.0,
-            wireframe: true
+            roughness: 0.2
         });
-        const icon = new THREE.Mesh(iconGeo, iconMat);
-        icon.position.set(10, 3, 20);
 
-        // Simple rotation animation
-        icon.onBeforeRender = () => {
-            icon.rotation.x += 0.02;
-            icon.rotation.y += 0.03;
+        // Voxel Construction (Grid 10x14)
+        const voxSize = 0.25; // Smaller voxels
+        const voxGeo = new THREE.BoxGeometry(voxSize, voxSize, voxSize);
+
+        // Classic Question Mark Shape (1 = pixel)
+        // 0 1 2 3 4 5 6
+        // . X X X X .
+        // X X . . X X
+        // X X . . X X
+        // . . . X X .
+        // . . X X . .
+        // . . X X . .
+        // . . . . . .
+        // . . X X . .
+
+        const voxelGrid = [
+            "  XXXX  ",
+            " XX  XX ",
+            " XX  XX ",
+            "    XX  ",
+            "   XX   ",
+            "   XX   ",
+            "        ",
+            "   XX   "
+        ];
+
+        // Reverse rows so index 0 is at bottom? No, iterate top down.
+        // Let's center it.
+        const width = 8;
+        const height = 8;
+
+        voxelGrid.forEach((row, yIndex) => {
+            // yIndex 0 is top. In 3D Y is up. So we map yIndex to (height - yIndex)
+            const y = (height - yIndex) * voxSize;
+            for (let xIndex = 0; xIndex < row.length; xIndex++) {
+                if (row[xIndex] === 'X') {
+                    const v = new THREE.Mesh(voxGeo, qMat);
+                    // Center X: (xIndex - width/2)
+                    const x = (xIndex - width / 2) * voxSize;
+                    v.position.set(x, y - (height / 2 * voxSize), 0); // Center Y too
+                    qGroup.add(v);
+                }
+            }
+        });
+
+        // Explicit update method for rotation to ensure smooth frame pacing
+        this.update = (delta) => {
+            qGroup.rotation.y += 2.0 * delta; // 2.0 radians per second approx
         };
-        this.scene.add(icon);
+
+        qGroup.scale.set(2, 2, 2); // Make it BIGGER
+        this.secretIcon = qGroup; // Expose for logic
+        this.scene.add(qGroup);
 
         // Secret Light
         const secretLight = new THREE.PointLight(0xff0000, 2.0, 20);
-        secretLight.position.set(10, 5, 20);
+        secretLight.position.set(35, 5, 10);
         this.scene.add(secretLight);
 
         // Fog (Reduced density to prevent color fading)

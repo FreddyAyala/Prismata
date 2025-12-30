@@ -93,6 +93,8 @@ export class GoomGame {
   }
 
   startGame() {
+    this.cleanupLevel();
+
     this.weapons = WEAPONS.map(w => ({
       ...w,
       ammo: w.name === 'BLASTER' ? -1 : 0
@@ -102,7 +104,9 @@ export class GoomGame {
     this.isGameOver = false;
     this.isVictory = false;
     this.score = 0;
+    this.killStats = { normal: 0, imp: 0, wraith: 0, tank: 0, berzerker: 0, scout: 0, boss: 0 }; // Track Kills
     this.wave = 1;
+
     this.enemiesToSpawn = 0;
     this.waveInProgress = false;
 
@@ -149,6 +153,8 @@ export class GoomGame {
     this.startWave();
     this.startPickups();
   }
+
+
 
   setupInputs() {
     this.mousedownHandler = (e) => {
@@ -207,6 +213,7 @@ export class GoomGame {
     if (this.boss) { this.scene.remove(this.boss.mesh); this.boss = null; }
 
     this.projectiles.clear();
+    if (this.systems) this.systems.clear();
   }
 
   update(delta) {
@@ -295,11 +302,20 @@ export class GoomGame {
     if (this.wave > 5) { this.triggerWin(); return; }
 
     this.waveInProgress = true;
-    this.enemiesToSpawn = 20 + (this.wave * 12); // Buffed (was 15 + 8*wave)
-    const spawnRate = Math.max(200, 2000 - (this.wave * 350)); // Faster Spawns (was 2500 - 300)
+
+    // Randomized Scaling
+    // Randomized Scaling (Rebalanced)
+    // Less "grind", more "action"
+    const baseCount = 12 + (this.wave * 6);
+    const variance = Math.floor(Math.random() * 4) - 2; // +/- 2 enemies
+    this.enemiesToSpawn = Math.max(10, baseCount + variance);
+
+    const baseRate = Math.max(100, 1500 - (this.wave * 200)); // Faster start (1.3s -> 0.5s)
+    const rateVariance = (Math.random() - 0.5) * 200; // Tighter variance
+    const spawnRate = Math.max(100, baseRate + rateVariance);
 
     this.ui.showWaveTitle(`WAVE ${this.wave}`);
-    if (this.audio.setMusicPhase) this.audio.setMusicPhase(this.wave); // Wave 1-4 now have distinct phases
+    if (this.audio.setMusicPhase) this.audio.setMusicPhase(this.wave);
 
     this.spawnInterval = setInterval(() => {
       if (!this.active || this.isGameOver) return;
@@ -344,7 +360,7 @@ export class GoomGame {
     for (let i = 0; i < 5; i++) {
       const potential = this.arena.getRandomSpawnPoint();
       const dist = potential.distanceTo(this.camera.position);
-      if (dist > 30 && dist < 80) { // Tighter, closer spawns (Rendering limit optimized)
+      if (dist > 15 && dist < 45) { // Closer, more intense spawns (15-45 range)
         spawnPoint = potential;
         break;
       }
@@ -360,11 +376,32 @@ export class GoomGame {
     }
 
     let type = 'normal';
-    if (this.wave > 1 && Math.random() < 0.3) type = 'imp';
-    if (this.wave > 2 && Math.random() < 0.2) type = 'wraith';
-    if (this.wave > 3 && Math.random() < 0.15) type = 'tank';
-    if (this.wave > 4 && Math.random() < 0.1) type = 'berzerker';
-    if (this.wave > 2 && Math.random() < 0.1) type = 'scout';
+    const r = Math.random();
+
+    if (this.wave === 1) {
+      if (r < 0.20) type = 'imp'; // 20% Prompt Engineer
+      else if (r < 0.25) type = 'scout'; // 5% Growth Hacker
+    }
+    else if (this.wave === 2) {
+      if (r < 0.30) type = 'imp';
+      else if (r < 0.40) type = 'scout';
+      else if (r < 0.50) type = 'wraith'; // Vaporware
+      else if (r < 0.55) type = 'tank'; // 5% VC Whale
+    }
+    else if (this.wave === 3) {
+      if (r < 0.20) type = 'imp';
+      else if (r < 0.40) type = 'scout';
+      else if (r < 0.55) type = 'wraith';
+      else if (r < 0.65) type = 'tank'; // 10%
+      else if (r < 0.70) type = 'berzerker'; // 5% 10x Dev
+    }
+    else { // Wave 4 & 5 (Chaos)
+      if (r < 0.20) type = 'imp';
+      else if (r < 0.35) type = 'scout';
+      else if (r < 0.50) type = 'wraith';
+      else if (r < 0.70) type = 'tank'; // 20% Tanks!
+      else if (r < 0.85) type = 'berzerker'; // 15% Shotgunners!
+    }
 
     const onFindTarget = (pos) => this.findNearestCrystal(pos);
     const enemy = new GlitchEnemy(this.scene, spawnPoint, target, type, role, (pos, dir, enemyType) => {
@@ -443,7 +480,11 @@ export class GoomGame {
       }
 
       if (!e.active) {
-        if (e.life <= 0) this.systems.spawnDrop(e.mesh.position, this.wave);
+        if (e.life <= 0) {
+          this.systems.spawnDrop(e.mesh.position, this.wave);
+          if (this.killStats && this.killStats[e.type] !== undefined) this.killStats[e.type]++;
+          else if (this.killStats) this.killStats.normal++; // Fallback
+        }
         this.enemies.splice(i, 1);
       }
     }
@@ -661,8 +702,9 @@ export class GoomGame {
 
   triggerWin() {
     this.isVictory = true;
+    if (this.killStats) this.killStats.boss++; // Count the boss kill
     if (this.audio && this.audio.playVictorySong) this.audio.playVictorySong();
-    this.ui.triggerWin(this.score, () => this.resetGame());
+    this.ui.triggerWin(this.score, () => this.resetGame(), this.killStats);
   }
 
   resetGame() {
@@ -774,9 +816,9 @@ export class GoomGame {
 
     this.shotgunMesh = new THREE.Group();
     const barrelL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6), new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
-    barrelL.rotation.x = Math.PI / 2; barrelL.position.set(-0.1, 0, 0);
+    barrelL.rotation.x = Math.PI / 2; barrelL.position.set(-0.085, 0, 0); // Slight separation
     const barrelR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6), new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
-    barrelR.rotation.x = Math.PI / 2; barrelR.position.set(0.1, 0, 0);
+    barrelR.rotation.x = Math.PI / 2; barrelR.position.set(0.085, 0, 0); // Slight separation
     this.shotgunMesh.add(barrelL, barrelR);
     this.weaponMesh.add(this.shotgunMesh);
 

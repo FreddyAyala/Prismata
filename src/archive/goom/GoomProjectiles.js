@@ -264,30 +264,52 @@ export class GoomProjectiles {
     }
 
     fireEnemyProjectile(start, dir, type = 'normal', owner = null) {
+        // HITSCAN REDIRECTION
+        if (type === 'normal') {
+            this.fireEnemyHitscan(start, dir, type, 0); // Pistol (Accuracy)
+            if (this.game.audio) this.game.audio.playSound(400, 'square', 0.1, 0.1);
+            return;
+        }
+        if (type === 'berzerker') { // Shotgun (10x Dev)
+            // Fire 6 Pellets
+            for (let i = 0; i < 6; i++) {
+                this.fireEnemyHitscan(start, dir, type, 0.15); // Spread
+            }
+            if (this.game.audio) this.game.audio.playSound(150, 'sawtooth', 0.3, 0.2); // Boom
+            return;
+        }
+
         let geo, mat, speed, damage;
         const isBoss = (type === 'boss' || type === true);
+        let isRocket = false; // Add rocket flag
 
         if (isBoss) {
             geo = new THREE.IcosahedronGeometry(0.6, 1);
             mat = new THREE.MeshBasicMaterial({ color: 0xaa00ff, wireframe: true });
             speed = 40;
             damage = 25;
-        } else if (type === 'scout') {
+        } else if (type === 'scout') { // Intern (Fast, weak)
             geo = new THREE.ConeGeometry(0.2, 0.8, 8);
             geo.rotateX(Math.PI / 2);
             mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: false });
             speed = 50;
-            damage = 10;
-        } else if (type === 'tank') {
-            geo = new THREE.IcosahedronGeometry(0.4, 0);
-            mat = new THREE.MeshBasicMaterial({ color: 0xff8800, wireframe: false });
-            speed = 20; // Slow, heavy
-            damage = 40; // Ouch
+            damage = 8;
+        } else if (type === 'tank') { // VC Whale (Rocket, Explosive)
+            geo = new THREE.BoxGeometry(2.0, 2.0, 4.0); // MASSIVE ROCKET
+            mat = new THREE.MeshBasicMaterial({ color: 0xff4400, wireframe: false });
+            speed = 50; // Fast (Was 25)
+            damage = 80; // Heavy (Was 50)
+            isRocket = true;
         } else if (type === 'corrupted') {
             geo = new THREE.IcosahedronGeometry(0.8, 1);
             mat = new THREE.MeshPhongMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2.0, wireframe: false });
             speed = 25;
             damage = 15;
+        } else if (type === 'imp') { // Prompt Engineer (Plasma Spread)
+            geo = new THREE.DodecahedronGeometry(0.3);
+            mat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: false });
+            speed = 35;
+            damage = 12;
         } else {
             geo = new THREE.DodecahedronGeometry(0.5);
             mat = new THREE.MeshBasicMaterial({ color: 0xff4400, wireframe: false });
@@ -297,7 +319,7 @@ export class GoomProjectiles {
 
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.copy(start);
-        if (type === 'scout') mesh.lookAt(start.clone().add(dir));
+        if (type === 'scout' || type === 'tank') mesh.lookAt(start.clone().add(dir));
 
         this.scene.add(mesh);
 
@@ -308,11 +330,13 @@ export class GoomProjectiles {
             damage: damage,
             isEnemy: true,
             isBossProjectile: isBoss,
-            owner: owner
+            owner: owner,
+            isRocket: isRocket // Persist rocket property
         });
 
         let pitch = isBoss ? 100 : 200;
         if (type === 'scout') pitch = 400;
+        if (type === 'tank') pitch = 100; // Deep launch sound
         if (this.game.audio) this.game.audio.playSound(pitch, 'sawtooth', 0.2, 0.5);
     }
 
@@ -472,6 +496,7 @@ export class GoomProjectiles {
                     const radius = isBFG ? 100.0 : 40.0;
                     const dmg = isBFG ? 2000 : 150;
 
+                    // DAMAGE ENEMIES
                     this.game.enemies.forEach(e => {
                         if (e.mesh.position.distanceTo(p.mesh.position) < radius) {
                             e.takeDamage(dmg);
@@ -479,6 +504,17 @@ export class GoomProjectiles {
                         }
                     });
                     if (this.game.boss && this.game.boss.mesh.position.distanceTo(p.mesh.position) < radius) this.game.boss.takeDamage(dmg);
+
+                    // DAMAGE PLAYER (Splash)
+                    const distPlayer = this.camera.position.distanceTo(p.mesh.position);
+                    if (distPlayer < radius) {
+                        // Linear falloff? Or full dmg? Let's do falloff.
+                        const falloff = 1.0 - (distPlayer / radius);
+                        if (falloff > 0) {
+                            this.game.takePlayerDamage(30 * falloff); // Cap splash to 30 to avoid instant death
+                        }
+                    }
+
                 } else {
                     if (p.mesh.material && p.mesh.material.color) {
                         this.game.systems.createExplosion(p.mesh.position, p.mesh.material.color, false);
@@ -490,7 +526,62 @@ export class GoomProjectiles {
         }
     }
 
-    createTracer(targetPoint, color, startPoint = null) {
+    fireEnemyHitscan(start, dir, type, spread = 0) {
+        // VISUALS: Tracer
+        const targetPoint = start.clone().add(dir.clone().multiplyScalar(100)); // Visual Range
+        // Apply Spread
+        if (spread > 0) {
+            targetPoint.x += (Math.random() - 0.5) * spread * 20;
+            targetPoint.y += (Math.random() - 0.5) * spread * 20;
+            targetPoint.z += (Math.random() - 0.5) * spread * 20;
+        }
+
+        let color = 0xffff00; // Default
+        let thickness = 0.1;
+
+        if (type === 'berzerker') color = 0xff00ff; // Shotgun (Pink/Magenta)
+        if (type === 'normal') {
+            color = 0x00ff00; // GREEN
+            thickness = 0.4; // WIDER (4x standard)
+        }
+
+        this.createTracer(targetPoint, color, start, thickness);
+
+        // HIT LOGIC: Raycast against Player
+        // We cheat slightly: If aimed at player within angle tolerance + valid raycast = Hit
+        const toPlayer = new THREE.Vector3().subVectors(this.camera.position, start);
+        const dist = toPlayer.length();
+        toPlayer.normalize();
+
+        // Angle Check (Aim Cone)
+        const angle = dir.angleTo(toPlayer);
+        // Spread acts as forgiveness or misses.
+        // If angle is small, it hits.
+        // Shotgun has wider hit cone.
+
+        let hitChance = 0.0;
+        if (type === 'normal') hitChance = (angle < 0.05) ? 1.0 : 0.0; // Precise
+        if (type === 'berzerker') hitChance = (angle < 0.15) ? 0.6 : 0.0; // Spread checks
+
+        // Force Raycast to check walls?
+        // GoomProjectiles raycaster is reused.
+        // Let's keep it simple: Distance check + Angle check = Damage.
+
+        if (hitChance > 0 && Math.random() < hitChance) {
+            // Wall check?
+            // Raycast from enemy to player.
+            this.raycaster.set(start, toPlayer);
+            const intersects = this.raycaster.intersectObjects(this.game.platform ? [this.game.platform] : [], true); // Only check environment
+            // Actually we don't store walls easily, just check distance.
+
+            if (dist < 100) {
+                this.game.takePlayerDamage(type === 'berzerker' ? 10 : 5);
+                this.game.systems.createExplosion(this.camera.position.clone().add(new THREE.Vector3(0, -0.5, 0)), 0xff0000, false);
+            }
+        }
+    }
+
+    createTracer(targetPoint, color, startPoint = null, thickness = 0.1) {
         if (!this.sharedTracerMats[color]) this.sharedTracerMats[color] = new THREE.MeshBasicMaterial({ color: color });
 
         const target = targetPoint;
@@ -508,7 +599,7 @@ export class GoomProjectiles {
         const dist = start.distanceTo(target);
 
         const mesh = new THREE.Mesh(this.sharedTracerGeo, this.sharedTracerMats[color]);
-        mesh.scale.set(0.1, 0.1, dist);
+        mesh.scale.set(thickness, thickness, dist);
 
         mesh.position.copy(start).lerp(target, 0.5);
         mesh.lookAt(target);

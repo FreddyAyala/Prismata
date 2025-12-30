@@ -8,59 +8,71 @@ export class GlitchEnemy {
     this.scene = scene;
     this.target = target;
     this.type = type;
-    this.role = role; 
+    this.role = role;
     this.isWraith = (type === 'wraith');
     this.onShoot = onShoot;
-    this.onFindTarget = onFindTarget; 
+    this.onFindTarget = onFindTarget;
     this.shootTimer = 0;
-    this.retaliationTimer = 0; 
+    this.retaliationTimer = 0;
     this.active = true;
     this.wave = wave;
 
     // Base Stats (Refined for Incremental Scaling)
     // We start slightly easier than the previous "Hard" mode, but scale it up.
     const waveMultHP = 1.0 + ((wave - 1) * 0.15); // +15% HP per wave
-    const waveMultSpd = 1.0 + ((wave - 1) * 0.05); // +5% Speed per wave
+    const waveMultSpd = 1.0 + ((wave - 1) * 0.08); // +8% Speed per wave (Buffed)
 
     this.life = 10 * waveMultHP;
-    this.speed = 28 * waveMultSpd; 
+    this.speed = 32 * waveMultSpd; // Base was 28
     this.damage = 10;
     this.color = 0xff0000;
-    this.scale = 8.6; 
+    this.scale = 8.6;
 
     // Specialized Variants
+    this.name = "Vibe Coder";
+
     if (type === 'scout') {
+      this.name = "Growth Hacker";
       this.life = 5 * waveMultHP;
-      this.speed = 45 * waveMultSpd;
-      this.color = 0xffff00; 
-      this.scale = 5.0; 
+      this.speed = 50 * waveMultSpd; // Was 45
+      this.color = 0x00ff00;
+      this.scale = 5.0;
     } else if (type === 'tank') {
-      this.speed = 8 * waveMultSpd; // Buffed to be mobile enough
+      this.name = "VC Whale";
+      this.speed = 18 * waveMultSpd; // Was 8 (Too slow)
       this.life = 60 * waveMultHP;
       this.damage = 30;
       this.color = 0x3366ff;
-      this.scale = 11.5; 
+      this.scale = 11.5;
     } else if (type === 'wraith') {
-      this.speed = 12 * waveMultSpd;
+      this.name = "Vaporware";
+      this.speed = 24 * waveMultSpd; // Was 12 (Too slow)
       this.life = 20 * waveMultHP;
       this.damage = 15;
       this.color = 0x00ffff;
-      this.scale = 7.2; 
+      this.scale = 7.2;
     } else if (type === 'berzerker') {
+      this.name = "10x Developer";
       this.life = 8 * waveMultHP;
-      this.speed = 55 * waveMultSpd;
+      this.speed = 60 * waveMultSpd; // Was 55
       this.damage = 25;
-      this.color = 0xff00ff; 
-      this.scale = 6.5; 
+      this.color = 0xff00ff;
+      this.scale = 6.5;
     } else if (type === 'imp') {
+      this.name = "Prompt Engineer";
       this.life = 10 * waveMultHP;
-      this.speed = 22 * waveMultSpd;
+      this.speed = 28 * waveMultSpd; // Was 22
       this.damage = 15;
-      this.color = 0xff4400; 
-      this.scale = 5.8; 
+      this.color = 0xff4400;
+      this.scale = 5.8;
     }
 
     this.mesh = new THREE.Group();
+    // ... (rest of constructor is fine, skipping to SHOOTING LOGIC update in next block or same file if reachable?)
+    // I can't reach line 230 easily in one block without huge context relative to file size.
+    // I will split the edit.
+    // This tool call modifies CONSTRUCTOR stats.
+
     this.mesh.position.copy(position);
 
     this.buildVisuals();
@@ -185,7 +197,7 @@ export class GlitchEnemy {
       // STRICT DESTROYER LOGIC
       if (this.role === 'destroyer') {
         // Only switch to player if REALLY close (Self defense)
-        aggroRadiusSq = 100; 
+        aggroRadiusSq = 100;
       }
 
       if (this.type !== 'berzerker' && (distSq < aggroRadiusSq || this.retaliationTimer > 0)) {
@@ -220,19 +232,34 @@ export class GlitchEnemy {
     // Attack Reach & Shooting
     const attackDistSq = this.mesh.position.distanceToSquared(targetPos);
 
-    // SHOOTING LOGIC (Imp, Scout, Tank)
-    if (this.type === 'imp' || this.type === 'scout' || this.type === 'tank') {
+    // SHOOTING LOGIC (All Types now shoot)
+    // Imp/Scout/Tank = Projectiles
+    // Normal/Berzerker = Hitscan
+    if (this.active) { // General check
       this.shootTimer += delta;
 
       let fireRate = 2.0;
-      let maxDist = 6400; // 80u
+      let maxDist = 6400; // 80u (Default)
 
-      if (this.type === 'scout') {
+      if (this.type === 'imp') {
+        fireRate = 1.5;
+      } else if (this.type === 'scout') {
         fireRate = 0.8;
         maxDist = 8100; // 90u
       } else if (this.type === 'tank') {
-        fireRate = 3.5; // Slow turn, slow fire
-        maxDist = 14400; // 120u (Siege Unit)
+        fireRate = 2.0;
+        maxDist = 14400; // 120u
+      } else if (this.type === 'normal') { // Vibe Coder (Pistol)
+        // ONLY shoot at Player. If targeting crystal, run up and corrupt it (melee).
+        if (!this.isTargetingPlayer) {
+          fireRate = 999; // Don't shoot
+        } else {
+          fireRate = 2.5;
+          maxDist = 3600; // 60u
+        }
+      } else if (this.type === 'berzerker') { // 10x Dev (Shotgun)
+        fireRate = 1.5;
+        maxDist = 1600; // 40u (Close Range)
       }
 
       if (attackDistSq < maxDist && attackDistSq > 100 && this.shootTimer > fireRate) {
@@ -240,7 +267,24 @@ export class GlitchEnemy {
         if (this.onShoot) {
           // Determine direction
           const dir = new THREE.Vector3().subVectors(targetPos, this.mesh.position).normalize();
-          this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), dir, this.type); // Pass type
+
+          if (this.type === 'imp') { // Prompt Engineer: Hallucinated Spread Shot (3 projectiles)
+            this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), dir, this.type);
+            const leftDir = dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.15);
+            const rightDir = dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.15);
+            this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), leftDir, this.type);
+            this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), rightDir, this.type);
+
+          } else if (this.type === 'berzerker') { // Shotgun Spread (5 pellets)
+            // We just fire once with type 'berzerker' and let ProjectileManager handle the spread logic?
+            // Or call 5 times? 
+            // Let's call 5 times here to be explicit if the ProjectileManager (which uses fireEnemyProjectile) 
+            // redirects to Hitscan.
+            // Actually, cleaner if GoomProjectiles.fireEnemyProjectile handles "Berzerker = 8 pellets".
+            this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), dir, this.type);
+          } else {
+            this.onShoot(this.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), dir, this.type);
+          }
         }
       }
     }
@@ -351,7 +395,7 @@ export class GlitchEnemy {
   // Removed duplicate buildVisuals
   takeDamage(amount) {
     this.life -= amount;
-    this.retaliationTimer = 4.0; // AGGRO for 4 seconds
+    this.retaliationTimer = 1.5; // Reduced from 4.0s (Focus on objective!)
     this.updateHealthBar();
 
     // Flash

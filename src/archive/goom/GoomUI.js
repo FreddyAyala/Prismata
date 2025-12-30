@@ -150,13 +150,31 @@ export class GoomUI {
                     <!-- RIGHT COLUMN: THREAT DATABASE -->
                     <div style="width:50%; text-align:left;">
                         <h3 style="color:#ff0033; border-bottom:1px solid #ff0033; padding-bottom:5px; margin-top:0;">THREAT DATABASE</h3>
-                        <!-- ... (same items) ... -->
+
+                        <!-- VIBE CODER (Normal) -->
+                        <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                            <img src="${this.generateEnemySnapshot('normal')}" style="width:50px; height:50px; border:1px solid #ff0000; margin-right:10px; background:#000;">
+                            <div>
+                                <div style="color:#ff0000; font-weight:bold; font-size:14px;">VIBE CODER</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Just vibing. Basic threat."</div>
+                            </div>
+                        </div>
+
                          <!-- IMP -->
                         <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
                             <img src="${this.generateEnemySnapshot('imp')}" style="width:50px; height:50px; border:1px solid #ff4400; margin-right:10px; background:#000;">
                             <div>
                                 <div style="color:#ff4400; font-weight:bold; font-size:14px;">PROMPT ENGINEER</div>
                                 <div style="color:#aaa; font-size:11px; font-style:italic;">"Spams low-quality tokens. Hallucinates confidence."</div>
+                            </div>
+                        </div>
+
+                        <!-- GROWTH HACKER (Scout) -->
+                        <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                            <img src="${this.generateEnemySnapshot('scout')}" style="width:50px; height:50px; border:1px solid #00ff00; margin-right:10px; background:#000;">
+                            <div>
+                                <div style="color:#00ff00; font-weight:bold; font-size:14px;">GROWTH HACKER</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Disrupts stability. Flanks rapidly."</div>
                             </div>
                         </div>
 
@@ -169,12 +187,21 @@ export class GoomUI {
                             </div>
                         </div>
 
+                        <!-- 10X DEVELOPER (Berzerker) -->
+                         <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
+                            <img src="${this.generateEnemySnapshot('berzerker')}" style="width:50px; height:50px; border:1px solid #ff00ff; margin-right:10px; background:#000;">
+                            <div>
+                                <div style="color:#ff00ff; font-weight:bold; font-size:14px;">10X DEVELOPER</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Moves fast. Breaks things. Refuses code review."</div>
+                            </div>
+                        </div>
+
                         <!-- WRAITH -->
                         <div style="display:flex; align-items:center; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:5px; border-radius:5px;">
                             <img src="${this.generateEnemySnapshot('wraith')}" style="width:50px; height:50px; border:1px solid #00ffff; margin-right:10px; background:#000;">
                             <div>
-                                <div style="color:#00ffff; font-weight:bold; font-size:14px;">INFINITY GLITCH</div>
-                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Reality distortion field. Hard to debug."</div>
+                                <div style="color:#00ffff; font-weight:bold; font-size:14px;">VAPORWARE</div>
+                                <div style="color:#aaa; font-size:11px; font-style:italic;">"Reality distortion. Hard to debug."</div>
                             </div>
                         </div>
 
@@ -255,6 +282,9 @@ export class GoomUI {
         if (type === 'tank') { dist = 14; yOffset = 1; }
         else if (type === 'wraith') { dist = 10; yOffset = 0.5; }
         else if (type === 'imp') { dist = 8; yOffset = 0.5; }
+        else if (type === 'scout') { dist = 9; yOffset = 0.5; }
+        else if (type === 'berzerker') { dist = 10; yOffset = 0.5; }
+        else if (type === 'normal') { dist = 8; yOffset = 0.5; }
 
         camera.position.set(0, 1 + yOffset, dist);
         camera.lookAt(0, yOffset, 0);
@@ -393,7 +423,7 @@ export class GoomUI {
         window.addEventListener('keydown', keyH);
     }
 
-    triggerWin(score, onRestart) {
+    triggerWin(score, onRestart, stats) {
         const hud = document.getElementById('goom-hud');
         if (!hud) return;
         if (document.pointerLockElement) document.exitPointerLock();
@@ -403,16 +433,38 @@ export class GoomUI {
                         background:black; z-index:5000; pointer-events:auto;
                         display:flex; flex-direction:column; justify-content:center; align-items:center;`;
 
-        // Use user-provided image if they have one. For now using placeholder logic or asset found in logs
-        // User asked for "AIBUBBLEBURST.jpg" in a previous context
-        // Try to load from assets if possible, else text
+        // Stats Table Generation
+        let statsHtml = '';
+        if (stats) {
+            const map = {
+                'imp': { name: 'PROMPT ENGINEER', color: '#ff4400' },
+                'tank': { name: 'VC WHALE', color: '#3366ff' },
+                'scout': { name: 'GROWTH HACKER', color: '#00ff00' },
+                'wraith': { name: 'VAPORWARE', color: '#00ffff' },
+                'berzerker': { name: '10X DEVELOPER', color: '#ff00ff' },
+                'normal': { name: 'VIBE CODER', color: '#ff0000' },
+                'boss': { name: 'THE AI BUBBLE', color: '#ff00ff' }
+            };
+
+            statsHtml = `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px; width:60%; max-width:500px; text-align:left;">`;
+            for (const [key, val] of Object.entries(stats)) {
+                if (val > 0 && map[key]) {
+                    statsHtml += `<div style="color:${map[key].color}; border-bottom:1px solid #333;">${map[key].name}</div>
+                                  <div style="color:white; text-align:right; border-bottom:1px solid #333;">${val}</div>`;
+                }
+            }
+            statsHtml += `</div>`;
+        }
 
         div.innerHTML = `
-            <img src="/aibubbleburst.jpg" style="max-width:80%; max-height:50vh; border:2px solid #00ff00; margin-bottom:20px; box-shadow:0 0 50px #00ff00;" onerror="this.style.display='none'">
-            <h1 style="font-size:80px; color:#00ff00; margin-bottom:10px; font-family:'Orbitron', sans-serif;">THREAT NEUTRALIZED</h1>
-            <div style="font-size:40px; color:white; margin-bottom:30px;">FINAL SCORE: ${score}</div>
-            <div style="color:#888; margin-bottom:20px;">PRESS ENTER TO REBOOT SYSTEM or ESC TO EXIT</div>
-            <button id="goom-restart-win" style="padding: 20px 40px; font-size:30px; background:#00ff00; color:black; border:none; cursor:pointer;">REBOOT (ENTER)</button>
+            <img src="/aibubbleburst.jpg" style="max-width:80%; max-height:30vh; border:2px solid #00ff00; margin-bottom:10px; box-shadow:0 0 50px #00ff00;" onerror="this.style.display='none'">
+            <h1 style="font-size:60px; color:#00ff00; margin-bottom:5px; font-family:'Orbitron', sans-serif;">THREAT NEUTRALIZED</h1>
+            <div style="font-size:30px; color:white; margin-bottom:10px;">FINAL SCORE: ${score}</div>
+            
+            ${statsHtml}
+
+            <div style="color:#888; margin-bottom:20px;">PRESS ENTER TO REBOOT SYSTEM</div>
+            <button id="goom-restart-win" style="padding: 15px 40px; font-size:24px; background:#00ff00; color:black; border:none; cursor:pointer;">REBOOT (ENTER)</button>
         `;
         hud.appendChild(div);
 

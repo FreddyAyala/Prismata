@@ -160,24 +160,32 @@ export class GoomSystems {
         }
     }
 
-    spawnDrop(pos, wave) {
+    spawnDrop(pos, wave = 1) {
         const roll = Math.random();
-        if (roll > 0.8) return;
+        if (roll > 0.75) return; // 25% Chance (Buffed from 20%)
 
         let type = 'ammo_shotgun';
         let color = 0xffaa00;
 
         const r2 = Math.random();
-        const waveHealthBonus = (wave - 1) * 0.1;
 
-        if (r2 < 0.15 + waveHealthBonus) {
+        // Health Chance: Base 15% + 5% per wave (Max 40%)
+        const healthChance = 0.15 + ((wave - 1) * 0.05);
+
+        if (r2 < healthChance) {
             type = 'health';
             color = 0xff0000;
         } else {
+            // Ammo Tiering
             const ar = Math.random();
-            if (ar > 0.92) { type = 'ammo_bfg'; color = 0x00ff00; }
-            else if (ar > 0.80) { type = 'ammo_plasma'; color = 0x00ffff; }
-            else if (ar > 0.60) { type = 'ammo_launcher'; color = 0xff00ff; }
+            // Wave 1: Shotgun (100%)
+            // Wave 2: Shotgun (70%), Launcher (30%)
+            // Wave 3: Shotgun (50%), Launcher (30%), Plasma (20%)
+            // Wave 4+: Shotgun (40%), Launcher (30%), Plasma (20%), BFG (10%)
+
+            if (wave >= 4 && ar > 0.90) { type = 'ammo_bfg'; color = 0x00ff00; }
+            else if (wave >= 3 && ar > 0.70) { type = 'ammo_plasma'; color = 0x00ffff; }
+            else if (wave >= 2 && ar > 0.40) { type = 'ammo_launcher'; color = 0xff00ff; }
             else { type = 'ammo_shotgun'; color = 0xffaa00; }
         }
 
