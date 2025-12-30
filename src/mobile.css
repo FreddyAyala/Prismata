@@ -32,18 +32,20 @@
   }
 
   /* 3. VISIBILITY TOGGLES */
-  /* Hide Desktop-only elements */
-  .gallery-nav:not(.active),
+                                                                                                                                /* Hide Desktop-only elements */
   /* Only hide if NOT active */
   .desktop-controls,
   .color-legend,
-  .status-text,
-  .controls-panel,
+                                                                                                                                .status-text,
   .interaction-hint,
   .gallery-footer {
     display: none !important;
   }
 
+                                                                                                                                /* Explicitly control controls-panel visibility separately */
+                                                                                                                                .controls-panel {
+                                                                                                                                  display: none !important;
+                                                                                                                                }
   /* Active Mobile Nav */
   .gallery-nav.active {
     display: flex !important;
@@ -168,11 +170,11 @@
     left: 50%;
     transform: translate(-50%, -50%);
       /* Center perfectly */
-      width: 94vw;
-      /* Slightly less than full width */
+      width: 90vw;
       max-width: 500px;
-      max-height: 80vh;
-      /* User requested 75% height */
+      height: 60vh;
+        /* Reduced to allow model visibility */
+        max-height: 70vh;
     z-index: 10000 !important;
     pointer-events: none;
     opacity: 0;
@@ -232,8 +234,8 @@
     }
   
     /* Force Hide Info Elements in Controls Mode */
-    .artifact-details.mobile-active-controls .glass-panel,
-    /* Catch-all for glass panels */
+                .artifact-details.mobile-active-controls .glass-panel:not(.controls-panel),
+                /* Catch-all for glass panels but EXCLUDE controls */
     .artifact-details.mobile-active-controls .reading-guide,
     .artifact-details.mobile-active-controls .details-content {
       display: none !important;
@@ -243,13 +245,27 @@
     .accordion-toggle {
       display: none !important;
     
-  
+
+                /* High Specificity Force Show */
     .artifact-details.mobile-active-controls .accordion-content {
       display: block !important;
       background: transparent !important;
       padding: 0 !important;
-  }
-  
+      height: auto !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      
+        /* Force visibility of internal tab content */
+        .artifact-details.mobile-active-controls .accordion-content * {
+          visibility: visible !important;
+          pointer-events: auto !important;
+          color: var(--color-text) !important;
+      
+          /* Force white text */
+          /* Ensure specific control groups display when active */
+          .artifact-details.mobile-active-controls .control-group.active {
+            display: block !important;
+                                        
   .artifact-details.mobile-active-controls .advanced-controls {
       background: rgba(5, 10, 15, 0.95) !important;
       border: 1px solid var(--color-secondary);
@@ -257,12 +273,63 @@
         /* Take remaining space */
         min-height: 0;
         overflow-y: auto;
-      margin-bottom: 10px;
+      margin-bottom: 70px;
+        /* Space for absolute footer */
+        padding-bottom: 20px;
       }
       
       .artifact-details.mobile-active-controls .controls-panel {
-        flex: 0 0 auto;
-        display: block !important;
+      position: absolute;
+        /* Pinned to bottom */
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        display: flex !important;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 15px;
+        background: rgba(0, 5, 10, 0.98) !important;
+        /* Higher opacity */
+        border-top: 1px solid var(--color-primary);
+        z-index: 20005;
+        /* Top visibility */
+        visibility: visible !important;
+        pointer-events: auto !important;
+      }
+      
+      .artifact-details.mobile-active-controls .controls-panel .controls {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        gap: 10px;
+        justify-content: space-between;
+      }
+      
+      /* Button Styling Refresh */
+      .artifact-details.mobile-active-controls .controls-panel button {
+        flex: 1;
+        padding: 15px 5px;
+        font-size: 0.7rem;
+        border: 1px solid var(--color-primary);
+        background: rgba(0, 243, 255, 0.05);
+        color: var(--color-primary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        white-space: pre-wrap;
+        /* Allow wrapping */
+        line-height: 1.2;
+      }
+      
+      .artifact-details.mobile-active-controls .controls-panel button.active {
+        background: rgba(0, 243, 255, 0.2);
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        color: #fff;
   }
 
   /* 7. MOBILE DROPDOWN MENU */

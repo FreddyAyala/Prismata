@@ -222,6 +222,39 @@ export function setupControls(context) {
               artifactPanel.style.opacity = '1';
               artifactPanel.style.pointerEvents = 'auto';
               artifactPanel.classList.add('mobile-active-controls');
+
+              // --- BRUTE FORCE VISIBILITY FIX ---
+              // Force the container and its children to allow display
+              const advControls = document.querySelector('.advanced-controls');
+              const controlsPanel = document.querySelector('.controls-panel'); // NEW
+              const accContent = document.querySelector('.accordion-content');
+              const activeTab = document.querySelector('.control-group.active');
+              const firstTab = document.querySelector('#tab-move');
+
+              if (advControls) {
+                advControls.style.display = 'block';
+                advControls.style.visibility = 'visible';
+              }
+              if (controlsPanel) { // NEW
+                controlsPanel.style.display = 'flex';
+                controlsPanel.style.visibility = 'visible';
+                controlsPanel.style.opacity = '1';
+              }
+              if (accContent) {
+                accContent.style.display = 'block';
+                accContent.style.visibility = 'visible';
+                accContent.style.height = 'auto';
+                accContent.style.opacity = '1';
+              }
+              if (activeTab) {
+                activeTab.style.display = 'block';
+                activeTab.style.visibility = 'visible';
+              } else if (firstTab) {
+                // If no tab is active, force the first one
+                firstTab.classList.add('active');
+                firstTab.style.display = 'block';
+                firstTab.style.visibility = 'visible';
+              }
             }
           }
           // If it WAS active, we just leave it reset (Toggle Off / Clean View)

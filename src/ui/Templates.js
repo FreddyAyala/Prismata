@@ -66,7 +66,7 @@ export const Templates = {
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                     </div>
-                    <div class="accordion-content" style="display:none; background: rgba(0,0,0,0.4);">
+                    <div class="accordion-content" style="background: rgba(0,0,0,0.4);">
                 
                         <!-- Sub Tabs -->
                         <div class="tab-row">
