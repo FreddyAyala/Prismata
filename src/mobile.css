@@ -31,6 +31,16 @@
     pointer-events: none !important;
   }
 
+    /* --- ARCHITECTURE FIX: POSITIVE VISIBILITY ENFORCEMENT --- */
+    /* Use this class to force elements to appear, overriding any hide rules */
+    .mobile-enforced-visible {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      z-index: 20005 !important;
+      /* Ensure on top */
+    }
   /* 3. VISIBILITY TOGGLES */
                                                                                                                                 /* Hide Desktop-only elements */
   /* Only hide if NOT active */

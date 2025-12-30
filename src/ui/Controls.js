@@ -203,6 +203,11 @@ export function setupControls(context) {
           artifactPanel.style.opacity = '0';
           artifactPanel.style.pointerEvents = 'none';
 
+          // Clean up Enforced Classes
+          document.querySelectorAll('.mobile-enforced-visible').forEach(el => {
+            el.classList.remove('mobile-enforced-visible');
+          });
+
           if (window.cortexUI) window.cortexUI.toggleDisplay(false);
 
           // 2. If it was NOT active, Activate it (Toggle On)
@@ -223,34 +228,32 @@ export function setupControls(context) {
               artifactPanel.style.pointerEvents = 'auto';
               artifactPanel.classList.add('mobile-active-controls');
 
-              // --- BRUTE FORCE VISIBILITY FIX ---
-              // Force the container and its children to allow display
+              // --- ARCHITECTURE FIX: STATE ENFORCEMENT ---
+              // Use the standardized class instead of manual inline styles
               const advControls = document.querySelector('.advanced-controls');
-              const controlsPanel = document.querySelector('.controls-panel'); // NEW
+              const controlsPanel = document.querySelector('.controls-panel');
               const accContent = document.querySelector('.accordion-content');
               const activeTab = document.querySelector('.control-group.active');
-              const firstTab = document.querySelector('#tab-move');
+              const firstTab = document.querySelector('#tab-move'); 
 
-              if (advControls) {
-                advControls.style.display = 'block';
-                advControls.style.visibility = 'visible';
-              }
-              if (controlsPanel) { // NEW
-                controlsPanel.style.display = 'flex';
-                controlsPanel.style.visibility = 'visible';
-                controlsPanel.style.opacity = '1';
-              }
+              // Apply the Force-Visible Class
+              if (advControls) advControls.classList.add('mobile-enforced-visible');
+              if (controlsPanel) controlsPanel.classList.add('mobile-enforced-visible');
+
+              // Internal content still needs block/flex distinct handling if simpler
+              // But let's trust the class for the containers.
+              // For tabs, we might need specific handling if they are block vs flex
               if (accContent) {
-                accContent.style.display = 'block';
+                accContent.style.display = 'block'; // Keep specific for content flow
                 accContent.style.visibility = 'visible';
                 accContent.style.height = 'auto';
                 accContent.style.opacity = '1';
               }
+
               if (activeTab) {
                 activeTab.style.display = 'block';
                 activeTab.style.visibility = 'visible';
               } else if (firstTab) {
-                // If no tab is active, force the first one
                 firstTab.classList.add('active');
                 firstTab.style.display = 'block';
                 firstTab.style.visibility = 'visible';
