@@ -22,8 +22,8 @@ export class GlitchEnemy {
     const waveMultHP = 1.0 + ((wave - 1) * 0.15); // +15% HP per wave
     const waveMultSpd = 1.0 + ((wave - 1) * 0.08); // +8% Speed per wave (Buffed)
 
-    this.life = 10 * waveMultHP;
-    this.speed = 32 * waveMultSpd; // Base was 28
+    this.life = 25 * waveMultHP; // Buffed from 10
+    this.speed = 32 * waveMultSpd;
     this.damage = 10;
     this.color = 0xff0000;
     this.scale = 8.6;
@@ -33,35 +33,35 @@ export class GlitchEnemy {
 
     if (type === 'scout') {
       this.name = "Growth Hacker";
-      this.life = 5 * waveMultHP;
-      this.speed = 50 * waveMultSpd; // Was 45
+      this.life = 20 * waveMultHP; // Buffed from 5
+      this.speed = 50 * waveMultSpd;
       this.color = 0x00ff00;
       this.scale = 5.0;
     } else if (type === 'tank') {
       this.name = "VC Whale";
-      this.speed = 18 * waveMultSpd; // Was 8 (Too slow)
-      this.life = 60 * waveMultHP;
+      this.speed = 18 * waveMultSpd;
+      this.life = 240 * waveMultHP; // Buffed from 60 (4x)
       this.damage = 30;
       this.color = 0x3366ff;
       this.scale = 11.5;
     } else if (type === 'wraith') {
       this.name = "Vaporware";
-      this.speed = 24 * waveMultSpd; // Was 12 (Too slow)
-      this.life = 20 * waveMultHP;
+      this.speed = 24 * waveMultSpd;
+      this.life = 50 * waveMultHP; // Buffed from 20
       this.damage = 15;
       this.color = 0x00ffff;
       this.scale = 7.2;
     } else if (type === 'berzerker') {
       this.name = "10x Developer";
-      this.life = 8 * waveMultHP;
-      this.speed = 60 * waveMultSpd; // Was 55
+      this.life = 40 * waveMultHP; // Buffed from 8
+      this.speed = 60 * waveMultSpd;
       this.damage = 25;
       this.color = 0xff00ff;
       this.scale = 6.5;
     } else if (type === 'imp') {
       this.name = "Prompt Engineer";
-      this.life = 10 * waveMultHP;
-      this.speed = 28 * waveMultSpd; // Was 22
+      this.life = 30 * waveMultHP; // Buffed from 10
+      this.speed = 28 * waveMultSpd;
       this.damage = 15;
       this.color = 0xff4400;
       this.scale = 5.8;

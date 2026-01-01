@@ -34,6 +34,7 @@ export class GoomGame {
     this.score = 0;
     this.wave = 1;
     this.playerHealth = 100;
+    this.playerArmor = 0; // NEW: Armor State
     this.enemies = [];
     this.boss = null;
 
@@ -61,6 +62,12 @@ export class GoomGame {
     if (this.active) return;
     console.log("🛡️ GOOM GAME ACTIVATED - V6 (MODULAR)");
     this.active = true;
+
+    // FOG OVERRIDE: Clearer view for combat
+    if (this.scene.fog) {
+      this.originalFogDensity = this.scene.fog.density;
+      this.scene.fog.density = 0.002; // Much clearer (was 0.02)
+    }
 
     this.ui.createHUD();
     this.exhibitsSource = exhibits || [];
@@ -94,6 +101,8 @@ export class GoomGame {
 
   startGame() {
     this.cleanupLevel();
+    this.cleanupLevel();
+    // if (this.ui) this.ui.resetHUD(); // Removed Face
 
     this.weapons = WEAPONS.map(w => ({
       ...w,
@@ -101,6 +110,7 @@ export class GoomGame {
     }));
     this.currentWeaponIdx = 0;
     this.playerHealth = 100;
+    this.playerArmor = 0; // Reset Armor
     this.isGameOver = false;
     this.isVictory = false;
     this.score = 0;
@@ -177,6 +187,11 @@ export class GoomGame {
     if (!this.active) return;
     this.active = false;
 
+    // RESTORE FOG
+    if (this.scene.fog && this.originalFogDensity !== undefined) {
+      this.scene.fog.density = this.originalFogDensity;
+    }
+
     if (document.pointerLockElement) document.exitPointerLock();
 
     this.cleanupLevel();
@@ -236,6 +251,7 @@ export class GoomGame {
 
     this.ui.updateModelHealthBars();
     this.ui.updateStamina();
+    this.ui.updateRadar(); // NEW: Real-time Radar Update
 
     if (this.audio && this.audio.updateListener) this.audio.updateListener(this.camera); // Audio Spatialization
     this.projectiles.update(delta);
@@ -282,6 +298,9 @@ export class GoomGame {
   onPickup(type) {
     if (type === 'health') {
       this.playerHealth = Math.min(100, this.playerHealth + 50);
+    } else if (type === 'armor') { // NEW
+      this.playerArmor = Math.min(200, this.playerArmor + 50); // Cap at 200
+      this.audio.playSound(300, 'square', 0.2, 0.4);
     } else {
       const ammoMap = { 'ammo_shotgun': ['SHOTGUN', 8], 'ammo_launcher': ['LAUNCHER', 4], 'ammo_plasma': ['PLASMA', 40], 'ammo_bfg': ['BIG FREAKING GEMINI', 1] };
       if (ammoMap[type]) {
@@ -664,7 +683,25 @@ export class GoomGame {
 
   takePlayerDamage(amount) {
     if (this.godMode) return;
-    this.playerHealth -= amount;
+
+    // ARMOR LOGIC: Absorb 66% of damage
+    let damageToHealth = amount;
+    if (this.playerArmor > 0) {
+      const absorb = amount * 0.66;
+      if (this.playerArmor >= absorb) {
+        this.playerArmor -= absorb;
+        damageToHealth = amount - absorb;
+      } else {
+        // Armor breaks
+        const remaining = absorb - this.playerArmor;
+        this.playerArmor = 0;
+        damageToHealth = (amount * 0.34) + remaining;
+      }
+    }
+
+    this.playerHealth -= damageToHealth;
+    this.lastDamageTime = Date.now();
+    this.lastDamageAmount = damageToHealth; // TRACK AMOUNT FOR FACE
     if (Math.random() < 0.1) this.audio.playSound(80, 'square', 0.1, 0.2);
     if (this.ui.hud && Math.random() < 0.3) {
       const flash = document.createElement('div');

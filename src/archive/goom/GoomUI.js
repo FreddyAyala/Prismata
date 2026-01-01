@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GlitchEnemy } from './GoomEnemy.js';
+// Portrait Removed
 
 export class GoomUI {
     constructor(game) {
@@ -32,10 +33,22 @@ export class GoomUI {
             position: absolute; bottom: 20px; left: 20px; text-align: left;
         `;
         stats.innerHTML = `
-            <div id="goom-hp" style="font-size:40px; color:#00ff00; text-shadow:0 0 10px #00ff00;">HP: 100</div>
-            <div id="goom-score" style="font-size:24px; color:#0088ff;">SCORE: 0</div>
+            <div style="margin-bottom:5px;">
+                <div id="goom-hp-text" style="font-size:40px; color:#00ff00; text-shadow:0 0 10px #00ff00;">HP: 100</div>
+                <div style="width:300px; height:20px; background:rgba(0,50,0,0.5); border:2px solid #00ff00;">
+                    <div id="goom-hp-bar" style="width:100%; height:100%; background:#00ff00; transition:width 0.2s;"></div>
+                </div>
+            </div>
+            <div style="margin-bottom:10px;">
+                <div id="goom-armor-text" style="font-size:30px; color:#00ff88; text-shadow:0 0 10px #00ff88;">ARMOR: 0</div>
+                <div style="width:300px; height:15px; background:rgba(0,50,50,0.5); border:2px solid #00ff88;">
+                    <div id="goom-armor-bar" style="width:0%; height:100%; background:#00ff88; transition:width 0.2s;"></div>
+                </div>
+            </div>
+
+            <div id="goom-score" style="font-size:24px; color:#0088ff; margin-top:10px;">SCORE: 0</div>
             <div id="goom-wave" style="font-size:24px; color:#ffaa00;">WAVE: 1/5</div>
-            <div id="goom-enemies" style="font-size:24px; color:#ff0033;">ENEMIES: 0</div>
+            <div id="goom-enemies" style="font-size:24px; color:#ff0033;">THREATS: 0</div>
             <div id="goom-ammo" style="font-size:24px; color:#ffffff;">BLASTER [∞]</div>
             <div style="margin-top:10px; width:200px; height:10px; background:rgba(255,255,255,0.2); border:1px solid #00ff88;">
                 <div id="goom-stamina" style="width:100%; height:100%; background:#00ff88; transition:width 0.1s;"></div>
@@ -43,6 +56,20 @@ export class GoomUI {
             <div style="font-size:12px; color:#00ff88;">ENERGY</div>
         `;
         this.hud.appendChild(stats);
+
+        // Portrait Removed
+
+        // RADAR Container (Top Right)
+        const radar = document.createElement('div');
+        radar.id = 'goom-radar';
+        radar.style.cssText = `
+            position: absolute; top: 20px; right: 20px; width: 150px; height: 150px;
+            border: 2px solid #00ff00; border-radius: 50%; background: rgba(0, 20, 0, 0.5);
+            overflow: hidden; opacity: 0.8;
+        `;
+        // Player Center Dot
+        radar.innerHTML = `<div style="position:absolute; top:50%; left:50%; width:4px; height:4px; background:#00ff00; transform:translate(-50%,-50%); border-radius:50%;"></div>`;
+        this.hud.appendChild(radar);
     }
 
     removeHUD() {
@@ -52,34 +79,57 @@ export class GoomUI {
         this.hud = null;
     }
 
+    // Portrait Removed
+    resetHUD() {
+        // No-op
+    }
+
     updateHUD() {
         if (!this.hud) return;
-        const hpEl = document.getElementById('goom-hp');
+
+        const hpText = document.getElementById('goom-hp-text');
+        const hpBar = document.getElementById('goom-hp-bar');
+        const armorText = document.getElementById('goom-armor-text');
+        const armorBar = document.getElementById('goom-armor-bar');
+
+
         const scoreEl = document.getElementById('goom-score');
         const waveEl = document.getElementById('goom-wave');
+        const enemiesEl = document.getElementById('goom-enemies');
         const ammoEl = document.getElementById('goom-ammo');
+        const staminaEl = document.getElementById('goom-stamina');
 
-        if (hpEl) {
-            hpEl.innerText = `HP: ${Math.max(0, Math.ceil(this.game.playerHealth))}`;
-            hpEl.style.color = this.game.playerHealth < 30 ? '#ff0000' : (this.game.playerHealth < 60 ? '#ffff00' : '#00ff00');
+        const hp = Math.max(0, Math.ceil(this.game.playerHealth));
+        const armor = Math.max(0, Math.ceil(this.game.playerArmor));
+
+        if (hpText) {
+            hpText.innerText = `HP: ${hp}`;
+            hpText.style.color = hp < 30 ? '#ff0000' : (hp < 60 ? '#ffff00' : '#00ff00');
+            if (hpBar) {
+                hpBar.style.width = `${Math.min(100, hp)}%`;
+                hpBar.style.backgroundColor = hpText.style.color;
+            }
         }
+        if (armorText) {
+            armorText.innerText = `ARMOR: ${armor}`;
+            const armorPct = Math.min(100, (armor / 200) * 100); // Max 200
+            if (armorBar) armorBar.style.width = `${armorPct}%`;
+        }
+
+        // Update 3D Portrait
+        // Update 3D Portrait REMOVED
+
         if (scoreEl) scoreEl.innerText = `SCORE: ${this.game.score}`;
         if (waveEl) waveEl.innerText = `WAVE: ${this.game.wave}/5`;
-
-        const enemiesEl = document.getElementById('goom-enemies');
-        if (enemiesEl) {
-            const count = this.game.enemies.length + (this.game.enemiesToSpawn || 0) + (this.game.boss ? 1 : 0);
-            enemiesEl.innerText = `THREATS: ${count}`;
-        }
-
+        if (enemiesEl) enemiesEl.innerText = `THREATS: ${this.game.enemies.length + (this.game.boss ? 1 : 0)}`;
         if (ammoEl) {
             const w = this.game.weapons[this.game.currentWeaponIdx];
-            const name = w.name; // Uses full name e.g. "BFG 9000"
-            const ammo = w.ammo === -1 ? '∞' : w.ammo;
-            ammoEl.innerText = `${name} [${ammo}]`;
+            if (w) {
+                ammoEl.innerText = `${w.name} [${w.ammo === -1 ? '∞' : w.ammo}]`;
+                ammoEl.style.color = w.color ? '#' + w.color.toString(16).padStart(6, '0') : '#ffffff';
+            }
         }
 
-        const staminaEl = document.getElementById('goom-stamina');
         if (staminaEl && this.game.player) {
             const pct = (this.game.player.stamina / this.game.player.maxStamina) * 100;
             staminaEl.style.width = `${pct}%`;
@@ -87,6 +137,101 @@ export class GoomUI {
         }
 
         this.updateModelHealthBars();
+        this.updateRadar(); // NEW
+    }
+
+    updateRadar() {
+        let canvas = document.getElementById('goom-radar-canvas');
+        if (!canvas) {
+            const container = document.getElementById('goom-radar');
+            if (container) {
+                // Clear DOM dots once
+                container.innerHTML = '';
+                canvas = document.createElement('canvas');
+                canvas.id = 'goom-radar-canvas';
+                canvas.width = 150;
+                canvas.height = 150;
+                canvas.style.cssText = "width:100%; height:100%; border-radius:50%;";
+                container.appendChild(canvas);
+            } else {
+                return;
+            }
+        }
+
+        if (!this.game || !this.game.camera) return;
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Center (Player)
+        const cx = 75;
+        const cy = 75;
+        const radius = 75;
+        const range = 150.0; // Range
+
+        // Draw Player
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        const forward = new THREE.Vector3();
+        this.game.camera.getWorldDirection(forward);
+        forward.y = 0; forward.normalize();
+        const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+        const camPos = this.game.camera.position;
+
+        // Draw Enemies
+        this.game.enemies.forEach(e => {
+            if (!e.mesh || !e.mesh.visible || e.life <= 0) return;
+            const toEnemy = new THREE.Vector3().subVectors(e.mesh.position, camPos);
+            toEnemy.y = 0;
+            const dist = toEnemy.length();
+
+            if (dist < range) {
+                const f = toEnemy.dot(forward);
+                const r = toEnemy.dot(right);
+
+                // x = r, y = -f
+                const px = cx + (r / range) * radius;
+                const py = cy - (f / range) * radius;
+
+                // Clamp to Circle
+                const dx = px - cx;
+                const dy = py - cy;
+                if (dx * dx + dy * dy < radius * radius) {
+                    ctx.fillStyle = 'red';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        });
+
+        // Draw Crystals
+        this.game.ui.crystals.forEach(c => {
+            if (!c.mesh || !c.mesh.visible || c.mesh.userData.health <= 0) return;
+            const toC = new THREE.Vector3().subVectors(c.mesh.position, camPos);
+            toC.y = 0;
+            const dist = toC.length();
+            if (dist < range) {
+                const f = toC.dot(forward);
+                const r = toC.dot(right);
+
+                const px = cx + (r / range) * radius;
+                const py = cy - (f / range) * radius;
+
+                const dx = px - cx;
+                const dy = py - cy;
+
+                if (dx * dx + dy * dy < radius * radius) {
+                    ctx.fillStyle = c.mesh.userData.isCorrupted ? '#ff00ff' : '#00ffff';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        });
     }
 
     // --- Instuctions / Start Screen ---

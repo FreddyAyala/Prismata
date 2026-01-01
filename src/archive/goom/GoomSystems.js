@@ -176,17 +176,24 @@ export class GoomSystems {
             type = 'health';
             color = 0xff0000;
         } else {
-            // Ammo Tiering
-            const ar = Math.random();
-            // Wave 1: Shotgun (100%)
-            // Wave 2: Shotgun (70%), Launcher (30%)
-            // Wave 3: Shotgun (50%), Launcher (30%), Plasma (20%)
-            // Wave 4+: Shotgun (40%), Launcher (30%), Plasma (20%), BFG (10%)
+            // Armor Chance (10%)
+            const r3 = Math.random();
+            if (r3 < 0.10) {
+                type = 'armor';
+                color = 0x00ff00; // Green Armor
+            } else {
+                // Ammo Tiering
+                const ar = Math.random();
+                // Wave 1: Shotgun (100%)
+                // Wave 2: Shotgun (70%), Launcher (30%)
+                // Wave 3: Shotgun (50%), Launcher (30%), Plasma (20%)
+                // Wave 4+: Shotgun (40%), Launcher (30%), Plasma (20%), BFG (10%)
 
-            if (wave >= 4 && ar > 0.90) { type = 'ammo_bfg'; color = 0x00ff00; }
-            else if (wave >= 3 && ar > 0.70) { type = 'ammo_plasma'; color = 0x00ffff; }
-            else if (wave >= 2 && ar > 0.40) { type = 'ammo_launcher'; color = 0xff00ff; }
-            else { type = 'ammo_shotgun'; color = 0xffaa00; }
+                if (wave >= 4 && ar > 0.90) { type = 'ammo_bfg'; color = 0x00ff00; }
+                else if (wave >= 3 && ar > 0.70) { type = 'ammo_plasma'; color = 0x00ffff; }
+                else if (wave >= 2 && ar > 0.40) { type = 'ammo_launcher'; color = 0xff00ff; }
+                else { type = 'ammo_shotgun'; color = 0xffaa00; }
+            }
         }
 
         const mesh = this.buildPickupVisual(type, color);
@@ -219,6 +226,14 @@ export class GoomSystems {
             group.add(vBar, hBar);
             const outer = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 2.5), new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, transparent: true, opacity: 0.3 }));
             group.add(outer);
+        }
+        else if (type === 'armor') {
+            // Shield Icon
+            const plate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.8, 0.5), wireMat);
+            group.add(plate);
+            const core = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.2, 0.5), solidMat);
+            group.add(core);
+            // Floating particles?
         }
         else if (type === 'ammo_shotgun') {
             const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.0, 1.0), wireMat);
