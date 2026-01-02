@@ -102,6 +102,21 @@ export class CrystalViewer {
 
     // Start Loop
     this.animate();
+
+    // Listen for Game Exit
+    window.addEventListener('goom-exit', () => {
+      // Restore Gallery UI
+      const footer = document.querySelector('.gallery-footer');
+      if (footer) footer.style.display = 'flex'; // Restore footer
+      const header = document.querySelector('header');
+      if (header) header.style.display = 'flex'; // Restore header if hidden
+
+      // Re-enable Crystal Viewer interaction if needed
+      // this.rig.enabled = true?
+
+      // Ensure mouse is unlocked
+      if (document.pointerLockElement) document.exitPointerLock();
+    });
   }
 
   async loadCrystal(url) {

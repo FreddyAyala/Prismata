@@ -180,6 +180,12 @@ export class GoomGame {
     this.mousedownHandler = (e) => {
       if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
 
+      // Resume on Click
+      if (!document.pointerLockElement && this.active) {
+        document.body.requestPointerLock();
+        return;
+      }
+
       // Right Click (2) or Left Click (0)
       const isAlt = e.button === 2;
       this.isFiring = true;
@@ -243,6 +249,11 @@ export class GoomGame {
         this.player.mobileControls.disableCombatMode();
       }
       console.log("GoomGame: Deactivation Complete");
+
+      // DISPATCH EXIT EVENT
+      // This tells the parent app (CrystalViewer) to restore its UI
+      window.dispatchEvent(new CustomEvent('goom-exit'));
+
     } catch (err) {
       console.error("GoomGame: Deactivation ERROR:", err);
       // Force cleanup state even if error
@@ -254,22 +265,45 @@ export class GoomGame {
 
   cleanupLevel() {
     if (this.weaponMesh) { this.camera.remove(this.weaponMesh); this.weaponMesh = null; }
-    this.arena.cleanup();
 
+    // Clear Intervals
     if (this.spawnInterval) clearInterval(this.spawnInterval);
     if (this.pickupInterval) clearInterval(this.pickupInterval);
     if (this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
 
+    // Clear Enemies
     this.enemies.forEach(e => this.scene.remove(e.mesh));
     this.enemies = [];
-    if (this.boss) { this.scene.remove(this.boss.mesh); this.boss = null; }
+
+    // Clear Boss & its Effects
+    if (this.boss) {
+      // Force remove all boss effects if any exist
+      if (this.boss.effects) this.boss.effects.forEach(e => this.scene.remove(e.mesh));
+      this.scene.remove(this.boss.mesh);
+      this.boss = null;
+    }
 
     this.projectiles.clear();
-    if (this.systems) this.systems.clear();
+
+    // Clear Systems (Particles, Pickups)
+    if (this.systems) {
+      this.systems.clear();
+      // Ensure particles array is actually empty
+      this.systems.particles.forEach(p => { if (p.mesh) this.scene.remove(p.mesh); });
+      this.systems.particles = [];
+      this.systems.pickups.forEach(p => { if (p.mesh) this.scene.remove(p.mesh); });
+      this.systems.pickups = [];
+    }
   }
 
   update(delta) {
     if (!this.active) return;
+
+    // PAUSE LOGIC: If no pointer lock and not game over, we are paused.
+    // Skip all game logic updates.
+    if (!document.pointerLockElement && !this.isGameOver && !this.isVictory) {
+      return;
+    }
 
     this.checkCrystalHealth();
 
@@ -346,21 +380,25 @@ export class GoomGame {
   }
 
   onPickup(type) {
+    // DISTINCT SOUNDS
     if (type === 'health') {
       this.playerHealth = Math.min(100, this.playerHealth + 50);
-    } else if (type === 'armor') { // NEW
+      this.audio.playSound(500, 'sine', 0.5, 0.3); // High Pitch Stim
+      this.audio.playSound(600, 'sine', 0.5, 0.4);
+    } else if (type === 'armor') { 
       this.playerArmor = Math.min(200, this.playerArmor + 50); // Cap at 200
-      this.audio.playSound(300, 'square', 0.2, 0.4);
+      this.audio.playSound(100, 'square', 1.0, 0.1); // CRACK / THUD
+      this.audio.playSound(150, 'sawtooth', 0.8, 0.2);
     } else {
       const ammoMap = { 'ammo_shotgun': ['SHOTGUN', 8], 'ammo_launcher': ['LAUNCHER', 4], 'ammo_plasma': ['PLASMA', 40], 'ammo_bfg': ['BIG FREAKING GEMINI', 1] };
       if (ammoMap[type]) {
         const [name, amount] = ammoMap[type];
         const w = this.weapons.find(x => x.name === name);
         if (w) w.ammo = Math.min(w.maxAmmo, w.ammo + amount);
+        this.audio.playSound(800, 'triangle', 0.3, 0.1); // Click/Load
+        this.audio.playSound(200, 'noise', 0.2, 0.1);    // Mechanical Clic
       }
     }
-    if (this.audio && this.audio.playPickup) this.audio.playPickup();
-    else if (this.audio) this.audio.playSound(400, 'sine', 0.1, 0.2);
     this.ui.updateHUD();
   }
 
@@ -508,11 +546,31 @@ export class GoomGame {
       const result = e.update(delta, this.camera);
 
       // Kamikaze / Suicide Logic
-      if (result === 'kamikaze' || result === 'damage_player') {
+      if (result === 'kamikaze') {
         e.takeDamage(999); // Die instantly
         this.systems.createExplosion(e.mesh.position, 0xff0000, true);
         this.takePlayerDamage(20); // 20 DMG
         this.ui.flashDamage();
+        // Push Player
+        const pushDir = this.camera.position.clone().sub(e.mesh.position).normalize();
+        this.playerVelocity.add(pushDir.multiplyScalar(30.0));
+
+      } else if (result === 'melee_hit') {
+        // Melee Hit (Non-Suicidal)
+        // Only hit every 1.0s or so? We need a cooldown on the ENEMY side really, 
+        // but for now let's just push player and deal damage if cooldown ready
+        if (e.retaliationTimer <= 0) { // Reuse retal timer or add melee timer?
+          e.retaliationTimer = 1.0; // Cooldown
+          this.takePlayerDamage(15);
+          this.ui.flashDamage();
+          this.audio.playSound(100, 'sawtooth', 0.5, 0.1);
+          // Push Player Away HARD
+          const pushDir = this.camera.position.clone().sub(e.mesh.position).normalize();
+          this.playerVelocity.add(pushDir.multiplyScalar(40.0)); // Big knockback
+        }
+      } else if (result === 'damage_player') { // Fallback for old return
+        e.takeDamage(999);
+        this.takePlayerDamage(10);
       } else if (result === 'damage_crystal' || result === 'explode') {
         const target = e.target;
         if (target && target.userData.health !== undefined) {
@@ -527,7 +585,7 @@ export class GoomGame {
             }
 
             target.userData.health -= dmg;
-            if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 1.5)) {
+            if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 5.0)) {
               this.lastAlertTime = this.audio.audioCtx ? this.audio.audioCtx.currentTime : Date.now();
               this.audio.playAlert();
 
@@ -891,14 +949,44 @@ export class GoomGame {
   }
 
   handleKeys(e) {
-    if (e.key === 'Escape' || e.key === 'p') {
-      this.deactivate();
-      return;
+    // ALWAYS Allow Escape to unlock cursor
+    if (e.code === 'Escape') {
+      if (document.pointerLockElement) document.exitPointerLock();
+      // If we are in victory/gameover, maybe we want to return to menu?
+      if (this.isVictory || this.isGameOver) {
+        // Optional: Return to main menu logic if needed
+      }
+      return; 
     }
 
-    if (this.isVictory) {
-      if (e.key === 'Enter') this.resetGame();
-      return;
+    if (!this.active || this.isGameOver) return;
+
+    // Cheats
+    if (e.key === '1') this.currentWeaponIdx = 0;
+    if (e.key === '2') this.currentWeaponIdx = 1;
+    if (e.key === '3') this.currentWeaponIdx = 2;
+    if (e.key === '4') this.currentWeaponIdx = 3;
+    if (e.key === '5') this.currentWeaponIdx = 4;
+    this.updateWeaponVisuals();
+    this.ui.updateHUD();
+
+    // Cheat Codes
+    if (e.key === 'p') {
+      this.enemiesToSpawn = 0;
+      this.enemies.forEach(en => en.takeDamage(9999));
+    }
+    if (e.key === 'l') { // Skip Level
+      this.waveInProgress = false;
+      this.enemiesToSpawn = 0;
+      this.enemies.forEach(en => en.takeDamage(9999));
+      this.boss = null; // Kill boss too
+    }
+    if (e.key === 'k') { // Kill Self
+      this.takePlayerDamage(100);
+    }
+    if (e.key === 'i') { // Invincibility Toggle
+      this.isGodMode = !this.isGodMode;
+      this.ui.showWarning(this.isGodMode ? "GOD MODE ON" : "GOD MODE OFF");
     }
     this.handleCheatInput(e.key);
     if (e.key === 'r') this.resetGame();
@@ -961,7 +1049,31 @@ export class GoomGame {
   }
 
   handlePointerLockChange() {
-    if (!document.pointerLockElement && this.active && !this.isGameOver && !this.isVictory) this.deactivate();
+    // If lock is lost (user pressed Escape), show PAUSE MENU
+    if (!document.pointerLockElement && this.active && !this.isGameOver && !this.isVictory) {
+      if (this.audio && this.audio.audioCtx && this.audio.audioCtx.state === 'running') {
+        this.audio.audioCtx.suspend();
+      }
+
+      // Show Menu
+      this.ui.showPauseMenu(
+        () => { // Resume
+          document.body.requestPointerLock();
+        },
+        () => { // Exit
+          this.deactivate();
+        }
+      );
+    } else {
+      // Lock acquired (Resumed)
+      this.ui.hidePauseMenu();
+
+      if (this.active && !this.isGameOver && !this.isVictory) {
+        if (this.audio && this.audio.audioCtx && this.audio.audioCtx.state === 'suspended') {
+          this.audio.audioCtx.resume();
+        }
+      }
+    }
   }
 
   gameOver() {

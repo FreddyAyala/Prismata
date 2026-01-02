@@ -248,11 +248,18 @@ export class GlitchEnemy {
     // Attack Reach & Shooting
     const attackDistSq = this.mesh.position.distanceToSquared(targetPos);
 
-    // KAMIKAZE LOGIC (Shotgunners/Melee suicide on contact)
+    // KAMIKAZE LOGIC (Scout/Berzerker suicide on contact)
+    // TANK / WRAITH / IMP should NOT die on contact, but might push/melee?
+    // Current Logic: Only Scout/Berzerker triggers 'kamikaze'
     if (this.isTargetingPlayer && (this.type === 'scout' || this.type === 'berzerker')) {
       if (attackDistSq < 9.0) { // Distance < 3.0
         // EXPLODE!
         return 'kamikaze';
+      }
+    } else if (this.isTargetingPlayer && (this.type === 'tank' || this.type === 'wraith' || this.type === 'imp')) {
+      // Melee Range Check for non-suicide units
+      if (attackDistSq < 16.0) { // Distance < 4.0
+        return 'melee_hit';
       }
     }
 

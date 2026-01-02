@@ -211,7 +211,7 @@ export class GoomSystems {
 
         const mesh = this.buildPickupVisual(type, color);
         // Visual Scale Up (Users asked for "bigger")
-        mesh.scale.set(1.5, 1.5, 1.5);
+        mesh.scale.set(3.0, 3.0, 3.0);
 
         mesh.position.copy(pos);
         mesh.position.y = 2.0;

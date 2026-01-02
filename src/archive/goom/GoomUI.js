@@ -60,7 +60,7 @@ export class GoomUI {
                      <div id="goom-stamina" style="width:100%; height:100%; background:#00ff88;"></div>
                 </div>
 
-                <!--METRICS GRID-- >
+                <!--METRICS GRID-->
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">
                     <div>
                         <div style="font-size:10px; color:#888;">WAVE</div>
@@ -108,6 +108,7 @@ export class GoomUI {
             this.hud.parentNode.removeChild(this.hud);
         }
         this.hud = null;
+        this.hidePauseMenu(); // Ensure pause menu is gone too
     }
 
     // Portrait Removed
@@ -770,6 +771,82 @@ export class GoomUI {
             const pct = (this.game.player.stamina / this.game.player.maxStamina) * 100;
             staminaEl.style.width = `${pct}%`;
             staminaEl.style.backgroundColor = pct < 20 ? '#ff0000' : (pct < 50 ? '#ffff00' : '#00ff88');
+        }
+    }
+    // PAUSE MENU
+    showPauseMenu(onResume, onExit) {
+        if (this.pauseMenu) return; // Already visible
+
+        this.pauseMenu = document.createElement('div');
+        this.pauseMenu.id = 'goom-pause-menu';
+        this.pauseMenu.style.cssText = `
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 5000; pointer-events: auto;
+        `;
+
+        const container = document.createElement('div');
+        container.style.cssText = `
+            background: rgba(0, 20, 0, 0.9); border: 2px solid #00ff00;
+            padding: 40px; text-align: center; box-shadow: 0 0 20px #00ff00;
+            min-width: 300px; transform: skew(-5deg);
+        `;
+
+        const title = document.createElement('h1');
+        title.innerText = "PAUSED";
+        title.style.cssText = `
+            font-size: 48px; color: #00ff00; margin: 0 0 30px 0;
+            text-shadow: 0 0 10px #00ff00; letter-spacing: 5px;
+        `;
+        container.appendChild(title);
+
+        const btnStyle = `
+            display: block; width: 100%; margin: 10px 0; padding: 15px;
+            background: transparent; border: 1px solid #00ff00; color: #00ff00;
+            font-family: 'Orbitron', sans-serif; font-size: 20px; cursor: pointer;
+            transition: all 0.2s; text-transform: uppercase; letter-spacing: 2px;
+        `;
+
+        const createBtn = (text, onClick) => {
+            const btn = document.createElement('button');
+            btn.innerText = text;
+            btn.style.cssText = btnStyle;
+            btn.onmouseover = () => {
+                btn.style.background = '#00ff00';
+                btn.style.color = '#000000';
+                btn.style.boxShadow = '0 0 15px #00ff00';
+            };
+            btn.onmouseout = () => {
+                btn.style.background = 'transparent';
+                btn.style.color = '#00ff00';
+                btn.style.boxShadow = 'none';
+            };
+            btn.onclick = onClick;
+            return btn;
+        };
+
+        const resumeBtn = createBtn("RESUME MISSION", () => {
+            if (onResume) onResume();
+        });
+
+        const exitBtn = createBtn("ABORT MISSION", () => {
+            if (onExit) onExit();
+        });
+
+        container.appendChild(resumeBtn);
+        container.appendChild(exitBtn);
+        this.pauseMenu.appendChild(container);
+
+        // Append to body (to be on top of everything) or hud?
+        // Body is safer for full screen overlays
+        document.body.appendChild(this.pauseMenu);
+    }
+
+    hidePauseMenu() {
+        if (this.pauseMenu) {
+            if (this.pauseMenu.parentNode) this.pauseMenu.parentNode.removeChild(this.pauseMenu);
+            this.pauseMenu = null;
         }
     }
 }
