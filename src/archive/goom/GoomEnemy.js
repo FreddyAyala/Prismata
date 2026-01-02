@@ -206,7 +206,10 @@ export class GlitchEnemy {
     // Aggro Overrides: Hunt Player if close OR Retaliating
     if (!this.isWraith && playerObj) {
       const distSq = this.mesh.position.distanceToSquared(playerObj.position);
-      let aggroRadiusSq = 14400; // Buffed Hunter: 120u (was 75u)
+      // Reduce aggro radius so they don't ALL abandon crystals instantly
+      // Was 14400 (120u), now 3600 (60u) for Hunters.
+      let aggroRadiusSq = 3600; 
+
 
       // STRICT DESTROYER LOGIC
       if (this.role === 'destroyer') {

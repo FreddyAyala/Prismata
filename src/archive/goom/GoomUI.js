@@ -578,6 +578,28 @@ export class GoomUI {
         }, 2000);
     }
 
+    flashDamage() {
+        if (!this.hud) return;
+
+        let flash = document.getElementById('goom-damage-flash');
+        if (!flash) {
+            flash = document.createElement('div');
+            flash.id = 'goom-damage-flash';
+            flash.style.cssText = `
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: red; opacity: 0; pointer-events: none; z-index: 100;
+                transition: opacity 0.1s ease-out;
+            `;
+            this.hud.appendChild(flash);
+        }
+
+        // Trigger Flash
+        flash.style.opacity = 0.4;
+        setTimeout(() => {
+            flash.style.opacity = 0;
+        }, 100);
+    }
+
     triggerGameOver(onRestart) {
         const hud = document.getElementById('goom-hud');
         if (!hud) return;

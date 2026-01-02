@@ -585,7 +585,7 @@ export class GoomGame {
             }
 
             target.userData.health -= dmg;
-            if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 5.0)) {
+            if (!this.lastAlertTime || (this.audio.audioCtx && this.audio.audioCtx.currentTime - this.lastAlertTime > 4.0)) {
               this.lastAlertTime = this.audio.audioCtx ? this.audio.audioCtx.currentTime : Date.now();
               this.audio.playAlert();
 

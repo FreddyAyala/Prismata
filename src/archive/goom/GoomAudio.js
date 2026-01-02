@@ -519,28 +519,7 @@ export class GoomAudio {
 
 
 
-    // Softer Alarm for continuous "Under Attack" warning
-    playAlert() {
-        if (!this.audioCtx) return;
-        const t = this.audioCtx.currentTime;
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
 
-        // Sine wave is much softer than Sawtooth/Square
-        osc.type = 'sine';
-
-        // Two-tone "Wew-Wew" but lower pitch and softer
-        osc.frequency.setValueAtTime(440, t); // A4
-        osc.frequency.linearRampToValueAtTime(350, t + 0.5); // Slide down
-
-        gain.gain.setValueAtTime(0.3, t); // Lower volume (was often 0.5-0.8)
-        gain.gain.linearRampToValueAtTime(0, t + 0.6); // Fade out
-
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        osc.start();
-        osc.stop(t + 0.6);
-    } 
 
     updateListener(camera) {
         if (!this.audioCtx || !camera || !this.audioCtx.listener.positionX) return;
