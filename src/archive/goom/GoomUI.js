@@ -644,14 +644,14 @@ export class GoomUI {
         }
 
         div.innerHTML = `
-            <img src="/aibubbleburst.jpg" style="max-width:80%; max-height:30vh; border:2px solid #00ff00; margin-bottom:10px; box-shadow:0 0 50px #00ff00;" onerror="this.style.display='none'">
-            <h1 style="font-size:60px; color:#00ff00; margin-bottom:5px; font-family:'Orbitron', sans-serif;">THREAT NEUTRALIZED</h1>
-            <div style="font-size:30px; color:white; margin-bottom:10px;">FINAL SCORE: ${score}</div>
-            
-            ${statsHtml}
-
-            <div style="color:#888; margin-bottom:20px;">PRESS ENTER TO REBOOT SYSTEM</div>
-            <button id="goom-restart-win" style="padding: 15px 40px; font-size:24px; background:#00ff00; color:black; border:none; cursor:pointer;">REBOOT (ENTER)</button>
+            <h1 style="font-size:70px; color:#00ff00; margin-bottom:10px; font-family:'Orbitron', sans-serif;">THREAT NEUTRALIZED</h1>
+            <h2 style="font-size:30px; color:#ff00ff; margin-bottom:30px; font-family:'Orbitron', sans-serif; text-shadow:0 0 10px #ff00ff;">(We popped the AI bubble!!)</h2>
+            <h2 style="color:white; margin-bottom:40px; font-family:'Orbitron', sans-serif;">FINAL SCORE: ${score}</h2>
+            <div style="margin-bottom:40px; text-align:left; font-family:'Orbitron', sans-serif; font-size:18px;">
+                ${statsHtml}
+            </div>
+            <div style="font-size:14px; color:#aaa; margin-bottom:10px;">PRESS ENTER TO REBOOT SYSTEM</div>
+            <button id="goom-restart-win" style="padding: 20px 40px; font-size:30px; background:#00ff00; color:black; border:none; cursor:pointer; font-weight:bold;">REBOOT (ENTER)</button>
         `;
         hud.appendChild(div);
 

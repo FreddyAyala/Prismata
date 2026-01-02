@@ -23,32 +23,32 @@ export const WEAPONS = [
         color: 0x00ffff // Cyan Beam
     }),
 
-    new Weapon("SHOTGUN", 900, 4.0, 0xffaa00, 'spread', 12, 12.0, { // Buffed base damage 3.5 -> 4.0
+    new Weapon("SHOTGUN", 900, 4.0, 0xffaa00, 'spread', 24, 12.0, { // Max 24 (2x Base)
         cooldown: 1200,
         damage: 100,
-        cost: 2,        // Buffed Cost 3 -> 2
+        cost: 2,
         type: 'projectile_flak',
         color: 0xff8800
     }),
-    new Weapon("LAUNCHER", 750, 40, 0xff0000, 'projectile', 4, 15.0, {
+    new Weapon("LAUNCHER", 750, 40, 0xff0000, 'projectile', 12, 15.0, { // Max 12 (3x Base)
         cooldown: 1200,
-        damage: 20,     // Per mini-rocket
-        cost: 2,        // Uses 2 Rockets
-        type: 'projectile_cluster', // Fires 3
+        damage: 20,
+        cost: 2,
+        type: 'projectile_cluster', 
         color: 0xff4444
     }),
-    new Weapon("PLASMA", 25, 6, 0x00ffff, 'projectile_fast', 100, 0, {
+    new Weapon("PLASMA", 25, 6, 0x00ffff, 'projectile_fast', 200, 0, { // Max 200 (Was 100)
         cooldown: 500,
         damage: 6,
-        cost: 10,       // Uses 10 Cells
-        type: 'projectile_vent', // Fires 10 at once
+        cost: 10,
+        type: 'projectile_vent',
         color: 0x0088ff
     }),
-    new Weapon("BIG FREAKING GEMINI", 1250, 200, 0x00ff00, 'bfg', 5, 40.0, {
+    new Weapon("BIG FREAKING GEMINI", 1250, 200, 0x00ff00, 'bfg', 10, 40.0, { // Max 10 (Was 5)
         cooldown: 3000,
-        damage: 10,     // Tick damage (Singularity)
-        cost: 2,        // Uses 2 Cells
-        type: 'bfg_singularity', // Black hole effect
-        color: 0xaa00aa // Purple
+        damage: 10,
+        cost: 2,
+        type: 'bfg_singularity',
+        color: 0xaa00aa
     })
 ];

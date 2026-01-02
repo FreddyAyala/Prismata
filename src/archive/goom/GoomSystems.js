@@ -162,13 +162,15 @@ export class GoomSystems {
 
     spawnDrop(pos, wave = 1) {
         const roll = Math.random();
-        if (roll > 0.75) return; // 25% Chance (Buffed from 20%)
+        if (roll > 0.75) return; // 25% Chance
 
         let type = 'ammo_shotgun';
         let color = 0xffaa00;
 
-        const r2 = Math.random();
+        // Multiplier based on wave: +5% ammo per wave (Nerfed from 10%)
+        const multiplier = 1.0 + ((wave - 1) * 0.05);
 
+        const r2 = Math.random();
         // Health Chance: Base 15% + 5% per wave (Max 40%)
         const healthChance = 0.15 + ((wave - 1) * 0.05);
 
@@ -184,11 +186,6 @@ export class GoomSystems {
             } else {
                 // Ammo Tiering
                 const ar = Math.random();
-                // Wave 1: Shotgun (100%)
-                // Wave 2: Shotgun (70%), Launcher (30%)
-                // Wave 3: Shotgun (50%), Launcher (30%), Plasma (20%)
-                // Wave 4+: Shotgun (40%), Launcher (30%), Plasma (20%), BFG (10%)
-
                 if (wave >= 4 && ar > 0.90) { type = 'ammo_bfg'; color = 0x00ff00; }
                 else if (wave >= 3 && ar > 0.70) { type = 'ammo_plasma'; color = 0x00ffff; }
                 else if (wave >= 2 && ar > 0.40) { type = 'ammo_launcher'; color = 0xff00ff; }
@@ -197,10 +194,14 @@ export class GoomSystems {
         }
 
         const mesh = this.buildPickupVisual(type, color);
+        // Visual Scale Up (Users asked for "bigger")
+        mesh.scale.set(1.5, 1.5, 1.5);
+
         mesh.position.copy(pos);
         mesh.position.y = 2.0;
         this.scene.add(mesh);
-        this.pickups.push({ mesh, type: type });
+
+        this.pickups.push({ mesh, type: type, amountMultiplier: multiplier });
     }
 
     spawnHealthPickup(cameraPos) {
@@ -281,7 +282,7 @@ export class GoomSystems {
             const dist = p.mesh.position.distanceTo(cameraPos);
 
             if (dist < 15.0) {
-                if (onPickup) onPickup(p.type);
+                if (onPickup) onPickup(p.type, p.amountMultiplier || 1.0);
                 this.scene.remove(p.mesh);
                 this.pickups.splice(i, 1);
             }
