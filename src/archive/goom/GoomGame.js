@@ -294,20 +294,33 @@ export class GoomGame {
     this.projectiles.update(delta);
     this.updateEnemies(delta);
     this.updateBoss(delta);
-    this.updateCrystals(delta); // NEW: Turrets
-
+    this.updateCrystals(delta); // NEW:    // BOSS
     if (this.boss) {
-      try {
+      if (!this.boss.active) {
+        // Check if we just killed it (logic handled in boss.update returning 'dead')
+      } else {
         const res = this.boss.update(delta, this.camera.position);
         if (this.ui.updateBossHealth) this.ui.updateBossHealth(this.boss.life, this.boss.maxLife);
 
-        if (res === 'remove') {
-          this.scene.remove(this.boss.mesh);
+        if (res === 'damage_player_boss') {
+          this.takePlayerDamage(25 * delta); // Contact damage
+        } else if (res === 'dead') {
+        // VICTORY!
           this.boss = null;
-          this.triggerWin();
+          this.isVictory = true;
+          this.killStats["THE AI BUBBLE"] = 1;
+          // Stop Music using the handle
+          if (this.musicHandle && this.musicHandle.stop) this.musicHandle.stop();
+
+          // Play Epic Victory Song
+          if (this.audio && this.audio.playVictorySong) this.audio.playVictorySong();
+          else this.audio.playSound(300, 'square', 1.0, 1.0);
+
+          // Delay UI for 5.0s to let the explosion finish and sink in
+          setTimeout(() => {
+            this.ui.triggerWin(this.score, () => this.resetGame(), this.killStats);
+          }, 5000);
         }
-      } catch (e) {
-        console.error("BOSS UPDATE CRASH:", e);
       }
     }
 
@@ -388,7 +401,7 @@ export class GoomGame {
     this.wave = 5;
     this.ui.showWaveTitle("THE AI BUBBLE: POP IT TO SAVE AI!");
     if (this.audio.setMusicPhase) this.audio.setMusicPhase(5);
-    const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 5, -60));
+    const spawnPos = this.camera.position.clone().add(new THREE.Vector3(0, 5, -150)); // Spawn much further away
 
     const onShoot = (pos, dir, type) => this.projectiles.fireEnemyProjectile(pos, dir, type);
     this.boss = new GlitchBoss(this.scene, spawnPos, this.camera, onShoot);
@@ -408,70 +421,69 @@ export class GoomGame {
     }, spawnRate);
   }
 
-  spawnEnemy() {
+  spawnEnemy(overrideType = null, overridePos = null) {
     if (!this.active) return;
     const validTargets = this.ui.crystals.filter(c => c.mesh && c.mesh.visible && c.mesh.userData.health > 0 && !c.mesh.userData.isCorrupted).map(c => c.mesh);
 
-    let spawnPoint = this.arena.getRandomSpawnPoint();
+    let spawnPoint = overridePos ? overridePos.clone() : this.arena.getRandomSpawnPoint();
 
-    // VISIBLE SPAWNS: Try 10 times to find a spot in front of the player
-    // This reduces "Enemies spawning behind me" frustration
-    const forward = new THREE.Vector3();
-    this.camera.getWorldDirection(forward);
-    forward.y = 0; forward.normalize();
+    if (!overridePos) {
+      // VISIBLE SPAWNS LOGIC (Only if random spawn)
+      const forward = new THREE.Vector3();
+      this.camera.getWorldDirection(forward);
+      forward.y = 0; forward.normalize();
 
-    for (let i = 0; i < 10; i++) {
-      const potential = this.arena.getRandomSpawnPoint();
-      const toPotential = new THREE.Vector3().subVectors(potential, this.camera.position);
-      const dist = toPotential.length();
-      toPotential.y = 0; toPotential.normalize();
+      for (let i = 0; i < 10; i++) {
+        const potential = this.arena.getRandomSpawnPoint();
+        const toPotential = new THREE.Vector3().subVectors(potential, this.camera.position);
+        const dist = toPotential.length();
+        toPotential.y = 0; toPotential.normalize();
 
-      const dot = forward.dot(toPotential); // > 0 means in front (roughly)
-
-      // Criteria: 
-      // 1. Distance: 20-55 units (Close but not on top)
-      // 2. Visible: Dot > 0.3 (Within ~70 degree cone in front)
-      if (dist > 20 && dist < 55 && dot > 0.3) { 
-        spawnPoint = potential;
-        break;
+        const dot = forward.dot(toPotential);
+        if (dist > 20 && dist < 55 && dot > 0.3) {
+          spawnPoint = potential;
+          break;
+        }
       }
     }
 
     let target = this.camera;
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const role = Math.random() < 0.8 ? 'destroyer' : 'hunter'; // 80% Aggro on Crystals
+    const role = Math.random() < 0.8 ? 'destroyer' : 'hunter'; 
 
     if (validTargets.length > 0) {
       if (role === 'destroyer') target = pick(validTargets);
-      else target = pick(validTargets);
+      else target = pick(validTargets); // Both go to crystals mostly?
     }
 
-    let type = 'normal';
-    const r = Math.random();
-
-    if (this.wave === 1) {
-      if (r < 0.20) type = 'imp'; // 20% Prompt Engineer
-      else if (r < 0.25) type = 'scout'; // 5% Growth Hacker
-    }
-    else if (this.wave === 2) {
-      if (r < 0.30) type = 'imp';
-      else if (r < 0.40) type = 'scout';
-      else if (r < 0.50) type = 'wraith'; // Vaporware
-      else if (r < 0.55) type = 'tank'; // 5% VC Whale
-    }
-    else if (this.wave === 3) {
-      if (r < 0.20) type = 'imp';
-      else if (r < 0.40) type = 'scout';
-      else if (r < 0.55) type = 'wraith';
-      else if (r < 0.65) type = 'tank'; // 10%
-      else if (r < 0.70) type = 'berzerker'; // 5% 10x Dev
-    }
-    else { // Wave 4 & 5 (Chaos)
-      if (r < 0.20) type = 'imp';
-      else if (r < 0.35) type = 'scout';
-      else if (r < 0.50) type = 'wraith';
-      else if (r < 0.70) type = 'tank'; // 20% Tanks!
-      else if (r < 0.85) type = 'berzerker'; // 15% Shotgunners!
+    let type = overrideType || 'normal';
+    if (!overrideType) {
+      const r = Math.random();
+      // Wave Logic...
+      if (this.wave === 1) {
+        if (r < 0.20) type = 'imp';
+        else if (r < 0.25) type = 'scout';
+      }
+      else if (this.wave === 2) {
+        if (r < 0.30) type = 'imp';
+        else if (r < 0.40) type = 'scout';
+        else if (r < 0.50) type = 'wraith';
+        else if (r < 0.55) type = 'tank';
+      }
+      else if (this.wave === 3) {
+        if (r < 0.20) type = 'imp';
+        else if (r < 0.40) type = 'scout';
+        else if (r < 0.55) type = 'wraith';
+        else if (r < 0.65) type = 'tank';
+        else if (r < 0.70) type = 'berzerker';
+      }
+      else { // Wave 4 & 5 (Chaos)
+        if (r < 0.20) type = 'imp';
+        else if (r < 0.35) type = 'scout';
+        else if (r < 0.50) type = 'wraith';
+        else if (r < 0.70) type = 'tank';
+        else if (r < 0.85) type = 'berzerker';
+      }
     }
 
     const onFindTarget = (pos) => this.findNearestCrystal(pos);
@@ -495,15 +507,12 @@ export class GoomGame {
       const e = this.enemies[i];
       const result = e.update(delta, this.camera);
 
-      const distToPlayerSq = e.mesh.position.distanceToSquared(this.camera.position);
-      if (distToPlayerSq < 25.0) {
-        this.takePlayerDamage(e.damage * delta * 2);
-      }
-
-      if (result === 'damage_player') {
-        e.takeDamage(999);
+      // Kamikaze / Suicide Logic
+      if (result === 'kamikaze' || result === 'damage_player') {
+        e.takeDamage(999); // Die instantly
         this.systems.createExplosion(e.mesh.position, 0xff0000, true);
-        this.takePlayerDamage(15);
+        this.takePlayerDamage(20); // 20 DMG
+        this.ui.flashDamage();
       } else if (result === 'damage_crystal' || result === 'explode') {
         const target = e.target;
         if (target && target.userData.health !== undefined) {

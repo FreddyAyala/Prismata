@@ -196,7 +196,7 @@ export class GoomProjectiles {
                         }
                     }
 
-                    const wasDead = enemy.takeDamage(finalDmg, t);
+                    const wasDead = enemy.takeDamage(finalDmg, t); // Pass 't' (hitObject) explicitly!
                     if (wasDead) {
                         this.game.score += 100;
                         this.game.ui.updateHUD();

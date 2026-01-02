@@ -630,7 +630,7 @@ export class GoomUI {
                 'wraith': { name: 'VAPORWARE', color: '#00ffff' },
                 'berzerker': { name: '10X DEVELOPER', color: '#ff00ff' },
                 'normal': { name: 'VIBE CODER', color: '#ff0000' },
-                'boss': { name: 'THE AI BUBBLE', color: '#ff00ff' }
+                'THE AI BUBBLE': { name: 'THE AI BUBBLE', color: '#ff00ff' } // Matched Key
             };
 
             statsHtml = `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px; width:60%; max-width:500px; text-align:left;">`;

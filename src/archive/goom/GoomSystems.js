@@ -160,9 +160,9 @@ export class GoomSystems {
         }
     }
 
-    spawnDrop(pos, wave = 1) {
+    spawnDrop(pos, wave = 1, force = false) {
         const roll = Math.random();
-        if (roll > 0.75) return; // 25% Chance
+        if (!force && roll > 0.75) return; // 25% Chance unless forced
 
         let type = 'ammo_shotgun';
         let color = 0xffaa00;

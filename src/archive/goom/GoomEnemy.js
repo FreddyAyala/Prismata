@@ -248,6 +248,16 @@ export class GlitchEnemy {
     // Attack Reach & Shooting
     const attackDistSq = this.mesh.position.distanceToSquared(targetPos);
 
+    // KAMIKAZE LOGIC (Shotgunners/Melee suicide on contact)
+    if (this.isTargetingPlayer && (this.type === 'scout' || this.type === 'berzerker')) {
+      if (attackDistSq < 9.0) { // Distance < 3.0
+        // EXPLODE!
+        return 'kamikaze';
+      }
+    }
+
+
+
     // SHOOTING LOGIC (All Types now shoot)
     // Imp/Scout/Tank = Projectiles
     // Normal/Berzerker = Hitscan
