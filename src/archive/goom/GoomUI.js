@@ -33,27 +33,58 @@ export class GoomUI {
             position: absolute; bottom: 20px; left: 20px; text-align: left;
         `;
         stats.innerHTML = `
-            <div style="margin-bottom:5px;">
-                <div id="goom-hp-text" style="font-size:40px; color:#00ff00; text-shadow:0 0 10px #00ff00;">HP: 100</div>
-                <div style="width:300px; height:20px; background:rgba(0,50,0,0.5); border:2px solid #00ff00;">
-                    <div id="goom-hp-bar" style="width:100%; height:100%; background:#00ff00; transition:width 0.2s;"></div>
+            <div style="background: linear-gradient(90deg, rgba(0,20,0,0.8), transparent 90%); padding: 15px; border-left: 4px solid #00ff00; width: 320px; backdrop-filter: blur(2px);">
+                <!--HP -->
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+                    <span style="font-size:16px; color:#00ff00; letter-spacing:1px;">INTEGRITY</span>
+                    <span id="goom-hp-text" style="font-size:28px; color:#00ff00; font-weight:bold; text-shadow:0 0 10px #00ff00;">100</span>
                 </div>
-            </div>
-            <div style="margin-bottom:10px;">
-                <div id="goom-armor-text" style="font-size:30px; color:#00ff88; text-shadow:0 0 10px #00ff88;">ARMOR: 0</div>
-                <div style="width:300px; height:15px; background:rgba(0,50,50,0.5); border:2px solid #00ff88;">
-                    <div id="goom-armor-bar" style="width:0%; height:100%; background:#00ff88; transition:width 0.2s;"></div>
+                <div style="width:100%; height:10px; background:rgba(0,50,0,0.5); margin-bottom:10px; border:1px solid #004400;">
+                    <div id="goom-hp-bar" style="width:100%; height:100%; background:#00ff00; box-shadow: 0 0 8px #00ff00;"></div>
                 </div>
-            </div>
 
-            <div id="goom-score" style="font-size:24px; color:#0088ff; margin-top:10px;">SCORE: 0</div>
-            <div id="goom-wave" style="font-size:24px; color:#ffaa00;">WAVE: 1/5</div>
-            <div id="goom-enemies" style="font-size:24px; color:#ff0033;">THREATS: 0</div>
-            <div id="goom-ammo" style="font-size:24px; color:#ffffff;">BLASTER [∞]</div>
-            <div style="margin-top:10px; width:200px; height:10px; background:rgba(255,255,255,0.2); border:1px solid #00ff88;">
-                <div id="goom-stamina" style="width:100%; height:100%; background:#00ff88; transition:width 0.1s;"></div>
+                <!--ARMOR -->
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+                    <span style="font-size:14px; color:#00ff88; letter-spacing:1px;">SHIELD</span>
+                    <span id="goom-armor-text" style="font-size:24px; color:#00ff88; font-weight:bold; text-shadow:0 0 10px #00ff88;">0</span>
+                </div>
+                <div style="width:100%; height:6px; background:rgba(0,50,50,0.5); margin-bottom:15px; border:1px solid #004444;">
+                    <div id="goom-armor-bar" style="width:0%; height:100%; background:#00ff88; box-shadow: 0 0 5px #00ff88;"></div>
+                </div>
+
+                <!--STAMINA -->
+                <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                     <span style="font-size:10px; color:#88ff88;">ENERGY</span>
+                </div>
+                <div style="width:100%; height:4px; background:rgba(255,255,255,0.1); margin-bottom:15px;">
+                     <div id="goom-stamina" style="width:100%; height:100%; background:#00ff88;"></div>
+                </div>
+
+                <!--METRICS GRID-- >
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">
+                    <div>
+                        <div style="font-size:10px; color:#888;">WAVE</div>
+                        <div id="goom-wave" style="font-size:18px; color:#ffaa00;">1/5</div>
+                    </div>
+                    <div>
+                         <div style="font-size:10px; color:#888;">SCORE</div>
+                         <div id="goom-score" style="font-size:18px; color:#0088ff;">0</div>
+                    </div>
+                    <div>
+                         <div style="font-size:10px; color:#888;">THREATS</div>
+                         <div id="goom-enemies" style="font-size:18px; color:#ff0033;">0</div>
+                    </div>
+                </div>
+
+                <!--WEAPON -->
+            <div>
+                <div id="goom-ammo" style="font-size:18px; color:#ffffff; letter-spacing:1px; text-shadow:0 0 5px white; margin-bottom:5px;">BLASTER [∞]</div>
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div style="font-size:10px; color:#ffff00; background:rgba(255,255,0,0.1); padding:2px 5px; border-radius:2px;">[R-CLICK] ALT-FIRE</div>
+                    <span id="goom-reload-msg" style="font-size:12px; color:#ff0000; opacity:0; font-weight:bold; letter-spacing:1px;">RECHARGING</span>
+                </div>
             </div>
-            <div style="font-size:12px; color:#00ff88;">ENERGY</div>
+            </div >
         `;
         this.hud.appendChild(stats);
 
@@ -82,6 +113,17 @@ export class GoomUI {
     // Portrait Removed
     resetHUD() {
         // No-op
+    }
+
+    updateReloadStatus(isReloading) {
+        const el = document.getElementById('goom-reload-msg');
+        if (el) {
+            el.style.opacity = isReloading ? 1 : 0;
+            if (isReloading) {
+                el.innerText = "BEAM RECHARGING...";
+                el.style.color = "#ff0000";
+            }
+        }
     }
 
     updateHUD() {
@@ -121,7 +163,7 @@ export class GoomUI {
 
         if (scoreEl) scoreEl.innerText = `SCORE: ${this.game.score}`;
         if (waveEl) waveEl.innerText = `WAVE: ${this.game.wave}/5`;
-        if (enemiesEl) enemiesEl.innerText = `THREATS: ${this.game.enemies.length + (this.game.boss ? 1 : 0)}`;
+        if (enemiesEl) enemiesEl.innerHTML = `${this.game.enemies.length + (this.game.boss ? 1 : 0)}`;
         if (ammoEl) {
             const w = this.game.weapons[this.game.currentWeaponIdx];
             if (w) {

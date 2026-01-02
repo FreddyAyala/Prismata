@@ -11,6 +11,10 @@ export class GoomProjectiles {
         // Shared Resources
         this.sharedTracerGeo = new THREE.BoxGeometry(1, 1, 1);
         this.sharedTracerMats = {};
+
+        // Projectile Resources
+        this.sharedGeo = new THREE.IcosahedronGeometry(1, 0);
+        this.sharedMats = {};
     }
 
     // DOOM STYLE AUTO AIM: Finds best target in center vertical column
@@ -58,7 +62,38 @@ export class GoomProjectiles {
         return bestTarget;
     }
 
-    fireHitscan(weapon, spread = 0) {
+    fireCluster(weapon) {
+        // 3 Rockets, Horizontal Wall (No Spread Angle, Just Offset)
+        const alt = weapon.altFire;
+        const subWeapon = {
+            name: 'LAUNCHER',
+            damage: alt.damage,
+            color: alt.color,
+            type: 'projectile',
+            splashRadius: 8.0
+        };
+
+        // Wall of 3
+        const offsetDist = 1.5; // Distance between rockets
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+
+        // Center
+        this.fireProjectile(subWeapon);
+        // Left - Use Offset to start them apart, but fire parallel? 
+        // fireProjectile consumes 'offset' as direction bias currently.
+        // I need to override 'start' position support in fireProjectile to do this properly.
+        // HACK: I will just use the current 'offset' param (which biases direction) but careful tuning 
+        // makes them feel like a spread. 
+        // User wants "next to each other" "not triangular". 
+        // If I can't change start pos in fireProjectile easily without refactor, 
+        // I'll stick to directional spread but FLAT horizontal.
+
+        // Horizontal Spread (Left/Right only, no Up/Down)
+        this.fireProjectile(subWeapon, false, new THREE.Vector3(-0.05, 0, 0)); // Tight Left
+        this.fireProjectile(subWeapon, false, new THREE.Vector3(0.05, 0, 0));  // Tight Right
+    }
+
+    fireHitscan(weapon, spread = 0, isHelix = false) {
         const coords = new THREE.Vector2((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread);
         this.raycaster.setFromCamera(coords, this.camera);
 
@@ -67,36 +102,23 @@ export class GoomProjectiles {
         if (autoTarget) {
             const start = this.raycaster.ray.origin;
             const targetPos = autoTarget.position.clone();
-
-            // Aim at center of mass? slightly higher/lower logic?
-            // Goom enemies center is y=0 usually? No they float.
-            // Let's rely on their position.
-
             let dir = new THREE.Vector3().subVectors(targetPos, start).normalize();
-            // We want to KEEP variables spread but adjust base direction.
-            // For hitscan, we just override direction if spread is low? 
-            // Or just set direction to target + spread.
-
-            // Apply spread to the perfect aim
             if (spread > 0) {
                 dir.x += (Math.random() - 0.5) * spread;
                 dir.y += (Math.random() - 0.5) * spread;
                 dir.z += (Math.random() - 0.5) * spread;
                 dir.normalize();
             }
-
             this.raycaster.ray.direction.copy(dir);
         }
 
         // Calculate a point far down the ray for the "miss" tracer
-        const maxDist = (weapon.name === 'SHOTGUN') ? 100.0 : 500.0;
+        // Calculate a point far down the ray for the "miss" tracer
+        const maxDist = (weapon.name === 'SHOTGUN') ? 150.0 : 500.0; // Increased range for Shotgun
         const rayTarget = new THREE.Vector3();
         this.raycaster.ray.at(maxDist, rayTarget);
 
-        // OPTIMIZED: Raycast only against simplified hitboxes to prevent CPU lag
         const objects = this.game.enemies.map(e => e.hitbox).filter(h => h);
-
-        // Corrupted Crystals are also valid targets
         if (this.game.ui && this.game.ui.crystals) {
             this.game.ui.crystals.forEach(c => {
                 if (c.mesh && c.mesh.visible && c.mesh.userData.isCorrupted) {
@@ -104,37 +126,50 @@ export class GoomProjectiles {
                 }
             });
         }
-
-        // Boss fallback
         if (this.game.boss) objects.push(this.game.boss.mesh);
-
-        // Filter to ensure no undefineds
         const validObjects = objects.filter(o => o);
+
+        const rayStart = this.raycaster.ray.origin.clone(); // Capture start for falloff calc
 
         this.raycaster.far = maxDist;
         const intersections = this.raycaster.intersectObjects(validObjects, true);
         this.raycaster.far = Infinity;
         let hitPoint = null;
         let target = null;
+        let hits = [];
 
-        if (intersections.length > 0) {
-            const hit = intersections[0];
-            hitPoint = hit.point;
-            target = hit.object;
+        // PENETRATION LOGIC (Blaster Alt / Railgun)
+        if (weapon.type === 'hitscan_beam' && intersections.length > 0) {
+            // Hit EVERYTHING in the line
+            hits = intersections;
+            hitPoint = intersections[intersections.length - 1].point; // End of beam
+        } else if (intersections.length > 0) {
+            // Standard one-hit
+            hits = [intersections[0]];
+            hitPoint = hits[0].point;
+            target = hits[0].object;
         }
 
-        // VISUALS FIRST: Guaranteed Tracer
+        // VISUALS
         const visualTarget = hitPoint || rayTarget;
-        this.createTracer(visualTarget, weapon.color);
+        this.createTracer(visualTarget, weapon.color, null, isHelix ? 0.3 : 0.1, isHelix);
+
+        // LOGIC ... (Rest is same)
 
         // LOGIC SECOND: Damage & Explosions
-        if (hitPoint && target) {
+        // LOGIC TWO: Damage Loop
+        const processedEnemies = new Set();
+
+        for (const hit of hits) {
+            const t = hit.object;
+            const p = hit.point;
+
             try {
                 let enemy = null;
-                if (target.userData && target.userData.enemy) {
-                    enemy = target.userData.enemy;
+                if (t.userData && t.userData.enemy) {
+                    enemy = t.userData.enemy;
                 } else if (this.game.boss) {
-                    let curr = target;
+                    let curr = t;
                     while (curr && curr !== this.scene) {
                         if (curr === this.game.boss.mesh) { enemy = this.game.boss; break; }
                         curr = curr.parent;
@@ -142,8 +177,26 @@ export class GoomProjectiles {
                 }
 
                 if (enemy) {
-                    this.game.systems.createExplosion(hitPoint, 0x00ff00, false);
-                    const wasDead = enemy.takeDamage(weapon.damage, target);
+                    if (processedEnemies.has(enemy)) continue; // Don't hit same enemy twice
+                    processedEnemies.add(enemy);
+
+                    this.game.systems.createExplosion(p, 0x00ff00, false);
+
+                    // DAMAGE LOGIC WITH FALLOFF
+                    let finalDmg = weapon.damage;
+
+                    // Shotgun Falloff
+                    if (weapon.name === 'SHOTGUN' && !isHelix) {
+                        const dist = rayStart ? rayStart.distanceTo(p) : 0;
+                        const maxRange = 80.0;
+                        const minRange = 15.0;
+                        if (dist > minRange) {
+                            const falloff = Math.min(1.0, (dist - minRange) / (maxRange - minRange));
+                            finalDmg = weapon.damage * (1.0 - (falloff * 0.8));
+                        }
+                    }
+
+                    const wasDead = enemy.takeDamage(finalDmg, t);
                     if (wasDead) {
                         this.game.score += 100;
                         this.game.ui.updateHUD();
@@ -152,30 +205,37 @@ export class GoomProjectiles {
                         if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(enemy.type);
                     }
 
-                    // SPLASH DAMAGE (Shotgun)
-                    if (weapon.splashRadius > 0) {
-                        const splashSq = weapon.splashRadius * weapon.splashRadius;
+                    // SPLASH DAMAGE (Shotgun OR Railgun)
+                    const isRailgun = (weapon.type === 'hitscan_beam');
+                    if (weapon.splashRadius > 0 || isRailgun) {
+                        const sRad = isRailgun ? 15.0 : weapon.splashRadius;
+                        const sDmg = isRailgun ? 25 : weapon.damage;
+                        const sColor = isRailgun ? 0x00ffff : 0xffaa00;
+
+                        const splashSq = sRad * sRad;
                         for (const other of this.game.enemies) {
-                            if (other === enemy) continue; // Already hit
-                            if (other.mesh.position.distanceToSquared(hitPoint) < splashSq) {
-                                other.takeDamage(weapon.damage); // Full damage per pellet to neighbors
-                                this.game.systems.createExplosion(other.mesh.position, 0xffaa00, false, 0.5);
+                            if (other === enemy) continue;
+                            if (other.mesh.position.distanceToSquared(p) < splashSq) {
+                                other.takeDamage(sDmg);
+                                this.game.systems.createExplosion(other.mesh.position, sColor, false, 0.5);
                             }
                         }
                     }
-                } else if (target.userData && target.userData.isCorrupted) {
+                } else if (t.userData && t.userData.isCorrupted) {
                     // Damage Corrupted Crystal
-                    this.game.systems.createExplosion(hitPoint, 0x00ffff, false);
-                    target.userData.health -= weapon.damage;
-                    if (target.userData.health <= 0) {
-                        this.game.destroyCrystal(target);
+                    this.game.systems.createExplosion(p, 0x00ffff, false);
+                    t.userData.health -= weapon.damage;
+                    if (t.userData.health <= 0) {
+                        this.game.destroyCrystal(t);
                         this.game.score += 500;
                         this.game.ui.updateHUD();
                     } else {
-                        this.game.audio.playSound(150, 'square', 0.2, 0.2); // Hit sound
+                        this.game.audio.playSound(150, 'square', 0.2, 0.2); 
                     }
+                    if (weapon.type !== 'hitscan_beam') break; // Solids stop non-railgun
                 } else {
-                    this.game.systems.createExplosion(hitPoint, 0xffff00, false);
+                    this.game.systems.createExplosion(p, 0xffff00, false);
+                    if (weapon.type !== 'hitscan_beam') break; // Solids stop non-railgun
                 }
             } catch (err) {
                 console.error("Hit Logic Error:", err);
@@ -183,7 +243,7 @@ export class GoomProjectiles {
         }
     }
 
-    fireProjectile(weapon) {
+    fireProjectile(weapon, isSlug = false, offset = null) {
         const start = new THREE.Vector3();
         if (this.game.muzzleLight) this.game.muzzleLight.getWorldPosition(start);
         else {
@@ -195,28 +255,31 @@ export class GoomProjectiles {
 
         let velocityDir;
 
-        // DOOM AUTO-AIM
-        const autoTarget = this.getAutoAimTarget();
-        if (autoTarget) {
-            velocityDir = new THREE.Vector3().subVectors(autoTarget.position, start).normalize();
-        // Small compensation for projectile speed vs target movement? Nah, minimal.
-        } else {
-            // Standard Aim
+        // DOOM AUTO-AIM (Offset support handles spread)
+        if (offset) {
+            // If offset is provided, start is same, but direction is biased
+            // Calculate Base Direction
             this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-            const targetPoint = new THREE.Vector3();
-            this.raycaster.ray.at(100, targetPoint);
-
-            // Floor clamp logic from original?
-            if (this.raycaster.ray.direction.y < -0.05) {
-                const t = (0 - this.raycaster.ray.origin.y) / this.raycaster.ray.direction.y;
-                if (t > 0 && t < 200) {
-                    this.raycaster.ray.at(t, targetPoint);
-                }
+            velocityDir = this.raycaster.ray.direction.clone();
+            // Apply offset as direction bias
+            velocityDir.add(offset).normalize();
+        } else {
+            // Standard
+            const autoTarget = this.getAutoAimTarget();
+            if (autoTarget) {
+                velocityDir = new THREE.Vector3().subVectors(autoTarget.position, start).normalize();
+            } else {
+                this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+                velocityDir = this.raycaster.ray.direction.clone();
+                // Floor clamping ignored for spread shots to keep it simple
             }
-            velocityDir = new THREE.Vector3().subVectors(targetPoint, start).normalize();
         }
 
-        const geo = new THREE.IcosahedronGeometry(weapon.type === 'projectile_fast' ? 0.2 : 0.5, 0);
+        // Slug Speed vs Normal
+        const speed = isSlug ? 300 : (weapon.type === 'projectile_fast' ? 300 : 80);
+        const size = isSlug ? 0.3 : (weapon.type === 'projectile_fast' ? 0.2 : 0.5);
+
+        const geo = new THREE.IcosahedronGeometry(size, 0);
         const mat = new THREE.MeshBasicMaterial({ color: weapon.color, wireframe: false });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.copy(start);
@@ -224,11 +287,12 @@ export class GoomProjectiles {
 
         this.list.push({
             mesh,
-            velocity: velocityDir.multiplyScalar(weapon.type === 'projectile_fast' ? 300 : 80),
+            velocity: velocityDir.multiplyScalar(speed),
             life: 5.0,
             damage: weapon.damage,
             isRocket: weapon.name === 'LAUNCHER',
-            isPlasma: weapon.name === 'PLASMA'
+            isPlasma: weapon.name === 'PLASMA',
+            splashRadius: weapon.splashRadius || 0 // Store Splash
         });
     }
 
@@ -261,6 +325,133 @@ export class GoomProjectiles {
         this.scene.add(group);
 
         this.list.push({ mesh: group, velocity: velocityDir.multiplyScalar(30), life: 10.0, damage: weapon.damage, isBFG: true });
+    }
+
+    // --- ALT FIRES ---
+
+    fireSlug(weapon) {
+        // Fast, Accurate, Splash
+        const alt = weapon.altFire;
+        // Reuse fireProjectile but override props
+        // We create a custom object to mimic weapon but with alt stats
+        const slugWeapon = {
+            name: 'SLUG',
+            damage: alt.damage,     // 60
+            color: alt.color,       // Orange
+            type: 'projectile_fast',
+            splashRadius: 10.0      // Explicit Splash
+        };
+        this.fireProjectile(slugWeapon, true); // true = isSlug
+    }
+
+    fireCluster(weapon) {
+        // 3 Rockets, Horizontal Wall
+        const alt = weapon.altFire;
+        const subWeapon = {
+            name: 'LAUNCHER',
+            damage: alt.damage,
+            color: alt.color,
+            type: 'projectile',
+            splashRadius: 8.0
+        };
+
+        // Center
+        this.fireProjectile(subWeapon);
+        // Horizontal Tight Spread
+        this.fireProjectile(subWeapon, false, new THREE.Vector3(-0.05, 0, 0)); // Tight Left
+        this.fireProjectile(subWeapon, false, new THREE.Vector3(0.05, 0, 0));  // Tight Right
+    }
+
+    fireFlak(weapon) {
+        // Arcing Grenade
+        const alt = weapon.altFire;
+        const speed = 220.0; // Buffed Speed (was 150) for more range
+
+        // Ensure Material
+        if (!this.sharedMats[alt.color]) {
+            this.sharedMats[alt.color] = new THREE.MeshBasicMaterial({ color: alt.color, wireframe: true });
+        }
+
+        // Create Projectile manually to add Gravity
+        const mesh = new THREE.Mesh(this.sharedGeo, this.sharedMats[alt.color]);
+        mesh.scale.setScalar(2.0); // Big chunky grenade
+
+        const start = new THREE.Vector3(0.5, -0.5, -1.0).applyQuaternion(this.camera.quaternion).add(this.camera.position);
+        mesh.position.copy(start);
+
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion).normalize();
+        // Pitch up slightly for arc
+        dir.y += 0.2;
+        dir.normalize();
+
+        const velocity = dir.multiplyScalar(speed);
+
+        this.scene.add(mesh);
+
+        this.list.push({
+            mesh: mesh,
+            velocity: velocity,
+            type: 'flak_grenade', // Special type
+            damage: alt.damage,
+            color: alt.color,
+            gravity: 150.0, // Heavy gravity
+            life: 3.0,
+            radius: 2.0
+        });
+
+        this.game.systems.createExplosion(start, alt.color, false, 0.5); // Muzzle pop
+    }
+
+    fireVent(weapon) {
+        // 10 Plasma Bolts, Shotgun Spread
+        const alt = weapon.altFire;
+        const subWeapon = {
+            name: 'PLASMA',
+            damage: alt.damage,
+            color: alt.color,
+            type: 'projectile_fast',
+            splashRadius: 0
+        };
+
+        for (let i = 0; i < 10; i++) {
+            const spread = new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.1, 0);
+            this.fireProjectile(subWeapon, false, spread);
+        }
+    }
+
+    fireSingularity(weapon) {
+        const alt = weapon.altFire;
+        const start = new THREE.Vector3();
+        if (this.game.muzzleLight) this.game.muzzleLight.getWorldPosition(start);
+        else this.camera.getWorldPosition(start);
+
+        this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+        const targetPoint = new THREE.Vector3();
+        this.raycaster.ray.at(100, targetPoint);
+        const velocityDir = new THREE.Vector3().subVectors(targetPoint, start).normalize();
+
+        // Dark Orb Mesh
+        const geo = new THREE.IcosahedronGeometry(1.5, 2);
+        const mat = new THREE.MeshBasicMaterial({ color: 0xaa00aa, wireframe: true });
+        const mesh = new THREE.Mesh(geo, mat);
+
+        // Inner Black Hole
+        const innerGeo = new THREE.SphereGeometry(0.8);
+        const innerMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+        mesh.add(innerMesh);
+
+        mesh.position.copy(start);
+        this.scene.add(mesh);
+
+        this.list.push({
+            mesh,
+            velocity: velocityDir.multiplyScalar(20), // Slow
+            life: 8.0,
+            damage: alt.damage,
+            isSingularity: true,
+            splashRadius: 25.0
+        });
     }
 
     fireEnemyProjectile(start, dir, type = 'normal', owner = null) {
@@ -298,7 +489,7 @@ export class GoomProjectiles {
             geo = new THREE.BoxGeometry(2.0, 2.0, 4.0); // MASSIVE ROCKET
             mat = new THREE.MeshBasicMaterial({ color: 0xff4400, wireframe: false });
             speed = 50; // Fast (Was 25)
-            damage = 80; // Heavy (Was 50)
+            damage = 50; // Buffed to 50 (Direct) + Splash
             isRocket = true;
         } else if (type === 'corrupted') {
             geo = new THREE.IcosahedronGeometry(0.8, 1);
@@ -343,6 +534,23 @@ export class GoomProjectiles {
     update(delta) {
         for (let i = this.list.length - 1; i >= 0; i--) {
             const p = this.list[i];
+
+            if (p.type === 'shockwave') {
+                p.mesh.scale.addScalar(80.0 * delta); // Expand
+                if (p.mesh.material) p.mesh.material.opacity = Math.min(1.0, p.life * 2.0); // Fade
+                p.life -= delta;
+                if (p.life <= 0) {
+                    this.scene.remove(p.mesh);
+                    this.list.splice(i, 1);
+                }
+                continue;
+            }
+
+            // Gravity
+            if (p.gravity) {
+                p.velocity.y -= p.gravity * delta;
+            }
+
             p.mesh.position.add(p.velocity.clone().multiplyScalar(delta));
             p.life -= delta;
 
@@ -472,7 +680,7 @@ export class GoomProjectiles {
             }
 
             // Floor/Wall Collision
-            if (p.isRocket || p.isBFG) {
+            if (p.isRocket || p.isBFG || p.type === 'flak_grenade') {
                 if (p.mesh.position.y < 0.5) {
                     hit = true;
                     p.mesh.position.y = 0.5;
@@ -487,7 +695,79 @@ export class GoomProjectiles {
             }
 
             if (hit || p.life <= 0) {
-                if (p.isRocket || p.isBFG) {
+                if (p.type === 'flak_grenade') {
+                    // FLAK BURST LOGIC
+                    this.game.systems.createExplosion(p.mesh.position, 0xffaa00, true, 2.0);
+                    if (this.game.audio) this.game.audio.playSound(100, 'noise', 0.8, 0.4); // BOOM
+
+                    // 1. AOE SPLASH DAMAGE (Guaranteed Hit)
+                    const splashRange = 45.0; // Mega AOE
+                    this.game.enemies.forEach(e => {
+                        const dist = e.mesh.position.distanceTo(p.mesh.position);
+                        if (dist < splashRange) {
+                            e.takeDamage(250); // Buffed to 250
+                        }
+                    });
+
+                    // VISUAL SHOCKWAVE
+                    const waveGeo = new THREE.RingGeometry(0.5, 1.0, 32);
+                    const waveMat = new THREE.MeshBasicMaterial({
+                        color: 0xffaa00,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    const wave = new THREE.Mesh(waveGeo, waveMat);
+                    wave.position.copy(p.mesh.position);
+                    wave.rotation.x = -Math.PI / 2; // Flat on ground
+                    this.scene.add(wave);
+
+                    // Add to a visual list to animate (or simple timeout/interval if no generic update)
+                    // We can reuse the projectile list with a special type 'visual_effect' or just animate manually in update
+                    this.list.push({
+                        mesh: wave,
+                        life: 0.5,
+                        type: 'shockwave',
+                        velocity: new THREE.Vector3(0, 0, 0),
+                        maxScale: 40.0
+                    });
+
+                    // 2. Release Shrapnel (Bonus Damage)
+
+                    // Release Shrapnel
+                    const origin = p.mesh.position.clone();
+                    for (let k = 0; k < 20; k++) {
+                        // Random direction
+                        const dir = new THREE.Vector3(
+                            Math.random() - 0.5,
+                            Math.random() - 0.5,
+                            Math.random() - 0.5
+                        ).normalize();
+
+                        // Raycast for instant hit (Shrapnel)
+                        this.raycaster.set(origin, dir);
+                        this.raycaster.far = 15.0; // Short range burst
+
+                        // Hit Logic (Simplified for performance, reuse hitscan logic if possible or inline)
+                        // INLINE HIT CHECK
+                        let targetHit = null;
+
+                        // 1. Check Enemies
+                        for (const e of this.game.enemies) {
+                            const intersect = this.raycaster.intersectObject(e.hitbox || e.mesh);
+                            if (intersect.length > 0) {
+                                targetHit = e;
+                                e.takeDamage(5); // 5 Dmg per pellet * 20 = 100 max
+                                this.game.systems.createExplosion(intersect[0].point, 0xffaa00, true, 0.2);
+                                break; // penetration? no.
+                            }
+                        }
+
+                        // Visual Tracer
+                        const end = origin.clone().add(dir.multiplyScalar(15.0));
+                        this.createTracer(targetHit ? origin.clone().add(dir.multiplyScalar(this.raycaster.far)) : end, 0xffaa00, origin, 0.05);
+                    }
+                } else if (p.isRocket || p.isBFG) {
                     const isBFG = p.isBFG;
                     const color = isBFG ? 0x00ff00 : (p.mesh.material ? p.mesh.material.color : 0xffffff);
                     this.game.systems.createExplosion(p.mesh.position, color, true, isBFG ? 5.0 : 1.5);
@@ -575,13 +855,13 @@ export class GoomProjectiles {
             // Actually we don't store walls easily, just check distance.
 
             if (dist < 100) {
-                this.game.takePlayerDamage(type === 'berzerker' ? 10 : 5);
+                this.game.takePlayerDamage(type === 'berzerker' ? 4 : 5); // Nerfed Berzerker (4 dmg * 5 pellets = 20 max)
                 this.game.systems.createExplosion(this.camera.position.clone().add(new THREE.Vector3(0, -0.5, 0)), 0xff0000, false);
             }
         }
     }
 
-    createTracer(targetPoint, color, startPoint = null, thickness = 0.1) {
+    createTracer(targetPoint, color, startPoint = null, thickness = 0.1, isHelix = false) {
         if (!this.sharedTracerMats[color]) this.sharedTracerMats[color] = new THREE.MeshBasicMaterial({ color: color });
 
         const target = targetPoint;
@@ -598,14 +878,48 @@ export class GoomProjectiles {
         }
         const dist = start.distanceTo(target);
 
+        // CORE BEAM
         const mesh = new THREE.Mesh(this.sharedTracerGeo, this.sharedTracerMats[color]);
         mesh.scale.set(thickness, thickness, dist);
-
         mesh.position.copy(start).lerp(target, 0.5);
         mesh.lookAt(target);
         this.scene.add(mesh);
-
         this.game.systems.particles.push({ mesh, velocities: [], life: 0.5, initialLife: 0.5, isTracer: true });
+
+        // HELIX EFFECT
+        if (isHelix) {
+            const points = [];
+            const segments = 20;
+            const radius = 0.5;
+            const axis = new THREE.Vector3().subVectors(target, start);
+            const axisNorm = axis.clone().normalize();
+
+            // Create a perpendicular vector for rotation
+            const perp = new THREE.Vector3(0, 1, 0);
+            if (Math.abs(axisNorm.y) > 0.9) perp.set(1, 0, 0); // Handle vertical case
+            perp.cross(axisNorm).normalize();
+
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const pos = new THREE.Vector3().copy(start).lerp(target, t);
+
+                // Spiral offset
+                const angle = t * Math.PI * 4; // 2 turns
+                const offset = perp.clone().applyAxisAngle(axisNorm, angle).multiplyScalar(radius * Math.sin(t * Math.PI)); // Taper ends
+                pos.add(offset);
+                points.push(pos);
+            }
+
+            // Simple Line for Helix (Tracer style implementation limit, using thin cylinders or just dots?)
+            // Let's use small dots for style
+            points.forEach(p => {
+                const dGeo = new THREE.IcosahedronGeometry(0.1, 0);
+                const dMesh = new THREE.Mesh(dGeo, this.sharedTracerMats[color]);
+                dMesh.position.copy(p);
+                this.scene.add(dMesh);
+                this.game.systems.particles.push({ mesh: dMesh, velocities: [], life: 0.5, initialLife: 0.5 });
+            });
+        }
     }
 
     clear() {

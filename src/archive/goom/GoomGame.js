@@ -69,6 +69,16 @@ export class GoomGame {
       this.scene.fog.density = 0.002; // Much clearer (was 0.02)
     }
 
+    // HIDE OVERLAPPING UI
+    // HIDE OVERLAPPING UI
+    const footer = document.querySelector('.gallery-footer');
+    if (footer) footer.style.display = 'none';
+    const hint = document.querySelector('.interaction-hint');
+    if (hint) {
+      hint.style.display = 'none';
+      hint.style.opacity = '0';
+    }
+
     this.ui.createHUD();
     this.exhibitsSource = exhibits || [];
 
@@ -169,12 +179,21 @@ export class GoomGame {
   setupInputs() {
     this.mousedownHandler = (e) => {
       if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+
+      // Right Click (2) or Left Click (0)
+      const isAlt = e.button === 2;
       this.isFiring = true;
-      this.shoot(e);
+      this.isAltFiring = isAlt; // Track which mode
+      this.shoot(isAlt);
     };
-    this.mouseupHandler = () => { this.isFiring = false; };
+    this.mouseupHandler = () => {
+      this.isFiring = false;
+      this.isAltFiring = false;
+    };
     document.addEventListener('mousedown', this.mousedownHandler);
     document.addEventListener('mouseup', this.mouseupHandler);
+    // Prevent Context Menu on Right Click
+    document.addEventListener('contextmenu', e => e.preventDefault());
 
     this.keyParams = { handler: (e) => this.handleKeys(e) };
     window.addEventListener('keydown', this.keyParams.handler);
@@ -184,34 +203,52 @@ export class GoomGame {
   }
 
   deactivate() {
+    console.log("GoomGame: Deactivating...");
     if (!this.active) return;
-    this.active = false;
 
-    // RESTORE FOG
-    if (this.scene.fog && this.originalFogDensity !== undefined) {
-      this.scene.fog.density = this.originalFogDensity;
-    }
+    try {
+      this.active = false;
 
-    if (document.pointerLockElement) document.exitPointerLock();
+      if (this.scene.fog && this.originalFogDensity !== undefined) {
+        this.scene.fog.density = this.originalFogDensity;
+      }
 
-    this.cleanupLevel();
+      const footer = document.querySelector('.gallery-footer');
+      if (footer) footer.style.display = '';
+      const hint = document.querySelector('.interaction-hint');
+      if (hint) {
+        hint.style.display = '';
+        hint.style.opacity = '';
+      }
 
-    if (this.mousedownHandler) { document.removeEventListener('mousedown', this.mousedownHandler); this.mousedownHandler = null; }
-    if (this.mouseupHandler) { document.removeEventListener('mouseup', this.mouseupHandler); this.mouseupHandler = null; }
-    this.isFiring = false;
+      if (document.pointerLockElement) document.exitPointerLock();
 
-    if (this.keyParams) { window.removeEventListener('keydown', this.keyParams.handler); this.keyParams = null; }
-    if (this.lockParams) {
-      document.removeEventListener('pointerlockchange', this.lockParams.handler);
-      this.lockParams = null;
-    }
+      this.cleanupLevel();
 
-    this.ui.removeHUD();
-    this.systems.clear();
+      if (this.mousedownHandler) { document.removeEventListener('mousedown', this.mousedownHandler); this.mousedownHandler = null; }
+      if (this.mouseupHandler) { document.removeEventListener('mouseup', this.mouseupHandler); this.mouseupHandler = null; }
+      this.isFiring = false;
 
-    // Disable Mobile Combat Controls
-    if (this.player && this.player.mobileControls) {
-      this.player.mobileControls.disableCombatMode();
+      if (this.keyParams) { window.removeEventListener('keydown', this.keyParams.handler); this.keyParams = null; }
+      if (this.lockParams) {
+        document.removeEventListener('pointerlockchange', this.lockParams.handler);
+        this.lockParams = null;
+      }
+
+      this.ui.removeHUD();
+      this.systems.clear();
+
+      // Disable Mobile Combat Controls
+      if (this.player && this.player.mobileControls) {
+        this.player.mobileControls.disableCombatMode();
+      }
+      console.log("GoomGame: Deactivation Complete");
+    } catch (err) {
+      console.error("GoomGame: Deactivation ERROR:", err);
+      // Force cleanup state even if error
+      this.active = false;
+      if (this.ui) this.ui.removeHUD();
+      if (document.pointerLockElement) document.exitPointerLock();
     }
   }
 
@@ -714,36 +751,114 @@ export class GoomGame {
     this.ui.updateHUD();
   }
 
-  shoot(e) {
-    if (!this.active || this.isGameOver) return;
-    const w = this.weapons[this.currentWeaponIdx];
+  shoot(isAlt = false) {
+    if (!this.active || this.isGameOver || this.isVictory) return;
 
-    if (w.ammo !== -1 && w.ammo <= 0) {
-      if (this.audio) this.audio.playSound(200, 'sine', 0.05, 0.1);
+    const weapon = this.weapons[this.currentWeaponIdx];
+    const time = performance.now();
+
+    // UPDATE RELOAD UI (Blaster Only)
+    if (weapon.name === 'BLASTER' && weapon.altFire) {
+      const onCooldown = (time - (weapon.altFire.lastShot || 0) < weapon.altFire.cooldown);
+      this.ui.updateReloadStatus(onCooldown);
+    } else {
+      this.ui.updateReloadStatus(false);
+    }
+
+    // ALT FIRE LOGIC
+    if (isAlt) {
+      if (!weapon.altFire) return; // No Alt Fire
+
+      if (time - (weapon.altFire.lastShot || 0) < weapon.altFire.cooldown) {
+        // Already handled UI above for blaster
+        return;
+      }
+
+      // Cost Check
+      if (weapon.name !== 'BLASTER' && weapon.ammo < weapon.altFire.cost) {
+        this.ui.showWarning("NO AMMO FOR ALT FIRE!");
+        this.audio.playSound(100, 'sawtooth', 0.5, 0.1);
+        return;
+      }
+
+      // Fire!
+      weapon.altFire.lastShot = time;
+      if (weapon.name !== 'BLASTER') {
+        weapon.ammo -= weapon.altFire.cost;
+      }
+
+      // Handle Types
+      const alt = weapon.altFire;
+
+      if (alt.type === 'hitscan_beam') {
+        // HELIX BEAM
+        this.projectiles.fireHitscan({ ...alt, name: 'BEAM' }, 0, true); // true = isHelix
+        this.audio.playSound(100, 'sawtooth', 0.8, 1.5); // Deep charge sound + high pitch
+        this.audio.playSound(1200, 'square', 0.5, 0.5);
+      } else if (alt.type === 'projectile_slug') {
+        this.projectiles.fireSlug(weapon);
+        this.audio.playSound(80, 'square', 0.8, 0.5); // Deeper boom
+        this.weaponRecoil = 0.5;
+      } else if (alt.type === 'projectile_flak') {
+        this.projectiles.fireFlak(weapon);
+        this.audio.playSound(100, 'square', 0.5, 0.3); // Heavy thud
+        this.weaponRecoil = 0.8;
+      } else if (alt.type === 'projectile_cluster') {
+        this.projectiles.fireCluster(weapon);
+        // Triple WHOOSH
+        this.audio.playSound(150, 'noise', 0.4, 0.2);
+        setTimeout(() => this.audio.playSound(150, 'noise', 0.4, 0.2), 50);
+        setTimeout(() => this.audio.playSound(150, 'noise', 0.4, 0.2), 100);
+        this.weaponRecoil = 0.6;
+      } else if (alt.type === 'projectile_vent') {
+        this.projectiles.fireVent(weapon);
+        this.audio.playSound(800, 'sawtooth', 0.5, 0.3); // High voltage zap
+        this.weaponRecoil = 0.4;
+      } else if (alt.type === 'bfg_singularity') {
+        this.projectiles.fireSingularity(weapon);
+        this.audio.playSound(40, 'sine', 2.0, 3.0); // SUPER DEEP
+        this.weaponRecoil = 1.0;
+      }
+
+      this.ui.updateHUD(); // Update Ammo
       return;
     }
 
-    const now = Date.now();
-    if (now - w.lastShot < w.cooldown) return;
-    w.lastShot = now;
+    // PRIMARY FIRE LOGIC
+    if (time - weapon.lastShot < weapon.cooldown) return;
 
-    if (w.ammo !== -1) w.ammo--;
+    if (weapon.ammo === 0) {
+      if (this.audio) this.audio.playSound(200, 'sine', 0.05, 0.1);
+      this.ui.showWarning("OUT OF AMMO");
+      return;
+    }
+
+    weapon.lastShot = time;
+    if (weapon.ammo > 0) weapon.ammo--;
     this.ui.updateHUD();
 
     this.weaponRecoil = 0.2;
     if (this.muzzleLight) {
-      this.muzzleLight.intensity = 5;
-      this.muzzleFlashTimer = 0.05;
+      this.muzzleLight.intensity = 2.0;
+      this.muzzleLight.color.setHex(weapon.color);
+      setTimeout(() => this.muzzleLight.intensity = 0, 50);
     }
-    if (this.audio) this.audio.playWeaponSound(w.name);
+    // distinct primary sound
+    if (weapon.name === 'BLASTER') this.audio.playSound(400, 'square', 0.1, 0.1);
+    else if (this.audio && this.audio.playWeaponSound) this.audio.playWeaponSound(weapon.name);
 
-    if (w.type === 'hitscan') this.projectiles.fireHitscan(w);
-    else if (w.type === 'spread') {
-      this.projectiles.fireHitscan(w, 0);
-      for (let i = 0; i < 24; i++) this.projectiles.fireHitscan(w, 0.35);
+    if (weapon.type === 'hitscan') {
+      this.projectiles.fireHitscan(weapon);
+    } else if (weapon.type === 'spread') {
+      for (let i = 0; i < 20; i++) { // Buffed Pellet Count 8 -> 20
+        this.projectiles.fireHitscan(weapon, 0.25);
+      }
+      this.weaponRecoil = 0.6; // Increased recoil visually to match power
+    } else if (weapon.type === 'projectile' || weapon.type === 'projectile_fast') {
+      this.projectiles.fireProjectile(weapon);
+    } else if (weapon.type === 'bfg') {
+      this.projectiles.fireBFG(weapon);
     }
-    else if (w.type === 'projectile' || w.type === 'projectile_fast') this.projectiles.fireProjectile(w);
-    else if (w.type === 'bfg') this.projectiles.fireBFG(w);
   }
 
   triggerGameOver() {
@@ -767,9 +882,13 @@ export class GoomGame {
   }
 
   handleKeys(e) {
+    if (e.key === 'Escape' || e.key === 'p') {
+      this.deactivate();
+      return;
+    }
+
     if (this.isVictory) {
       if (e.key === 'Enter') this.resetGame();
-      if (e.key === 'Escape') this.deactivate();
       return;
     }
     this.handleCheatInput(e.key);
@@ -917,7 +1036,11 @@ export class GoomGame {
     }
     if (this.isFiring) {
       const wName = this.weapons[this.currentWeaponIdx].name;
-      if (wName === 'PLASMA') this.shoot();
+      // Continuous fire weapons (Plasma, etc) need this loop
+      // But verify cooldowns inside shoot()
+      if (wName === 'PLASMA' || wName === 'BLASTER' || wName === 'BIG FREAKING GEMINI') {
+        this.shoot(this.isAltFiring);
+      }
     }
     if (this.weaponMesh && this.weaponRecoil > 0) {
       this.weaponMesh.position.z += this.weaponRecoil * delta * 5;

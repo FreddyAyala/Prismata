@@ -86,8 +86,10 @@ export class FirstPersonController {
 
     _tryJump() {
         if (this.canJump) {
-            this.velocity.y += 18.0; // Jump Force
+            this.velocity.y += 25.0; // Buffed Jump Force (18 -> 25)
             this.canJump = false;
+            // Impulse forward if moving
+            if (this.moveForward) this.velocity.z -= 20.0;
             if (this.onJump) this.onJump();
         }
     }
@@ -115,9 +117,11 @@ export class FirstPersonController {
         if (!this.isLocked) return;
 
         // Frictional deceleration
-        this.velocity.x -= this.velocity.x * 10.0 * delta;
-        this.velocity.z -= this.velocity.z * 10.0 * delta;
-        this.velocity.y -= 45.0 * delta; // Gravity
+        // QUAKE MOVEMENT: Low friction in air (1.0 vs 10.0)
+        const friction = this.canJump ? 10.0 : 0.5;
+        this.velocity.x -= this.velocity.x * friction * delta;
+        this.velocity.z -= this.velocity.z * friction * delta;
+        this.velocity.y -= 50.0 * delta; // Slightly higher gravity for snappier jumps
 
         // Input Gathering
         let inputZ = Number(this.moveForward) - Number(this.moveBackward);
@@ -128,8 +132,7 @@ export class FirstPersonController {
             const mVec = this.mobileControls.moveVector;
             // Joystick Y is usually strictly up/down. 
             // -1 is Up (Forward), 1 is Down (Back) in screen coords usually?
-            // Wait, standard joystick: Up is Y < 0 usually in DOM, but my calc uses (touch - center).
-            // (touchY - centerY): Up is Negative.
+            // Wait, standard joystick: Up is Negative.
             // moveForward needs +1 for direction vector?
             // Let's check logic: direction.z = forward - backward.
             // If I push UP, Y is Negative. I want Forward (+1). So -Y.
@@ -164,16 +167,19 @@ export class FirstPersonController {
 
         // Stamina Logic
         const isMoving = Math.abs(inputZ) > 0.1 || Math.abs(inputX) > 0.1;
+        // Buffed Regen
         if (this.isSprinting && isMoving && this.stamina > 0) {
-            this.stamina = Math.max(0, this.stamina - 25 * delta);
+            this.stamina = Math.max(0, this.stamina - 20 * delta); // Slower drain (was 25)
         } else {
-            this.stamina = Math.min(this.maxStamina, this.stamina + 15 * delta);
+            this.stamina = Math.min(this.maxStamina, this.stamina + 25 * delta); // Faster regen (was 15)
         }
 
         // Sprint Speed Multiplier
-        let currentSpeed = this.speed;
+        // Boosted Base Speed
+        const baseSpeed = 45.0; // Was 30.0
+        let currentSpeed = baseSpeed;
         if (this.isSprinting && this.stamina > 0 && isMoving) {
-            currentSpeed *= 2.2; // Buffed sprint speed
+            currentSpeed *= 1.8; // Sprint multiplier
         }
 
         this.direction.z = inputZ;
@@ -184,8 +190,10 @@ export class FirstPersonController {
         // Valid improvement: restrict magnitude to 1.
 
         if (inputZ || inputX) {
-            this.velocity.z -= this.direction.z * currentSpeed * 10.0 * delta;
-            this.velocity.x -= this.direction.x * currentSpeed * 10.0 * delta;
+            // Air Control: Reduced acceleration in air to prevent "flying", but momentum is kept via low friction
+            const accel = this.canJump ? 10.0 : 2.0;
+            this.velocity.z -= this.direction.z * currentSpeed * accel * delta;
+            this.velocity.x -= this.direction.x * currentSpeed * accel * delta;
         }
 
         this.controls.moveRight(-this.velocity.x * delta);
