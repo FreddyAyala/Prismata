@@ -364,7 +364,10 @@ export class GoomGame {
     // Mobile Combat Integration
     if (this.player && this.player.mobileControls) {
       if (this.player.mobileControls.getFire()) {
-        this.shoot();
+        this.shoot(false);
+      }
+      if (this.player.mobileControls.getAltFire()) { // NEW
+        this.shoot(true);
       }
       if (this.player.mobileControls.getSwap()) {
         // Cycle Weapon

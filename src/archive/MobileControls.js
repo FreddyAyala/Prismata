@@ -47,17 +47,22 @@ export class MobileControls {
         // FIRE: The Big Button - North-West of Stick
         this.fireBtn = this._createBtn("FIRE", "130px", "140px", "#ffaa00", "90px");
 
+        // ALT FIRE: Slightly weaker secondary, positioned conveniently
+        this.altBtn = this._createBtn("ALT", "190px", "130px", "#ff5500", "70px");
+
         // SWAP: Further up/middle
         this.weaponBtn = this._createBtn("SWAP", "180px", "60px", "#00ffff", "60px");
 
         // Default Hide Combat Buttons
         this.fireBtn.style.display = 'none';
+        this.altBtn.style.display = 'none';
         this.weaponBtn.style.display = 'none';
 
         this.container.appendChild(this.leftZone);
         this.container.appendChild(this.rightZone);
         this.container.appendChild(this.jumpBtn);
         this.container.appendChild(this.fireBtn);
+        this.container.appendChild(this.altBtn); // ADDED
         this.container.appendChild(this.weaponBtn);
         document.body.appendChild(this.container);
     }
@@ -172,6 +177,7 @@ export class MobileControls {
         // BUTTONS
         this._bindBtn(this.jumpBtn, () => this.shouldJump = true, () => this.shouldJump = false);
         this._bindBtn(this.fireBtn, () => this.isFiring = true, () => this.isFiring = false);
+        this._bindBtn(this.altBtn, () => this.isAltFiring = true, () => this.isAltFiring = false); // BIND ALT
         this._bindBtn(this.weaponBtn, () => this.shouldSwap = true, () => { });
     }
 
@@ -193,13 +199,16 @@ export class MobileControls {
 
     enableCombatMode() {
         this.fireBtn.style.display = 'flex';
+        this.altBtn.style.display = 'flex'; // SHOW ALT
         this.weaponBtn.style.display = 'flex';
     }
 
     disableCombatMode() {
         this.fireBtn.style.display = 'none';
+        this.altBtn.style.display = 'none';
         this.weaponBtn.style.display = 'none';
         this.isFiring = false;
+        this.isAltFiring = false;
     }
 
     reset() {
@@ -208,6 +217,7 @@ export class MobileControls {
         this._handleStickEnd(this.leftKnob, this.moveVector);
         this._handleStickEnd(this.rightKnob, this.lookVector);
         this.isFiring = false;
+        this.isAltFiring = false; // RESET ALT
         this.shouldJump = false;
         this.shouldSwap = false;
     }
@@ -225,6 +235,10 @@ export class MobileControls {
 
     getFire() {
         return this.isFiring;
+    }
+
+    getAltFire() {
+        return this.isAltFiring;
     }
 
     getSwap() {
