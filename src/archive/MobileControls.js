@@ -23,7 +23,7 @@ export class MobileControls {
         this.container.style.width = '100%';
         this.container.style.height = '100%';
         this.container.style.pointerEvents = 'none';
-        this.container.style.zIndex = '4000';
+        this.container.style.zIndex = '100000'; // Super Top Layer
         this.container.style.display = 'none';
 
         // --- LEFT STICK (MOVE) ---
@@ -182,8 +182,20 @@ export class MobileControls {
     }
 
     _bindBtn(btn, onStart, onEnd) {
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); onStart(); btn.style.transform = "scale(0.9)"; });
-        btn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); onEnd(); btn.style.transform = "scale(1.0)"; });
+        btn.addEventListener('touchstart', (e) => {
+            console.log('MobileControls: Button Touch Start', btn.innerText);
+            e.preventDefault();
+            e.stopPropagation();
+            onStart();
+            btn.style.transform = "scale(0.9)";
+        });
+        btn.addEventListener('touchend', (e) => {
+            console.log('MobileControls: Button Touch End', btn.innerText);
+            e.preventDefault();
+            e.stopPropagation();
+            onEnd();
+            btn.style.transform = "scale(1.0)";
+        });
     }
 
     show() {
@@ -198,6 +210,7 @@ export class MobileControls {
     }
 
     enableCombatMode() {
+        console.log('MobileControls: Combat Mode Enabled');
         this.fireBtn.style.display = 'flex';
         this.altBtn.style.display = 'flex'; // SHOW ALT
         this.weaponBtn.style.display = 'flex';

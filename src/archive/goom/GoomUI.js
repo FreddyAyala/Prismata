@@ -28,12 +28,17 @@ export class GoomUI {
         this.hud.appendChild(crosshair);
 
         // Stats Bar (Bottom Left)
+        // Stats Bar (Bottom Left)
         const stats = document.createElement('div');
+        stats.className = 'goom-hud-stats'; // CSS Class for targeting
+
+        // Default Desktop Style (Mobile overrides in mobile.css)
         stats.style.cssText = `
-            position: absolute; bottom: 20px; left: 20px; text-align: left;
+            position: absolute; bottom: 20px; left: 20px; text-align: left; pointer-events: none;
         `;
+
         stats.innerHTML = `
-            <div style="background: linear-gradient(90deg, rgba(0,20,0,0.8), transparent 90%); padding: 15px; border-left: 4px solid #00ff00; width: 320px; backdrop-filter: blur(2px);">
+            <div class="goom-hud-inner" style="background: linear-gradient(90deg, rgba(0,20,0,0.8), transparent 90%); padding: 15px; border-left: 4px solid #00ff00; width: 320px; backdrop-filter: blur(2px);">
                 <!--HP -->
                 <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
                     <span style="font-size:16px; color:#00ff00; letter-spacing:1px;">INTEGRITY</span>

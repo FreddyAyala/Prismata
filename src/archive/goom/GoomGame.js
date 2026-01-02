@@ -73,6 +73,8 @@ export class GoomGame {
     // HIDE OVERLAPPING UI
     const footer = document.querySelector('.gallery-footer');
     if (footer) footer.style.display = 'none';
+    const dock = document.querySelector('.mobile-dock');
+    if (dock) dock.style.display = 'none';
     const hint = document.querySelector('.interaction-hint');
     if (hint) {
       hint.style.display = 'none';
@@ -221,6 +223,8 @@ export class GoomGame {
 
       const footer = document.querySelector('.gallery-footer');
       if (footer) footer.style.display = '';
+      const dock = document.querySelector('.mobile-dock');
+      if (dock) dock.style.display = '';
       const hint = document.querySelector('.interaction-hint');
       if (hint) {
         hint.style.display = '';
@@ -301,7 +305,8 @@ export class GoomGame {
 
     // PAUSE LOGIC: If no pointer lock and not game over, we are paused.
     // Skip all game logic updates.
-    if (!document.pointerLockElement && !this.isGameOver && !this.isVictory) {
+    const isMobile = window.innerWidth <= 900;
+    if (!isMobile && !document.pointerLockElement && !this.isGameOver && !this.isVictory) {
       return;
     }
 
