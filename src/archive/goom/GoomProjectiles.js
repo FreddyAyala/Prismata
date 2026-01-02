@@ -887,38 +887,37 @@ export class GoomProjectiles {
         this.game.systems.particles.push({ mesh, velocities: [], life: 0.5, initialLife: 0.5, isTracer: true });
 
         // HELIX EFFECT
+        // HELIX / TESLA EFFECT
         if (isHelix) {
-            const points = [];
-            const segments = 20;
-            const radius = 0.5;
+            const numRings = Math.floor(dist / 8.0); // 1 ring every 8 units (Cleaner spacing)
             const axis = new THREE.Vector3().subVectors(target, start);
-            const axisNorm = axis.clone().normalize();
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis.clone().normalize());
 
-            // Create a perpendicular vector for rotation
-            const perp = new THREE.Vector3(0, 1, 0);
-            if (Math.abs(axisNorm.y) > 0.9) perp.set(1, 0, 0); // Handle vertical case
-            perp.cross(axisNorm).normalize();
+            // Simplify Geometry: Lower radial/tubular segments (6, 12)
+            const ringGeo = new THREE.TorusGeometry(0.7, 0.04, 6, 12); 
 
-            for (let i = 0; i <= segments; i++) {
-                const t = i / segments;
+            for (let i = 0; i < numRings; i++) {
+                const t = (i + 1) / (numRings + 1);
+            // Linear distribution
                 const pos = new THREE.Vector3().copy(start).lerp(target, t);
 
-                // Spiral offset
-                const angle = t * Math.PI * 4; // 2 turns
-                const offset = perp.clone().applyAxisAngle(axisNorm, angle).multiplyScalar(radius * Math.sin(t * Math.PI)); // Taper ends
-                pos.add(offset);
-                points.push(pos);
-            }
+                const ring = new THREE.Mesh(ringGeo, this.sharedTracerMats[color]);
+                ring.position.copy(pos);
+                ring.quaternion.copy(quaternion);
 
-            // Simple Line for Helix (Tracer style implementation limit, using thin cylinders or just dots?)
-            // Let's use small dots for style
-            points.forEach(p => {
-                const dGeo = new THREE.IcosahedronGeometry(0.1, 0);
-                const dMesh = new THREE.Mesh(dGeo, this.sharedTracerMats[color]);
-                dMesh.position.copy(p);
-                this.scene.add(dMesh);
-                this.game.systems.particles.push({ mesh: dMesh, velocities: [], life: 0.5, initialLife: 0.5 });
-            });
+                // Static rotation for clean "Tesla" look
+                ring.rotateY(t * Math.PI); 
+
+                this.scene.add(ring);
+
+                this.game.systems.particles.push({
+                    mesh: ring,
+                    velocities: [],
+                    life: 0.6, // Shorter life for snappier look
+                    initialLife: 0.6,
+                    isRing: true
+                });
+            }
         }
     }
 
