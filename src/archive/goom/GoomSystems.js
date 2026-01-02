@@ -10,24 +10,40 @@ export class GoomSystems {
         this.pickups = [];
     }
 
-    createExplosion(pos, color, isBig, life = 0.5) {
-        const count = isBig ? 12 : 6; // Reduced for performance
-        const spread = isBig ? 8.0 : 1.5;
+    createExplosion(pos, color, isBig, life = 0.5, scaleMultiplier = 1.0) {
+        // Handle older signature where life/scale might be swapped or life is the 4th arg
+        // If 4th arg is > 1.0, it's probably scale, but let's stick to (pos, color, isBig, life, scale)
+        // Adjust for BFG passing 10.0 as life? No, I passed 10.0 as 4th arg in Projectiles.js...
+        // Wait, in Projectiles.js I wrote: createExplosion(p, 0x00ff00, true, 10.0);
+        // So 4th arg IS life/scale?
+        // Let's make it flexible.
+
+        let actualLife = life;
+        let actualScale = scaleMultiplier;
+
+        // If life is suspiciously large (> 2.0), treat it as scale and reset life to default
+        if (typeof life === 'number' && life > 5.0) {
+            actualScale = life;
+            actualLife = 1.0; // Default life
+        }
+
+        const count = isBig ? (12 * actualScale) : 6; // More particles for big explosions
+        const spread = (isBig ? 8.0 : 1.5) * (actualScale > 1.0 ? actualScale * 0.5 : 1.0);
 
         // Use a shared geometry for debris
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshBasicMaterial({ color: color, wireframe: false });
 
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < Math.min(count, 50); i++) { // Cap at 50 particles
             const mesh = new THREE.Mesh(geometry, material.clone()); // Clone mat for opacity
             mesh.position.copy(pos);
 
             // Random Offset
-            mesh.position.x += (Math.random() - 0.5) * 2.0;
-            mesh.position.y += (Math.random() - 0.5) * 2.0;
-            mesh.position.z += (Math.random() - 0.5) * 2.0;
+            mesh.position.x += (Math.random() - 0.5) * 2.0 * actualScale;
+            mesh.position.y += (Math.random() - 0.5) * 2.0 * actualScale;
+            mesh.position.z += (Math.random() - 0.5) * 2.0 * actualScale;
 
-            const scale = isBig ? 1.0 + Math.random() * 2.0 : 0.3 + Math.random() * 0.4;
+            const scale = (isBig ? 1.0 + Math.random() * 2.0 : 0.3 + Math.random() * 0.4) * actualScale;
             mesh.scale.set(scale, scale, scale);
 
             this.scene.add(mesh);

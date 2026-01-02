@@ -121,10 +121,10 @@ export class GlitchBoss {
         }
     }
 
-    spawnDollarSign(pos) {
+    spawnDollarSign(pos, customVel = null) {
         if (!GlitchBoss.dollarMat) {
             const canvas = document.createElement('canvas');
-            canvas.width = 128; canvas.height = 128; // Higher res
+            canvas.width = 128; canvas.height = 128;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#00ff00';
             ctx.font = 'bold 100px Arial';
@@ -137,15 +137,25 @@ export class GlitchBoss {
 
         const s = new THREE.Sprite(GlitchBoss.dollarMat);
         const worldPos = new THREE.Vector3();
-        pos.getWorldPosition(worldPos);
+        if (pos.isVector3) worldPos.copy(pos);
+        else pos.getWorldPosition(worldPos);
+
         s.position.copy(worldPos);
         // Random spread
         s.position.add(new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5));
-        s.scale.set(20, 20, 1); // HUGE DOLLAR SIGNS
+        s.scale.set(10, 10, 1); 
         this.scene.add(s);
 
         if (!this.effects) this.effects = [];
-        this.effects.push({ mesh: s, life: 2.0, vel: new THREE.Vector3(0, 25, 0) });
+
+        const vel = customVel ? customVel.clone() : new THREE.Vector3((Math.random() - 0.5) * 10, Math.random() * 10 + 10, (Math.random() - 0.5) * 10);
+
+        this.effects.push({
+            mesh: s,
+            life: 3.0,
+            vel: vel,
+            gravity: -50.0
+        });
     }
 
     updatePhase() {
@@ -224,14 +234,39 @@ export class GlitchBoss {
             const wobble = (1.0 + progress * 2.0) + Math.sin(this.deathTimer * 20.0) * (0.2 * progress);
             this.mesh.scale.setScalar(wobble);
 
-            // Explosions
-            if (Math.random() < 0.4) { // More frequent (50% per frame is A LOT, maybe too much? Frame rate dependent. Let's assume 60fps)
-                // Actually 0.5 per frame is insane. Let's do 0.2 but bigger explosions
+            // Explosions & BLEEDING MONEY
+            if (Math.random() < 0.4) { 
                 if (this.scene.userData.game && this.scene.userData.game.systems) {
                     const offset = new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
                     this.scene.userData.game.systems.createExplosion(this.mesh.position.clone().add(offset), 0xff0000, true, 5.0);
                     const pitch = 50 + Math.random() * 100;
                     this.scene.userData.game.audio.playSound(pitch, 'sawtooth', 1.0, 0.5);
+                }
+            }
+
+            // BLEED MONEY
+            // Spawn multiple dollars per frame to create an "rain"
+            for (let i = 0; i < 3; i++) {
+                const vel = new THREE.Vector3((Math.random() - 0.5) * 30, Math.random() * 20 + 20, (Math.random() - 0.5) * 30);
+                this.spawnDollarSign(
+                    this.mesh.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5)),
+                    vel
+                );
+            }
+
+            // UPDATE EFFECTS (Money Physics) - RUN DURING DEATH
+            if (this.effects) {
+                for (let i = this.effects.length - 1; i >= 0; i--) {
+                    const e = this.effects[i];
+                    e.life -= delta;
+                    if (e.vel) {
+                        if (e.gravity) e.vel.y += e.gravity * delta;
+                        e.mesh.position.add(e.vel.clone().multiplyScalar(delta));
+                    }
+                    if (e.life <= 0 || e.mesh.position.y < -10) {
+                        this.scene.remove(e.mesh);
+                        this.effects.splice(i, 1);
+                    }
                 }
             }
 
@@ -278,6 +313,26 @@ export class GlitchBoss {
             c.mesh.lookAt(0, 0, 0); // Always face center
             c.mesh.rotation.z += delta * 2.0; // Spin self
         });
+
+        // UPDATE EFFECTS (Money Physics)
+        if (this.effects) {
+            for (let i = this.effects.length - 1; i >= 0; i--) {
+                const e = this.effects[i];
+                e.life -= delta;
+                if (e.vel) {
+                    if (e.gravity) e.vel.y += e.gravity * delta;
+                    e.mesh.position.add(e.vel.clone().multiplyScalar(delta));
+                }
+
+                // Rotation if sprite supports it (Sprites always face camera usually, but we can rotate Z)
+                // e.mesh.material.rotation += delta * 5.0; // Sprites use material.rotation
+
+                if (e.life <= 0 || e.mesh.position.y < -10) {
+                    this.scene.remove(e.mesh);
+                    this.effects.splice(i, 1);
+                }
+            }
+        }
 
         // Effects Update
         if (this.effects) {

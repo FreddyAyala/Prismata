@@ -205,20 +205,28 @@ export class GoomProjectiles {
                         if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(enemy.type);
                     }
 
-                    // SPLASH DAMAGE (Shotgun OR Railgun)
+                    // SPLASH DAMAGE (Shotgun OR Railgun OR BFG)
                     const isRailgun = (weapon.type === 'hitscan_beam');
+                    const isBFG = (weapon.name === 'BIG FREAKING GEMINI');
+
                     if (weapon.splashRadius > 0 || isRailgun) {
-                        const sRad = isRailgun ? 15.0 : weapon.splashRadius;
-                        const sDmg = isRailgun ? 25 : weapon.damage;
-                        const sColor = isRailgun ? 0x00ffff : 0xffaa00;
+                        const sRad = isRailgun ? 15.0 : (isBFG ? 50.0 : weapon.splashRadius);
+                        const sDmg = isRailgun ? 25 : (isBFG ? 500 : weapon.damage);
+                        const sColor = isRailgun ? 0x00ffff : (isBFG ? 0x00ff00 : 0xffaa00);
+                        const isHuge = isBFG;
 
                         const splashSq = sRad * sRad;
                         for (const other of this.game.enemies) {
                             if (other === enemy) continue;
                             if (other.mesh.position.distanceToSquared(p) < splashSq) {
                                 other.takeDamage(sDmg);
-                                this.game.systems.createExplosion(other.mesh.position, sColor, false, 0.5);
+                                this.game.systems.createExplosion(other.mesh.position, sColor, isHuge, isHuge ? 5.0 : 0.5);
                             }
+                        }
+
+                        // Main BFG Hit Visual
+                        if (isBFG) {
+                            this.game.systems.createExplosion(p, 0x00ff00, true, 10.0); // HUGE BLAST
                         }
                     }
                 } else if (t.userData && t.userData.isCorrupted) {
