@@ -306,8 +306,20 @@ export class GoomGame {
     // PAUSE LOGIC: If no pointer lock and not game over, we are paused.
     // Skip all game logic updates.
     const isMobile = window.innerWidth <= 900;
+
+    // DEBUG PAUSE STATE
     if (!isMobile && !document.pointerLockElement && !this.isGameOver && !this.isVictory) {
+      if (Math.random() < 0.01) console.log("GoomGame Paused: No Pointer Lock");
       return;
+    }
+
+    if (Math.random() < 0.005) {
+      console.log("GoomGame Running", {
+        active: this.active,
+        mobile: isMobile,
+        enemies: this.enemies.length,
+        controls: this.player?.mobileControls ? 'YES' : 'NO'
+      });
     }
 
     this.checkCrystalHealth();

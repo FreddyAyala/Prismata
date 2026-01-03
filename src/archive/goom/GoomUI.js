@@ -32,13 +32,23 @@ export class GoomUI {
         const stats = document.createElement('div');
         stats.className = 'goom-hud-stats'; // CSS Class for targeting
 
-        // Default Desktop Style (Mobile overrides in mobile.css)
-        stats.style.cssText = `
-            position: absolute; bottom: 20px; left: 20px; text-align: left; pointer-events: none;
-        `;
+        // Default Desktop Style (Mobile overrides in mobile.css OR here as fallback)
+        const isMobile = window.innerWidth <= 900;
+        if (isMobile) {
+            stats.style.cssText = `
+                position: absolute; top: 100px; left: 20px; text-align: left; pointer-events: none;
+                transform: scale(0.65); transform-origin: top left; z-index: 2000;
+            `;
+        } else {
+            stats.style.cssText = `
+                position: absolute; bottom: 20px; left: 20px; text-align: left; pointer-events: none;
+            `;
+        }
+
+        const widthStyle = isMobile ? 'width: 100%;' : 'width: 320px;';
 
         stats.innerHTML = `
-            <div class="goom-hud-inner" style="background: linear-gradient(90deg, rgba(0,20,0,0.8), transparent 90%); padding: 15px; border-left: 4px solid #00ff00; width: 320px; backdrop-filter: blur(2px);">
+            <div class="goom-hud-inner" style="background: linear-gradient(90deg, rgba(0,20,0,0.8), transparent 90%); padding: 15px; border-left: 4px solid #00ff00; ${widthStyle} backdrop-filter: blur(2px);">
                 <!--HP -->
                 <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
                     <span style="font-size:16px; color:#00ff00; letter-spacing:1px;">INTEGRITY</span>
