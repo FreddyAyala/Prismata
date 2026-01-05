@@ -10,10 +10,11 @@ export class GlitchBoss {
         this.isBoss = true;
 
         // Boss Stats - MASSIVE HEALTH (Tuned Down)
-        this.life = 8000;
-        this.maxLife = 8000;
+        // Boss Stats - Rebalanced for Fair Fight
+        this.life = 5000; // Increased to 5000 (User Feedback: 2500 too easy)
+        this.maxLife = 5000;
         this.speed = 4.0;
-        this.damage = 25; // Nerfed from 40 (was 100)
+        this.damage = 15; // Nerfed from 25 (Prevent one-shots)
         this.scale = 20.0;
         this.phase = 1; // 1, 2, 3, 4
         this.spawnTimer = 0;
@@ -400,19 +401,37 @@ export class GlitchBoss {
         return 'move';
     }
 
-    takeDamage(amount, hitObject = null) {
+    takeDamage(amount, hitObject = null, damageSource = 'normal') {
         let actualDamage = amount;
         let isCrit = false;
         let isImmune = true;
 
-        // Weak Point Hit Check
+        // BOSS RESISTANCES & WEAKNESSES
+        // User Request: "Survive 3 BFG's but receive extra damage from normal weapons"
+        if (damageSource === 'bfg') {
+            // BFG Splash is hardcoded to 2000 in GoomProjectiles.
+            // Beam is 500 * delta (approx 8 * multiplier per frame).
+            // Goal: ~1500 damage per full hit (Explosion + Beam).
+            // 2000 * 0.6 = 1200. Beam adds ~200-300. Total ~1500.
+            // 3 Hits = 4500. Survives 3.
+            actualDamage *= 0.6;
+            console.log("BOSS HIT BY BFG! Damage:", actualDamage);
+            isImmune = false;
+        } else {
+            // Normal Weapons (Blaster, Shotgun, etc.)
+            // user wants "extra damage".
+            // Blaster Base 5 -> 20 (4x). Shotgun Base 100 -> 400 (4x).
+            actualDamage *= 4.0;
+            isImmune = false;
+        }
+
         // Weak Point Hit Check
         if (this.activeWeakPoints && hitObject) {
             // Check if hitObject matches any active chunk mesh
             const hitWeak = this.activeWeakPoints.find(wp => wp.mesh === hitObject);
 
             if (hitWeak) {
-                actualDamage *= 3.0; // 3x Damage for Hitting Weak Point (Balanced)
+                actualDamage *= 3.0; // 3x Damage for Hitting Weak Point (Stacked on top of 4x/7.5x!)
                 isCrit = true;
                 isImmune = false;
                 console.log("DEBUG: WEAKPOINT HIT! 3x");
@@ -420,16 +439,10 @@ export class GlitchBoss {
                 // Visual Feedback
                 hitWeak.mesh.scale.set(1.5, 1.5, 1.5);
                 setTimeout(() => hitWeak.mesh.scale.set(1, 1, 1), 100);
-            } else {
-                // Check if we hit specific geometry inside a chunk?
-                // Usually hitObject is the mesh itself.
             }
         }
 
-        if (isImmune) {
-            actualDamage *= 1.0; // Normal damage if hitting body (No Resistance)
-        // Maybe play "Ding" sound or shield effect?
-        }
+        if (isImmune && actualDamage > 0) isImmune = false; // Safety fallback
 
         this.life -= actualDamage;
         

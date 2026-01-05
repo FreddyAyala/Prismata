@@ -182,19 +182,17 @@ export class MobileControls {
     }
 
     _bindBtn(btn, onStart, onEnd) {
-        btn.addEventListener('touchstart', (e) => {
-            console.log('MobileControls: Button Touch Start', btn.innerText);
+        btn.addEventListener('touchstart', (e) => { 
             e.preventDefault();
             e.stopPropagation();
             onStart();
-            btn.style.transform = "scale(0.9)";
+            btn.style.transform = "scale(0.9)"; 
         });
-        btn.addEventListener('touchend', (e) => {
-            console.log('MobileControls: Button Touch End', btn.innerText);
+        btn.addEventListener('touchend', (e) => { 
             e.preventDefault();
             e.stopPropagation();
             onEnd();
-            btn.style.transform = "scale(1.0)";
+            btn.style.transform = "scale(1.0)"; 
         });
     }
 

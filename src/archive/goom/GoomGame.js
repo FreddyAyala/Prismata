@@ -309,17 +309,7 @@ export class GoomGame {
 
     // DEBUG PAUSE STATE
     if (!isMobile && !document.pointerLockElement && !this.isGameOver && !this.isVictory) {
-      if (Math.random() < 0.01) console.log("GoomGame Paused: No Pointer Lock");
       return;
-    }
-
-    if (Math.random() < 0.005) {
-      console.log("GoomGame Running", {
-        active: this.active,
-        mobile: isMobile,
-        enemies: this.enemies.length,
-        controls: this.player?.mobileControls ? 'YES' : 'NO'
-      });
     }
 
     this.checkCrystalHealth();
@@ -517,30 +507,30 @@ export class GoomGame {
     let type = overrideType || 'normal';
     if (!overrideType) {
       const r = Math.random();
-      // Wave Logic...
+      // Wave Logic (Balances: Slightly Harder Early Game)
       if (this.wave === 1) {
-        if (r < 0.20) type = 'imp';
-        else if (r < 0.25) type = 'scout';
+        if (r < 0.30) type = 'imp'; // Increased from 0.20
+        else if (r < 0.40) type = 'scout'; // Increased from 0.25 (Added Scouts)
       }
       else if (this.wave === 2) {
-        if (r < 0.30) type = 'imp';
-        else if (r < 0.40) type = 'scout';
-        else if (r < 0.50) type = 'wraith';
-        else if (r < 0.55) type = 'tank';
+        if (r < 0.25) type = 'imp';
+        else if (r < 0.45) type = 'scout'; // More Scouts
+        else if (r < 0.60) type = 'wraith'; // Earlier Wraiths (15%)
+        else if (r < 0.70) type = 'tank'; // Earlier Tanks (10%)
       }
       else if (this.wave === 3) {
         if (r < 0.20) type = 'imp';
-        else if (r < 0.40) type = 'scout';
+        else if (r < 0.35) type = 'scout';
         else if (r < 0.55) type = 'wraith';
-        else if (r < 0.65) type = 'tank';
-        else if (r < 0.70) type = 'berzerker';
+        else if (r < 0.75) type = 'tank'; // More Tanks
+        else if (r < 0.85) type = 'berzerker'; // Earlier Berzerkers
       }
       else { // Wave 4 & 5 (Chaos)
-        if (r < 0.20) type = 'imp';
-        else if (r < 0.35) type = 'scout';
-        else if (r < 0.50) type = 'wraith';
+        if (r < 0.15) type = 'imp';
+        else if (r < 0.30) type = 'scout';
+        else if (r < 0.45) type = 'wraith';
         else if (r < 0.70) type = 'tank';
-        else if (r < 0.85) type = 'berzerker';
+        else if (r < 0.90) type = 'berzerker';
       }
     }
 
