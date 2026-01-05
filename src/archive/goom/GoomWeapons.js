@@ -50,5 +50,12 @@ export const WEAPONS = [
         cost: 2,
         type: 'bfg_singularity',
         color: 0xaa00aa
+    }),
+    new Weapon("DISASSEMBLER", 150, 100, 0xff00ff, 'melee', -1, 0, { // Infinite Ammo, Fast
+        cooldown: 150, // Fast punches
+        damage: 100, // MASSIVE DAMAGE per hit
+        cost: 0,
+        type: 'melee_heavy',
+        color: 0xff00ff
     })
 ];

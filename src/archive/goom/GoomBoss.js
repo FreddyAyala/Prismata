@@ -418,6 +418,14 @@ export class GlitchBoss {
             actualDamage *= 0.6;
             console.log("BOSS HIT BY BFG! Damage:", actualDamage);
             isImmune = false;
+        } else if (damageSource === 'berzerker') {
+            // Berzerker Melee (Base 500).
+            // Do NOT apply the 4x multiplier for normal weapons.
+            // Keep it raw (500) or slight buff.
+            // 500 is ~6.6% of 7500 Health. 15 hits to kill.
+            // Weak point will multiply by 2.0 (below).
+            actualDamage = 500;
+            isImmune = false;
         } else {
             // Normal Weapons (Blaster, Shotgun, etc.)
             // user wants "extra damage".
@@ -432,10 +440,12 @@ export class GlitchBoss {
             const hitWeak = this.activeWeakPoints.find(wp => wp.mesh === hitObject);
 
             if (hitWeak) {
-                actualDamage *= 3.0; // 3x Damage for Hitting Weak Point (Stacked on top of 4x/7.5x!)
+                // Weak Point Multiplier
+                const mult = damageSource === 'berzerker' ? 2.0 : 3.0; // Reduced for Berzerker
+                actualDamage *= mult;
                 isCrit = true;
                 isImmune = false;
-                console.log("DEBUG: WEAKPOINT HIT! 3x");
+                console.log(`DEBUG: WEAKPOINT HIT! ${mult}x. Dmg: ${actualDamage}`);
 
                 // Visual Feedback
                 hitWeak.mesh.scale.set(1.5, 1.5, 1.5);

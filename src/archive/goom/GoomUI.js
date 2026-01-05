@@ -7,6 +7,7 @@ export class GoomUI {
         this.game = game;
         this.hud = null;
         this.crystals = [];
+        this.score = 0;
     }
 
     createHUD() {

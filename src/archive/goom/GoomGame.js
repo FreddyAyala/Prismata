@@ -118,7 +118,7 @@ export class GoomGame {
 
     this.weapons = WEAPONS.map(w => ({
       ...w,
-      ammo: w.name === 'BLASTER' ? -1 : 0
+      ammo: w.maxAmmo === -1 ? -1 : 0
     }));
     this.currentWeaponIdx = 0;
     this.playerHealth = 100;
@@ -317,6 +317,65 @@ export class GoomGame {
     if (this.isVictory || this.isGameOver) return;
     if (this.audio.audioCtx && this.audio.audioCtx.state === 'suspended') this.audio.audioCtx.resume();
 
+    // HIT STOP LOGIC
+    if (this.hitStopTimer > 0) {
+      // Freeze frame (skip update)
+      // Only update timer
+      // We use real time for this, not delta
+      const now = performance.now();
+      if (now < this.hitStopTimer) {
+        return; // FREEZE
+      } else {
+        this.hitStopTimer = 0;
+      }
+    }
+
+    // BERZERKER UPDATE
+    if (this.berzerkerMode) {
+      this.berzerkerTimer -= delta;
+      if (this.berzerkerTimer <= 0) {
+        this.deactivateBerzerkerMode();
+      } else {
+        // SCREEN SHAKE (Continuous)
+        const shake = 0.05;
+        this.camera.position.add(new THREE.Vector3(
+          (Math.random() - 0.5) * shake,
+          (Math.random() - 0.5) * shake,
+          (Math.random() - 0.5) * shake
+        ));
+
+        // RAGE PARTICLES (Aura)
+        if (Math.random() < 0.5) { // 30fps spawn rate approx
+          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+          const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+          const offset = new THREE.Vector3().addScaledVector(right, (Math.random() - 0.5) * 5).addScaledVector(forward, 2 + Math.random() * 5);
+          // Make them fly past?
+          // Or just static sparks around?
+          const pos = this.camera.position.clone().add(offset);
+          this.systems.createSparks(pos, 0xff0000, 1);
+        }
+
+        // Force visuals (Red Pulse)
+        const pulse = 0.5 + Math.sin(performance.now() * 0.015) * 0.4; // Faster pulse
+        if (this.scene.fog) this.scene.fog.color.setHSL(0.0, 1.0, 0.1 + pulse * 0.2);
+
+        // Update Pulse Overlay
+        const overlay = document.getElementById('rage-pulse');
+        if (overlay) {
+          overlay.style.opacity = (pulse * 0.6).toString();
+        }
+      }
+    }
+
+    // DYNAMIC FOV
+    if (this.targetFOV) {
+      const currentFOV = this.camera.fov;
+      if (Math.abs(currentFOV - this.targetFOV) > 0.1) {
+        this.camera.fov += (this.targetFOV - currentFOV) * 5.0 * delta;
+        this.camera.updateProjectionMatrix();
+      }
+    }
+
     this.arena.constrainCamera(this.camera);
 
     if (this.waveInProgress && this.enemiesToSpawn === 0 && this.enemies.length === 0 && !this.boss) {
@@ -420,12 +479,133 @@ export class GoomGame {
           if (w.ammo >= w.maxAmmo) return false; // FULL
           w.ammo = Math.min(w.maxAmmo, w.ammo + amount);
           this.audio.playSound(800, 'triangle', 0.3, 0.1); // Click/Load
-          this.audio.playSound(200, 'noise', 0.2, 0.1);    // Mechanical Clic
+          this.audio.playNoise(0.1, 0.2, 1.0);    // Mechanical Clic
         }
+      } else if (type === 'rage_core') {
+        this.activateBerzerkerMode();
+        return true;
       }
     }
     this.ui.updateHUD();
     return true;
+  }
+
+  activateBerzerkerMode() {
+    if (this.berzerkerMode) {
+      this.berzerkerTimer = 30.0; // Refresh
+      return;
+    }
+
+    this.berzerkerMode = true;
+    this.berzerkerTimer = 30.0;
+    this.originalWeaponIdx = this.currentWeaponIdx;
+
+    // Switch to Disassembler
+    const meleeIdx = this.weapons.findIndex(w => w.name === 'DISASSEMBLER');
+    if (meleeIdx !== -1) {
+      this.currentWeaponIdx = meleeIdx;
+      this.updateWeaponVisuals();
+    }
+
+    this.ui.showWarning("BERZERKER MODE: KILL THEM ALL!", 3.0);
+    this.audio.playSound(100, 'sawtooth', 1.0, 3.0); // Scream
+
+    // MUSIC: RAGE
+    this.previousMusicPhase = this.audio.musicPhase;
+    this.audio.setMusicPhase(666);
+
+    // Heal
+    this.playerHealth = Math.min(100, this.playerHealth + 50);
+
+    // Effects
+    if (this.scene.fog) this.scene.fog.color.setHex(0x550000); // Red Fog
+    document.body.style.boxShadow = "inset 0 0 100px red";
+
+    // SUPERHOT / DOOM VISUALS
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      // Less "Deep Fried", more "Stylized"
+      // High Contrast + Red Tint + Slight Saturation
+      canvas.style.filter = "contrast(140%) sepia(50%) hue-rotate(-50deg) saturate(200%)";
+    }
+
+    // SPEED LINES OVERLAY (Tunnel Vision)
+    let overlay = document.getElementById('rage-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'rage-overlay';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.pointerEvents = 'none';
+      // Darker vignette, less red blind
+      overlay.style.background = 'radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.8) 100%)';
+      overlay.style.zIndex = '9999';
+      overlay.style.mixBlendMode = 'multiply'; // Darken edges
+      document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'block';
+
+    // RAGE PULSE RED OVERLAY
+    let pulseOverlay = document.getElementById('rage-pulse');
+    if (!pulseOverlay) {
+      pulseOverlay = document.createElement('div');
+      pulseOverlay.id = 'rage-pulse';
+      pulseOverlay.style.position = 'fixed';
+      pulseOverlay.style.top = '0';
+      pulseOverlay.style.left = '0';
+      pulseOverlay.style.width = '100%';
+      pulseOverlay.style.height = '100%';
+      pulseOverlay.style.pointerEvents = 'none';
+      pulseOverlay.style.background = 'red';
+      pulseOverlay.style.opacity = '0';
+      pulseOverlay.style.zIndex = '9998'; // Below vignette
+      pulseOverlay.style.mixBlendMode = 'overlay';
+      document.body.appendChild(pulseOverlay);
+    }
+    pulseOverlay.style.display = 'block';
+
+    this.targetFOV = 95; // WIDER BUT NOT FISHBOWL
+
+    // Play Scream Effect (using noise/sawtooth) instead of TTS
+    if (this.audio) {
+      // A synthetic scream or impact
+      this.audio.playNoise(1.5, 0.8, 0.5);
+      // We could add a "Gong" here later if needed
+    }
+  }
+
+  deactivateBerzerkerMode() {
+    this.berzerkerMode = false;
+    this.ui.showWarning("RAGE SUBSIDING...");
+
+    // Reset Audio/Visuals
+    if (this.scene.fog) this.scene.fog.color.setHex(0x000000);
+    document.body.style.boxShadow = "";
+
+    const canvas = document.querySelector('canvas');
+    if (canvas) canvas.style.filter = "";
+
+    const overlay = document.getElementById('rage-overlay');
+    if (overlay) overlay.style.display = 'none';
+
+    const pulseOverlay = document.getElementById('rage-pulse');
+    if (pulseOverlay) pulseOverlay.style.display = 'none';
+
+    this.targetFOV = 75; // Reset FOV
+    if (this.previousMusicPhase !== undefined) this.audio.setMusicPhase(this.previousMusicPhase);
+
+    // Restore Weapon
+    if (this.originalWeaponIdx !== undefined && this.originalWeaponIdx >= 0) {
+      this.currentWeaponIdx = this.originalWeaponIdx;
+      this.updateWeaponVisuals();
+    } else {
+      this.currentWeaponIdx = 0;
+      this.updateWeaponVisuals();
+    }
+    this.ui.updateHUD();
   }
 
   startWave() {
@@ -732,6 +912,10 @@ export class GoomGame {
     });
   }
 
+  hitStop(durationMs) {
+    this.hitStopTimer = performance.now() + durationMs;
+  }
+
   destroyCrystal(crystal) {
     if (!crystal || crystal.userData.isDead) return;
 
@@ -829,15 +1013,23 @@ export class GoomGame {
       });
       this.enemies = [];
 
-      this.score += 5000;
+      this.ui.score += 5000;
+      this.ui.updateHUD(); // Force update
       this.boss = null;
-      if (this.audio) this.audio.playBossDeath();
+      if (this.audio) {
+        this.audio.playBossDeath();
+      }
       setTimeout(() => this.triggerWin(), 2000);
     }
   }
 
   takePlayerDamage(amount) {
     if (this.godMode || this.isVictory || this.isGameOver) return; // FIX: No damage after win
+
+    // BERZERKER DEFENSE
+    if (this.berzerkerMode) {
+      amount *= 0.2; // 80% Reduction
+    }
 
     // ARMOR LOGIC: Absorb 66% of damage
     let damageToHealth = amount;
@@ -890,7 +1082,7 @@ export class GoomGame {
       }
 
       // Cost Check
-      if (weapon.name !== 'BLASTER' && weapon.ammo < weapon.altFire.cost) {
+      if (weapon.ammo !== -1 && weapon.ammo < weapon.altFire.cost) {
         this.ui.showWarning("NO AMMO FOR ALT FIRE!");
         this.audio.playSound(100, 'sawtooth', 0.5, 0.1);
         return;
@@ -898,7 +1090,7 @@ export class GoomGame {
 
       // Fire!
       weapon.altFire.lastShot = time;
-      if (weapon.name !== 'BLASTER') {
+      if (weapon.ammo !== -1) {
         weapon.ammo -= weapon.altFire.cost;
       }
 
@@ -933,6 +1125,18 @@ export class GoomGame {
         this.projectiles.fireSingularity(weapon);
         this.audio.playSound(40, 'sine', 2.0, 3.0); // SUPER DEEP
         this.weaponRecoil = 1.0;
+      } else if (alt.type === 'melee_heavy') {
+        // RIGHT HOOK
+        this.audio.playSound(100, 'sawtooth', 0.3, 0.2); // REV
+        this.audio.playSound(50, 'square', 0.5, 0.1); // GRIND
+        this.audio.playSound(50, 'sine', 0.8, 0.4); // SUB-BASS IMPACT
+        this.weaponRecoil = 0.0;
+
+        // Force Right Punch
+        this.punchSide = 1;
+        this.punchTimer = 0.1; // FASTER (Was 0.15)
+
+        this.projectiles.fireMeleePulse(weapon);
       }
 
       this.ui.updateHUD(); // Update Ammo
@@ -973,6 +1177,22 @@ export class GoomGame {
       this.projectiles.fireProjectile(weapon);
     } else if (weapon.type === 'bfg') {
       this.projectiles.fireBFG(weapon);
+    } else if (weapon.type === 'melee') {
+      // CHAINSAW / DISASSEMBLER / FISTS LOGIC
+      this.audio.playSound(100, 'sawtooth', 0.3, 0.2); // REV
+      this.audio.playSound(50, 'square', 0.5, 0.1); // GRIND
+      this.audio.playSound(55, 'sine', 0.6, 0.3); // SUB-BASS THUD
+      this.weaponRecoil = 0.0; // Handled by manual animation
+
+      // PUNCH ANIMATION STATE
+      this.punchSide = isAlt ? 1 : 0; // Left Click = Left, Right Click = Right
+      this.punchTimer = 0.1; // FASTER (Was 0.15)
+
+      // Short range AoE Pulse
+      const didHit = this.projectiles.fireMeleePulse(weapon);
+
+      // Visual Shake
+      this.camera.position.y += (Math.random() - 0.5) * 0.1;
     }
   }
 
@@ -986,7 +1206,8 @@ export class GoomGame {
     this.isVictory = true;
     if (this.killStats) this.killStats.boss++; // Count the boss kill
     if (this.audio && this.audio.playVictorySong) this.audio.playVictorySong();
-    this.ui.triggerWin(this.score, () => this.resetGame(), this.killStats);
+    document.exitPointerLock();
+    this.ui.triggerWin(this.ui.score, () => this.resetGame(), this.killStats);
   }
 
   resetGame() {
@@ -1064,8 +1285,16 @@ export class GoomGame {
       this.startBossWave();
       return;
     }
+
+    // CHEAT: Berzerker Mode
+    if (e.key === 'b') {
+      this.activateBerzerkerMode();
+      return;
+    }
+
     const idx = parseInt(e.key) - 1;
     if (idx >= 0 && idx < this.weapons.length) {
+      if (this.weapons[idx].name === 'DISASSEMBLER' && !this.berzerkerMode) return; // Locked unless Berzerker
       this.currentWeaponIdx = idx;
       this.updateWeaponVisuals();
       this.ui.updateHUD();
@@ -1093,6 +1322,9 @@ export class GoomGame {
     else if (this.cheatBuffer.endsWith("idclev5")) {
       this.ui.showWarning("WARPING TO BOSS...");
       setTimeout(() => this.startBossWave(), 1000);
+    }
+    else if (this.cheatBuffer.endsWith("idrage")) {
+      this.activateBerzerkerMode();
     }
   }
 
@@ -1184,6 +1416,30 @@ export class GoomGame {
     this.bfgMesh.add(bCore, bBarrel);
     this.weaponMesh.add(this.bfgMesh);
 
+    // MELEE (DISASSEMBLER) - DUAL GLOVES
+    this.meleeMesh = new THREE.Group();
+
+    // Helper to make a glove
+    const createGlove = (xPos) => {
+      const g = new THREE.Group();
+      // Arm/Forearm
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.4), new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true }));
+      // Glove (Knuckles) - Sphere/Cylinder
+      const knuckle = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.15, 0.3, 8), new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true }));
+      knuckle.rotation.x = Math.PI / 2;
+      knuckle.position.z = -0.3; // Tip
+      g.add(arm);
+      g.add(knuckle);
+      g.position.set(xPos, -0.2, 0.3);
+      return g;
+    };
+
+    const fistL = createGlove(-0.35);
+    const fistR = createGlove(0.35);
+
+    this.meleeMesh.add(fistL, fistR);
+    this.weaponMesh.add(this.meleeMesh);
+
     this.updateWeaponVisuals();
   }
 
@@ -1195,6 +1451,7 @@ export class GoomGame {
     this.launcherMesh.visible = (w.name === "LAUNCHER");
     this.plasmaMesh.visible = (w.name === "PLASMA");
     this.bfgMesh.visible = (w.name === "BIG FREAKING GEMINI");
+    if (this.meleeMesh) this.meleeMesh.visible = (w.name === "DISASSEMBLER");
     this.muzzleLight.color.setHex(w.color);
   }
 
@@ -1211,11 +1468,38 @@ export class GoomGame {
         this.shoot(this.isAltFiring);
       }
     }
-    if (this.weaponMesh && this.weaponRecoil > 0) {
-      this.weaponMesh.position.z += this.weaponRecoil * delta * 5;
-      this.weaponRecoil -= delta * 2;
-      this.weaponRecoil = Math.max(0, this.weaponRecoil);
-      this.weaponMesh.position.z = Math.min(-0.6 + this.weaponRecoil, -0.4);
+    if (this.weaponMesh) {
+      // PUNCH ANIMATION
+      if (this.punchTimer > 0 && this.meleeMesh && this.meleeMesh.visible) {
+        this.punchTimer -= delta;
+        const progress = Math.max(0, this.punchTimer / 0.1); // 1.0 to 0.0 (Updated to match new timer)
+        const extend = Math.sin(progress * Math.PI) * 1.2; // Standard Punch
+
+        const leftFist = this.meleeMesh.children[0];
+        const rightFist = this.meleeMesh.children[1];
+
+        if (this.punchSide === 0) { // Left
+          leftFist.position.z = 0.3 - extend;
+          rightFist.position.z = 0.3;
+        } else { // Right
+          rightFist.position.z = 0.3 - extend;
+          leftFist.position.z = 0.3;
+        }
+      } else if (this.meleeMesh && this.meleeMesh.visible) {
+        // Reset
+        this.meleeMesh.children[0].position.z = 0.3;
+        this.meleeMesh.children[1].position.z = 0.3;
+      }
+
+      // STANDARD RECOIL (Gun bob)
+      if (this.weaponRecoil > 0) {
+        this.weaponMesh.position.z += this.weaponRecoil * delta * 5;
+        this.weaponRecoil -= delta * 2;
+        this.weaponRecoil = Math.max(0, this.weaponRecoil);
+        this.weaponMesh.position.z = Math.min(-0.6 + this.weaponRecoil, -0.4);
+      } else if (!this.meleeMesh.visible) {
+        this.weaponMesh.position.z = -0.6; // Resting pos
+      }
     }
   }
 

@@ -170,7 +170,7 @@ export class GoomAudio {
 
         // Force transition
         this.musicPhase = phase;
-        this.beat = 0;
+        this.beat = (phase === 666) ? 64 : 0; // Skip Intro for MK (Start at Main Riff)
 
         // Play a sound to cover the cut
         this.playNoise(0.5, 0.5, 1.0, 500);
@@ -401,6 +401,109 @@ export class GoomAudio {
                 }
             }
 
+            // ==================================================
+            // PHASE 666: MK (FULL CINEMATIC + INTRO)
+            // ==================================================
+            else if (this.musicPhase === 666) {
+                // 256-STEP PROGRESSION (~29s Loop)
+                // Intro(64) -> Riff Cycle 1(64) -> Riff Cycle 2(64) -> Finale(64)
+                const step = this.beat % 256;
+
+                // --- FREQUENCIES ---
+                const A2 = 110.00; const A3 = 220.00; const C4 = 261.63; const D4 = 293.66; const E4 = 329.63;
+                const F3 = 174.61; const G3 = 196.00; // Added missing bass notes
+                const F4 = 349.23; const G4 = 392.00; const A4 = 440.00; const B4 = 493.88;
+                const C5 = 523.25; const D5 = 587.33; const E5 = 659.25; const G5 = 783.99;
+                const A5 = 880.00; const Bb5 = 932.33; const C6 = 1046.50;
+
+                // ==========================================
+                // SECTION 1: EXTENDED INTRO (Steps 0 - 64)
+                // ==========================================
+                if (step < 64) {
+                    // Pattern: Cinematic "DUN... DUN... DUN" hits
+                    // First 32: Sparse (Every 16 beats)
+                    // Next 32: Double time (Every 8 beats) + Glitchy rising
+                    const isSecondHalf = step >= 32;
+                    const hitInterval = isSecondHalf ? 8 : 16;
+
+                    if (step % hitInterval === 0) {
+                        this.playSuperSaw(A2, 0.9, 0.6); // Massive Deep Impact
+                        this.playSuperSaw(A3, 0.7, 0.4);
+                        this.playNoise(0.6, 0.8, 0.5); // Orchestral Stick Click
+                    }
+
+                    // Pseudo "MK" scream at end of intro
+                    if (step === 60) this.playSound(A4, 'sawtooth', 0.3, 0.2);
+
+                    // Background rising tension ARP (Accelerates in second half)
+                    if (step % 2 === 0) {
+                        const risePitch = 880 + (step * 15);
+                        this.playSound(risePitch, 'square', 0.05, 0.05);
+                    }
+                }
+
+                // ==========================================
+                // SECTION 2 & 3: MAIN THEME (Steps 64 - 192)
+                // ==========================================
+                else if (step < 192) {
+                    // Two cycles of 64 steps
+                    // Cycle 1 (64-128): Standard Energy
+                    // Cycle 2 (128-192): High Intensity (Added Harmonies/Drums)
+                    const isCycle2 = step >= 128;
+                    const riffStep = (step - 64) % 32;
+                    let note = 0; let bass = 0;
+
+                    // 1. A-MINOR (0-7)
+                    if (riffStep < 8) { note = [A4, A4, C5, A4, D5, A4, E5, D5][riffStep % 8]; bass = A2; }
+                    // 2. C-MAJOR (8-15)
+                    else if (riffStep < 16) { note = [C5, C5, E5, C5, G5, C5, E5, C5][riffStep % 8]; bass = C4 / 2; }
+                    // 3. G-MAJOR (16-23)
+                    else if (riffStep < 24) { note = [G4, G4, B4, G4, C5, G4, D5, C5][riffStep % 8]; bass = G3; }
+                    // 4. F-MAJOR (24-31)
+                    else { note = [F4, F4, A4, F4, C5, F4, C5, B4][riffStep % 8]; bass = F3; }
+
+                    if (note > 0) {
+                        this.playSound(note, 'sawtooth', 0.2, 0.1);
+                        this.playSound(note * 0.5, 'square', 0.1, 0.15);
+
+                        // CYCLE 2: Add High Octave Harmony
+                        if (isCycle2) this.playSound(note * 2, 'sawtooth', 0.05, 0.1);
+                    }
+
+                    // BASS (Gallop)
+                    if (riffStep % 2 === 0) this.playSuperSaw(bass, 0.6, 0.2);
+                    else this.playSuperSaw(bass, 0.4, 0.1);
+
+                    // DRUMS
+                    // Cycle 1: Standard Techno
+                    // Cycle 2: Heavy Double Kick + Open Hats
+                    if (step % 4 === 0) this.playNoise(0.7, 1.0, 1.0); // Kick
+                    if (step % 4 === 2) this.playNoise(0.3, 0.5, 0.4, 1500); // Snare
+
+                    // Cycle 2 Extra Energy
+                    if (isCycle2) {
+                        if (step % 2 === 0) this.playNoise(0.6, 1.0, 1.0); // Double Kick
+                        if (step % 2 === 1) this.playNoise(0.2, 0.4, 0.2, 8000); // Open Hat
+                    }
+                }
+
+                // ==========================================
+                // SECTION 4: FINALE / DROP (Steps 192 - 256)
+                // ==========================================
+                else {
+                    const localStep = step % 8;
+                    const highSeq = [A5, C6, Bb5, C6, Bb5, G5, Bb5, G5];
+                    const note = highSeq[localStep];
+
+                    this.playSound(note, 'sawtooth', 0.15, 0.1);
+                    this.playSound(note * 0.5, 'square', 0.15, 0.1);
+
+                    // Rapid Fire Industrial Drums
+                    if (step % 2 === 0) this.playNoise(0.8, 1.0, 1.2);
+                    if (step % 2 === 1) this.playNoise(0.3, 0.6, 0.3, 2000); // Machine Gun Snare
+                }
+            }
+
             // --- TICK HANDLING ---
             this.beat++;
             let interval = 300;
@@ -409,6 +512,7 @@ export class GoomAudio {
             if (this.musicPhase === 3) interval = 120;
             if (this.musicPhase === 4) interval = 90;
             if (this.musicPhase === 5) interval = 100;
+            if (this.musicPhase === 666) interval = 113; // ~133 BPM (Fast)
 
             this.musicLoopOffset = setTimeout(tick, interval);
         };

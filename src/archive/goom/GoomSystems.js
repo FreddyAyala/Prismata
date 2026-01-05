@@ -72,6 +72,37 @@ export class GoomSystems {
         this.particles.push({ mesh: flash, life: 0.2, initialLife: 0.2, isFlash: true });
     }
 
+    createSparks(pos, color, count = 10) {
+        if (!this.sharedGeo) this.sharedGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+        if (!this.sharedMats) this.sharedMats = {};
+        if (!this.sharedMats[color]) {
+            this.sharedMats[color] = new THREE.MeshBasicMaterial({ color: color });
+        }
+
+        const mat = this.sharedMats[color];
+
+        for (let i = 0; i < count; i++) {
+            const mesh = new THREE.Mesh(this.sharedGeo, mat);
+            mesh.position.copy(pos);
+            this.scene.add(mesh);
+
+            const speed = 10 + Math.random() * 10;
+
+            const velocity = {
+                x: (Math.random() - 0.5) * speed,
+                y: (Math.random() - 0.5) * speed + 5.0, // Slight Upwards bias
+                z: (Math.random() - 0.5) * speed
+            };
+
+            this.particles.push({
+                mesh,
+                velocity,
+                life: 0.3 + Math.random() * 0.3,
+                initialLife: 0.5
+            });
+        }
+    }
+
     createTeleportEffect(pos) {
         // A tall cyberpunk cylinder beam
         const geometry = new THREE.CylinderGeometry(2, 2, 20, 6, 1, true); // Lower poly cylinder
@@ -177,59 +208,58 @@ export class GoomSystems {
     }
 
     spawnDrop(pos, wave = 1, force = false) {
-        const roll = Math.random();
-        if (!force && roll > 0.75) return; // 25% Chance unless forced
+        // If force is a string, use it as the type
+        const forcedType = typeof force === 'string' ? force : null;
+        const isForced = force === true || forcedType !== null;
 
-        let type = 'ammo_shotgun';
+        const roll = Math.random();
+        if (!isForced && roll > 0.75) return; // 25% Chance unless forced
+
+        let type = forcedType || 'ammo_shotgun';
         let color = 0xffaa00;
 
-        // Multiplier based on wave: +5% ammo per wave (Nerfed from 10%)
-        const multiplier = 1.0 + ((wave - 1) * 0.05);
+        if (!forcedType) {
+            // Normal Random Logic
+            const multiplier = 1.0 + ((wave - 1) * 0.05);
+            const r2 = Math.random();
+            const healthChance = 0.15 + ((wave - 1) * 0.05);
 
-        const r2 = Math.random();
-        // Health Chance: Base 15% + 5% per wave (Max 40%)
-        const healthChance = 0.15 + ((wave - 1) * 0.05);
-
-        if (r2 < healthChance) {
-            type = 'health';
-            color = 0xff0000;
-        } else {
-            // Armor Chance (10%)
-            const r3 = Math.random();
-            if (r3 < 0.10) {
-                type = 'armor';
-                color = 0x00ff00; // Green Armor
+            if (r2 < healthChance) {
+                type = 'health';
+                color = 0xff0000;
             } else {
-                // Ammo Tiering
-                const ar = Math.random();
-                if (wave >= 4 && ar > 0.85) { type = 'ammo_bfg'; color = 0x00ff00; } // 15% BFG (Was 10%)
-                else if (wave >= 3 && ar > 0.60) { type = 'ammo_plasma'; color = 0x00ffff; } // 25-40% Plasma (Was >0.70)
-                else if (wave >= 2 && ar > 0.30) { type = 'ammo_launcher'; color = 0xff00ff; } // Launcher
-                else { type = 'ammo_shotgun'; color = 0xffaa00; } // Shotgun fallback
+                const r3 = Math.random();
+                if (r3 < 0.10) { type = 'armor'; color = 0x00ff00; }
+                else {
+                    const ar = Math.random();
+                    if (wave >= 4 && ar > 0.85) { type = 'ammo_bfg'; color = 0x00ff00; }
+                    else if (wave >= 3 && ar > 0.60) { type = 'ammo_plasma'; color = 0x00ffff; }
+                    else if (wave >= 2 && ar > 0.30) { type = 'ammo_launcher'; color = 0xff00ff; }
+                    else { type = 'ammo_shotgun'; color = 0xffaa00; }
+                }
+            }
+            // Ultra Rare Random Rage (1%)
+            if (wave >= 3 && Math.random() < 0.01) {
+                type = 'rage_core';
+                color = 0xff0000;
             }
         }
 
+        if (type === 'rage_core') color = 0xff0000;
+
         const mesh = this.buildPickupVisual(type, color);
-        // Visual Scale Up (Users asked for "bigger")
+        // Visual Scale Up
         mesh.scale.set(3.0, 3.0, 3.0);
 
         mesh.position.copy(pos);
         mesh.position.y = 2.0;
         this.scene.add(mesh);
 
-        this.pickups.push({ mesh, type: type, amountMultiplier: multiplier });
+        this.pickups.push({ mesh, type: type, amountMultiplier: 1.0 });
     }
 
-    spawnHealthPickup(cameraPos) {
-        const radius = 20 + Math.random() * 40;
-        const angle = Math.random() * Math.PI * 2;
-        const x = cameraPos.x + Math.cos(angle) * radius;
-        const z = cameraPos.z + Math.sin(angle) * radius;
-
-        const mesh = this.buildPickupVisual('health', 0x00ff00);
-        mesh.position.set(x, 2.0, z);
-        this.scene.add(mesh);
-        this.pickups.push({ mesh, type: 'health' });
+    spawnHealthPickup(pos) {
+        this.spawnDrop(pos, 1, 'health');
     }
 
     buildPickupVisual(type, color) {
@@ -237,7 +267,14 @@ export class GoomSystems {
         const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.8 });
         const solidMat = new THREE.MeshBasicMaterial({ color: color });
 
-        if (type === 'health') {
+        if (type === 'rage_core') {
+            // RAGE CORE VISUAL (Spiky Sphere)
+            const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), solidMat); // Spiky
+            const aura = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), wireMat);
+            group.add(core, aura);
+            // Pulse animation handled in logic or particle update?
+        }
+        else if (type === 'health') {
             const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.0, 0.6), solidMat);
             const hBar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.6, 0.6), solidMat);
             group.add(vBar, hBar);
@@ -245,12 +282,10 @@ export class GoomSystems {
             group.add(outer);
         }
         else if (type === 'armor') {
-            // Shield Icon
             const plate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.8, 0.5), wireMat);
             group.add(plate);
             const core = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.2, 0.5), solidMat);
             group.add(core);
-            // Floating particles?
         }
         else if (type === 'ammo_shotgun') {
             const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.0, 1.0), wireMat);

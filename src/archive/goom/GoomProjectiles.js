@@ -116,7 +116,9 @@ export class GoomProjectiles {
 
         // Calculate a point far down the ray for the "miss" tracer
         // Calculate a point far down the ray for the "miss" tracer
-        const maxDist = (weapon.name === 'SHOTGUN') ? 150.0 : 500.0; // Increased range for Shotgun
+        // Calculate a point far down the ray for the "miss" tracer
+        let maxDist = (weapon.name === 'SHOTGUN') ? 150.0 : 500.0; // Increased range for Shotgun
+        if (weapon.range) maxDist = weapon.range; // Override for Melee
         const rayTarget = new THREE.Vector3();
         this.raycaster.ray.at(maxDist, rayTarget);
 
@@ -153,8 +155,23 @@ export class GoomProjectiles {
         }
 
         // VISUALS
+        // VISUALS
         const visualTarget = hitPoint || rayTarget;
-        this.createTracer(visualTarget, weapon.color, null, isHelix ? 0.3 : 0.1, isHelix);
+
+        if (weapon.type === 'melee' || weapon.type === 'melee_heavy') {
+            // MELEE VISUALS: No Tracer, just localized violence
+            // Muzzle Spark (At camera)
+            const muzzlePos = new THREE.Vector3(0.5, -0.5, -1.0).applyQuaternion(this.camera.quaternion).add(this.camera.position);
+            // Impact Sparks (At Hit) - If loaded
+            if (this.game.systems.createSparks) {
+                this.game.systems.createSparks(visualTarget, 0xff00ff, 15); // Purple Sparks
+                // Also some at muzzle to feel the grind
+                this.game.systems.createSparks(muzzlePos, 0xffffff, 5);
+            }
+        } else {
+        // STANDARD TRACER
+            this.createTracer(visualTarget, weapon.color, null, isHelix ? 0.3 : 0.1, isHelix);
+        }
 
         // LOGIC ... (Rest is same)
 
@@ -430,6 +447,93 @@ export class GoomProjectiles {
             const spread = new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.1, 0);
             this.fireProjectile(subWeapon, false, spread);
         }
+    }
+
+    fireMeleePulse(weapon) {
+        const range = 15.0; // Increased range
+        let damage = weapon.damage;
+
+        let isBerzerker = false;
+        if (this.game.berzerkerMode) {
+            damage *= 5.0; // 500 DAMAGE
+            isBerzerker = true;
+        }
+
+        const playerPos = this.camera.position.clone();
+
+        // CONE CHECK
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion).normalize();
+
+        const enemiesHit = [];
+
+        // Check Enemies
+        for (const enemy of this.game.enemies) {
+            if (!enemy.mesh) continue;
+            const dir = new THREE.Vector3().subVectors(enemy.mesh.position, playerPos);
+            const dist = dir.length();
+
+            if (dist < range) {
+                dir.normalize();
+                const angle = forward.dot(dir); // 1.0 = direct front
+                // WIDER CONE or POINT BLANK
+                if (angle > 0.2 || dist < 6.0) {
+                    enemiesHit.push(enemy);
+                }
+            }
+        }
+
+        // Check Boss
+        if (this.game.boss && this.game.boss.active) {
+            const dir = new THREE.Vector3().subVectors(this.game.boss.mesh.position, playerPos);
+            const dist = dir.length();
+            // Boss is huge, forgive range
+            if (dist < range + 5.0) {
+                enemiesHit.push(this.game.boss);
+            }
+        }
+
+        // Apply Damage
+        let hitSomething = false;
+        for (const e of enemiesHit) {
+            hitSomething = true;
+            // Push back
+            if (e.velocity) e.velocity.add(pushDir.multiplyScalar(60.0)); // SUPER KNOCKBACK
+
+            e.takeDamage(damage, null, isBerzerker ? 'berzerker' : 'normal');
+
+            // VISUAL CONTACT POINT (At Glove Tip)
+            const contactPoint = playerPos.clone().add(forward.clone().multiplyScalar(2.5));
+
+            // BIGGER EXPLOSION ON HIT
+            const boomColor = isBerzerker ? 0xff0000 : 0xff00ff;
+            const boomScale = isBerzerker ? 12.0 : 6.0; // MASSIVE EXPLOSIONS (Was 8.0 / 2.0)
+
+            this.game.systems.createExplosion(contactPoint, boomColor, true, boomScale);
+
+            if (isBerzerker) {
+                // HIT STOP (Freeze Frame)
+                if (this.game.hitStop) this.game.hitStop(100); // 100ms Freeze
+
+                // Directional Gore/Sparks (Behind enemy)
+                const goreDir = forward.clone().multiplyScalar(10.0); // HARDER LAUNCH (Was 5.0)
+                this.game.systems.createSparks(e.mesh.position.clone().add(new THREE.Vector3(0, 2, 0)), 0xff0000, 50);
+
+                // Massive Screen Shake via pushing camera (will be reset next frame but gives jolt)
+                this.camera.position.add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 2.5, // DOUBLE SHAKE (Was 1.0)
+                    (Math.random() - 0.5) * 2.5,
+                    (Math.random() - 0.5) * 2.5
+                ));
+            }
+        }
+
+        // Visuals (Shockwave)
+        if (this.game.systems.createSparks) {
+            const center = playerPos.clone().add(forward.multiplyScalar(2.5));
+            this.game.systems.createSparks(center, isBerzerker ? 0xff0000 : 0xff00ff, isBerzerker ? 150 : 80);
+            this.game.systems.createSparks(center, 0xffffff, 40);
+        }
+        return hitSomething;
     }
 
     fireSingularity(weapon) {
