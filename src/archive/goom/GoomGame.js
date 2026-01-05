@@ -1286,11 +1286,13 @@ export class GoomGame {
       return;
     }
 
-    // CHEAT: Berzerker Mode
+    // CHEAT: Berzerker Mode (Removed 'b' shortcut, use 'idrage' instead)
+    /*
     if (e.key === 'b') {
       this.activateBerzerkerMode();
       return;
     }
+    */
 
     const idx = parseInt(e.key) - 1;
     if (idx >= 0 && idx < this.weapons.length) {

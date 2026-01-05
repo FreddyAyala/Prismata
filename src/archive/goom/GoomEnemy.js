@@ -327,7 +327,7 @@ export class GlitchEnemy {
     if (attackDistSq < 100.0) { // Buffed from 16.0 for Large Models
       if (this.type === 'berzerker') {
         // Kamikaze ONLY on Player, otherwise normal attack on Crystal
-        return this.isTargetingPlayer ? 'explode' : 'damage_crystal';
+        return this.isTargetingPlayer ? 'melee_hit' : 'damage_crystal';
       }
       // Standardized Melee/Hit Return
       if (this.isTargetingPlayer) {
