@@ -298,9 +298,15 @@ export class GoomSystems {
             const dist = p.mesh.position.distanceTo(cameraPos);
 
             if (dist < 15.0) {
-                if (onPickup) onPickup(p.type, p.amountMultiplier || 1.0);
-                this.scene.remove(p.mesh);
-                this.pickups.splice(i, 1);
+                let consumed = true;
+                if (onPickup) {
+                    consumed = onPickup(p.type, p.amountMultiplier || 1.0);
+                }
+
+                if (consumed !== false) {
+                    this.scene.remove(p.mesh);
+                    this.pickups.splice(i, 1);
+                }
             }
         }
     }

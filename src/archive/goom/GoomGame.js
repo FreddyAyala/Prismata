@@ -392,10 +392,12 @@ export class GoomGame {
   onPickup(type) {
     // DISTINCT SOUNDS
     if (type === 'health') {
+      if (this.playerHealth >= 100) return false; // FULL
       this.playerHealth = Math.min(100, this.playerHealth + 50);
       this.audio.playSound(500, 'sine', 0.5, 0.3); // High Pitch Stim
       this.audio.playSound(600, 'sine', 0.5, 0.4);
     } else if (type === 'armor') {
+      if (this.playerArmor >= 200) return false; // FULL
       this.playerArmor = Math.min(200, this.playerArmor + 50); // Cap at 200
       this.audio.playSound(100, 'square', 1.0, 0.1); // CRACK / THUD
       this.audio.playSound(150, 'sawtooth', 0.8, 0.2);
@@ -404,12 +406,16 @@ export class GoomGame {
       if (ammoMap[type]) {
         const [name, amount] = ammoMap[type];
         const w = this.weapons.find(x => x.name === name);
-        if (w) w.ammo = Math.min(w.maxAmmo, w.ammo + amount);
-        this.audio.playSound(800, 'triangle', 0.3, 0.1); // Click/Load
-        this.audio.playSound(200, 'noise', 0.2, 0.1);    // Mechanical Clic
+        if (w) {
+          if (w.ammo >= w.maxAmmo) return false; // FULL
+          w.ammo = Math.min(w.maxAmmo, w.ammo + amount);
+          this.audio.playSound(800, 'triangle', 0.3, 0.1); // Click/Load
+          this.audio.playSound(200, 'noise', 0.2, 0.1);    // Mechanical Clic
+        }
       }
     }
     this.ui.updateHUD();
+    return true;
   }
 
   startWave() {
@@ -565,7 +571,7 @@ export class GoomGame {
       if (result === 'kamikaze') {
         e.takeDamage(999); // Die instantly
         if (e.mesh) this.systems.createExplosion(e.mesh.position, 0xff0000, true);
-        this.takePlayerDamage(20); // 20 DMG
+        this.takePlayerDamage(15); // REDUCED: 15 DMG
         this.ui.flashDamage();
         // Push Player
         const pushDir = this.camera.position.clone().sub(e.mesh.position).normalize();
@@ -581,7 +587,7 @@ export class GoomGame {
         // but for now let's just push player and deal damage if cooldown ready
         if (e.retaliationTimer <= 0) { // Reuse retal timer or add melee timer?
           e.retaliationTimer = 1.0; // Cooldown
-          this.takePlayerDamage(15);
+          this.takePlayerDamage(20); // REDUCED: 20 DMG for Tanks/Big
           this.ui.flashDamage();
           this.audio.playSound(100, 'sawtooth', 0.5, 0.1);
           // Push Player Away HARD
@@ -827,6 +833,7 @@ export class GoomGame {
     }
 
     this.lastDamageAmount = damageToHealth; // TRACK AMOUNT FOR FACE
+    this.playerHealth -= damageToHealth; // ACTUALLY APPLY DAMAGE
     if (Math.random() < 0.1) this.audio.playSound(80, 'square', 0.1, 0.2);
     if (this.ui.hud && Math.random() < 0.3) {
       const flash = document.createElement('div');

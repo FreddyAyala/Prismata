@@ -15,6 +15,8 @@ export class GoomProjectiles {
         // Projectile Resources
         this.sharedGeo = new THREE.IcosahedronGeometry(1, 0);
         this.sharedMats = {};
+
+        this.timeouts = []; // Track delayed effects
     }
 
     // DOOM STYLE AUTO AIM: Finds best target in center vertical column
@@ -701,17 +703,61 @@ export class GoomProjectiles {
 
             if (hit || p.life <= 0) {
                 if (p.type === 'flak_grenade') {
-                    // ... (Flak logic omitted for brevity, it's fine)
                     this.game.systems.createExplosion(p.mesh.position, 0xffaa00, true, 2.0);
-                    // ...
+
+                    // VISUAL SHRAPNEL (Restore "Flak" feel)
+                    for (let k = 0; k < 12; k++) {
+                        const shrapnelDir = new THREE.Vector3(
+                            (Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5)
+                        ).normalize();
+                        const shrapnelDest = p.mesh.position.clone().add(shrapnelDir.multiplyScalar(15.0));
+                        this.createTracer(shrapnelDest, 0xffff00, p.mesh.position, 0.3); // Yellow Tracers out
+                    }
+                    // FLAK DAMAGE LOGIC
+                    const radius = 25.0; // Big Splash
+                    const dmg = 120; // High Damage
+
+                    this.game.enemies.forEach(e => {
+                        if (e.mesh.position.distanceTo(p.mesh.position) < radius) {
+                            e.takeDamage(dmg);
+                            if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(e.type);
+                        }
+                    });
+                    // Damage Boss
+                    if (this.game.boss && this.game.boss.mesh.position.distanceTo(p.mesh.position) < radius) {
+                        this.game.boss.takeDamage(dmg, null, 'normal');
+                    }
+
                 } else if (p.isRocket || p.isBFG) {
                     const isBFG = p.isBFG;
                     const color = isBFG ? 0x00ff00 : (p.mesh.material ? p.mesh.material.color : 0xffffff);
-                    this.game.systems.createExplosion(p.mesh.position, color, true, isBFG ? 5.0 : 1.5);
+                    // ROCKET BUFF: Scale 3.0 (was 1.5)
+                    this.game.systems.createExplosion(p.mesh.position, color, true, isBFG ? 5.0 : 3.0);
+
+                    // BFG CHAOS (User Request: "Sparks and explosions everywhere")
+                    if (isBFG) {
+                        for (let k = 0; k < 8; k++) {
+                            const offset = new THREE.Vector3(
+                                (Math.random() - 0.5) * 40.0,
+                                (Math.random() - 0.5) * 40.0,
+                                (Math.random() - 0.5) * 40.0
+                            );
+                            const secPos = p.mesh.position.clone().add(offset);
+                            // Secondary Green Explosions
+                            setTimeout(() => {
+                                this.game.systems.createExplosion(secPos, 0x00ff00, true, 2.0);
+                                if (this.game.systems.createLightning) {
+                                    this.game.systems.createLightning(p.mesh.position, secPos, 0x55ff55);
+                                }
+                            }, k * 50); // Staggered
+                        }
+                    }
+
                     if (this.game.audio) this.game.audio.playNoise(0.5, 0.5, 0.5);
 
-                    const radius = isBFG ? 100.0 : 40.0;
-                    const dmg = isBFG ? 2000 : 150;
+                    // ROCKET BUFF: Radius 60 (was 40), Dmg 300 (was 150)
+                    const radius = isBFG ? 100.0 : 60.0;
+                    const dmg = isBFG ? 2000 : 300;
 
                     // DAMAGE ENEMIES
                     this.game.enemies.forEach(e => {
@@ -864,5 +910,9 @@ export class GoomProjectiles {
     clear() {
         this.list.forEach(p => this.scene.remove(p.mesh));
         this.list = [];
+
+        // Clear Delayed Effects
+        this.timeouts.forEach(t => clearTimeout(t));
+        this.timeouts = [];
     }
 }

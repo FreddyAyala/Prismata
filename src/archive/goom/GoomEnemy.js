@@ -249,19 +249,17 @@ export class GlitchEnemy {
     if (this.hitbox && this.hitbox.visible === true) this.hitbox.visible = false;
 
     // Attack Reach & Shooting
+    const distToPlayerSq = playerObj ? this.mesh.position.distanceToSquared(playerObj.position) : Infinity;
     const attackDistSq = this.mesh.position.distanceToSquared(targetPos);
 
-    // KAMIKAZE LOGIC (Scout/Berzerker suicide on contact)
-    // TANK / WRAITH / IMP should NOT die on contact, but might push/melee?
-    // Current Logic: Only Scout/Berzerker triggers 'kamikaze'
-    if (this.isTargetingPlayer && (this.type === 'scout' || this.type === 'berzerker')) {
-      if (attackDistSq < 9.0) { // Distance < 3.0
-        // EXPLODE!
+    // KAMIKAZE LOGIC (Only Imps suicide on contact)
+    if (this.type === 'imp') {
+      if (distToPlayerSq < 9.0) { // Distance < 3.0
         return 'kamikaze';
       }
-    } else if (this.isTargetingPlayer && (this.type === 'tank' || this.type === 'wraith' || this.type === 'imp')) {
-      // Melee Range Check for non-suicide units
-      if (attackDistSq < 16.0) { // Distance < 4.0
+    } else {
+      // Melee Range Check for ALL non-suicide units
+      if (distToPlayerSq < 25.0) { // Distance < 5.0
         return 'melee_hit';
       }
     }
@@ -331,7 +329,13 @@ export class GlitchEnemy {
         // Kamikaze ONLY on Player, otherwise normal attack on Crystal
         return this.isTargetingPlayer ? 'explode' : 'damage_crystal';
       }
-      return this.isTargetingPlayer ? 'damage_player' : 'damage_crystal';
+      // Standardized Melee/Hit Return
+      if (this.isTargetingPlayer) {
+        if (this.type === 'imp') return 'kamikaze';
+        return 'melee_hit';
+      } else {
+        return 'damage_crystal';
+      }
     }
     return 'move';
   }
