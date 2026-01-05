@@ -387,6 +387,16 @@ export class GoomGame {
     this.systems.updateParticles(delta);
     this.systems.updatePickups(delta, this.camera.position, (type) => this.onPickup(type));
     this.updateWeaponRecoil(delta);
+
+    // DASH SOUND LOGIC
+    if (this.player && this.player.isSprinting && this.audio && this.audio.playDashSound) {
+      const isMoving = (Math.abs(this.player.velocity.x) > 10 || Math.abs(this.player.velocity.z) > 10);
+      const now = performance.now();
+      if (isMoving && (now - (this.lastDashSoundTime || 0) > 300)) { // Throttle 300ms
+        this.audio.playDashSound();
+        this.lastDashSoundTime = now;
+      }
+    }
   }
 
   onPickup(type) {
@@ -429,11 +439,19 @@ export class GoomGame {
     // Randomized Scaling
     // Randomized Scaling (Rebalanced)
     // Less "grind", more "action"
-    const baseCount = 12 + (this.wave * 6);
+    // Randomized Scaling (Rebalanced - Easier Waves 3+)
+    // Less "grind", more "action" but controlled crowding
+    const baseCount = 12 + (this.wave * 5); // Reduced scaling (was 6)
     const variance = Math.floor(Math.random() * 4) - 2; // +/- 2 enemies
     this.enemiesToSpawn = Math.max(10, baseCount + variance);
 
-    const baseRate = Math.max(100, 1500 - (this.wave * 200)); // Faster start (1.3s -> 0.5s)
+    // SLOW DOWN SPAWN RATE IN LATER WAVES
+    // Wave 1: 1300ms, Wave 2: 1100ms, Wave 3: 1000ms (Capped), Wave 4: 900ms
+    // Old formula was 1500 - (wave * 200) -> 1300, 1100, 900, 700 (Too fast)
+    let rateMod = 0;
+    if (this.wave >= 3) rateMod = 300; // Buffer for later waves
+
+    const baseRate = Math.max(900, 1500 - (this.wave * 150) + rateMod); 
     const rateVariance = (Math.random() - 0.5) * 200; // Tighter variance
     const spawnRate = Math.max(100, baseRate + rateVariance);
 
@@ -460,7 +478,7 @@ export class GoomGame {
     const onShoot = (pos, dir, type) => this.projectiles.fireEnemyProjectile(pos, dir, type);
     this.boss = new GlitchBoss(this.scene, spawnPos, this.camera, onShoot);
 
-    setTimeout(() => {
+    this.bossIntroTimeout = setTimeout(() => {
       this.ui.showWarning("AIM FOR THE GPUS! THEY'RE OVERHEATING!");
       this.audio.playSound(100, 'square', 1.0, 1.0);
     }, 4000);
@@ -587,7 +605,9 @@ export class GoomGame {
         // but for now let's just push player and deal damage if cooldown ready
         if (e.retaliationTimer <= 0) { // Reuse retal timer or add melee timer?
           e.retaliationTimer = 1.0; // Cooldown
-          this.takePlayerDamage(20); // REDUCED: 20 DMG for Tanks/Big
+          // NERF: Scouts deal less melee damage (8 instead of 20)
+          const meleeAmount = (e.type === 'scout' || e.type === 'imp') ? 8 : 20;
+          this.takePlayerDamage(meleeAmount); 
           this.ui.flashDamage();
           this.audio.playSound(100, 'sawtooth', 0.5, 0.1);
           // Push Player Away HARD

@@ -717,7 +717,7 @@ export class GoomProjectiles {
                     const radius = 25.0; // Big Splash
                     const dmg = 120; // High Damage
 
-                    this.game.enemies.forEach(e => {
+                    [...this.game.enemies].forEach(e => {
                         if (e.mesh.position.distanceTo(p.mesh.position) < radius) {
                             e.takeDamage(dmg);
                             if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(e.type);
@@ -744,12 +744,13 @@ export class GoomProjectiles {
                             );
                             const secPos = p.mesh.position.clone().add(offset);
                             // Secondary Green Explosions
-                            setTimeout(() => {
+                            const tid = setTimeout(() => {
                                 this.game.systems.createExplosion(secPos, 0x00ff00, true, 2.0);
                                 if (this.game.systems.createLightning) {
                                     this.game.systems.createLightning(p.mesh.position, secPos, 0x55ff55);
                                 }
                             }, k * 50); // Staggered
+                            this.timeouts.push(tid);
                         }
                     }
 
@@ -760,7 +761,7 @@ export class GoomProjectiles {
                     const dmg = isBFG ? 2000 : 300;
 
                     // DAMAGE ENEMIES
-                    this.game.enemies.forEach(e => {
+                    [...this.game.enemies].forEach(e => {
                         if (e.mesh.position.distanceTo(p.mesh.position) < radius) {
                             e.takeDamage(dmg);
                             if (this.game.audio.playMonsterPain) this.game.audio.playMonsterPain(e.type);

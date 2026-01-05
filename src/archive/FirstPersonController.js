@@ -175,11 +175,11 @@ export class FirstPersonController {
         }
 
         // Sprint Speed Multiplier
-        // Boosted Base Speed
-        const baseSpeed = 45.0; // Was 30.0
+        // Boosted Base Speed (User Request: "make it faster")
+        const baseSpeed = 65.0; // Was 45.0
         let currentSpeed = baseSpeed;
         if (this.isSprinting && this.stamina > 0 && isMoving) {
-            currentSpeed *= 1.8; // Sprint multiplier
+            currentSpeed *= 2.2; // Sprint multiplier (was 1.8)
         }
 
         this.direction.z = inputZ;

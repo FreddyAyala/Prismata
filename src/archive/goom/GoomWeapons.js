@@ -23,9 +23,9 @@ export const WEAPONS = [
         color: 0x00ffff // Cyan Beam
     }),
 
-    new Weapon("SHOTGUN", 900, 4.0, 0xffaa00, 'spread', 24, 12.0, { // Max 24 (2x Base)
+    new Weapon("SHOTGUN", 900, 4.0, 0xffaa00, 'spread', 24, 25.0, { // Max 24
         cooldown: 1200,
-        damage: 100,
+        damage: 150, // Buffed from 100
         cost: 2,
         type: 'projectile_flak',
         color: 0xff8800

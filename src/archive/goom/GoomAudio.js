@@ -517,7 +517,12 @@ export class GoomAudio {
         osc.stop(t + 2.0);
     }
 
-
+    playDashSound() {
+        if (!this.audioCtx) return;
+        // Whoosh Effect
+        this.playNoise(0.3, 0.4, 0.8, 400); // Low freq wind
+        setTimeout(() => this.playNoise(0.2, 0.2, 1.2, 800), 50); // Higher accent
+    }
 
 
 

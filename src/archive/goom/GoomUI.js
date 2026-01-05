@@ -18,6 +18,18 @@ export class GoomUI {
         `;
         document.body.appendChild(this.hud);
 
+        // DASH WIND OVERLAY
+        const dashWind = document.createElement('div');
+        dashWind.id = 'goom-dash-wind';
+        dashWind.style.cssText = `
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 30%, rgba(200, 255, 255, 0.3) 60%, rgba(255, 255, 255, 0.8) 100%);
+            opacity: 0; transition: opacity 0.1s ease-out; z-index: 1000;
+            mix-blend-mode: screen; pointer-events: none;
+        `;
+        this.hud.appendChild(dashWind);
+        this.hud.appendChild(dashWind);
+
         // Crosshair
         const crosshair = document.createElement('div');
         crosshair.innerText = '+';
@@ -195,7 +207,23 @@ export class GoomUI {
         }
 
         this.updateModelHealthBars();
-        this.updateRadar(); // NEW
+        this.updateModelHealthBars();
+        this.updateRadar();
+
+        // DASH WIND EFFECT
+        const dashEl = document.getElementById('goom-dash-wind');
+        if (dashEl && this.game.player) {
+            // Check if moving significantly + sprinting
+            const isDashing = this.game.player.isSprinting && (
+                Math.abs(this.game.player.velocity.x) > 10 ||
+                Math.abs(this.game.player.velocity.z) > 10
+            );
+            dashEl.style.opacity = isDashing ? 0.3 : 0;
+            if (isDashing) {
+                // Subtle Zoom ease
+                dashEl.style.transform = `scale(${1.0 + Math.random() * 0.02})`;
+            }
+        }
     }
 
     updateRadar() {

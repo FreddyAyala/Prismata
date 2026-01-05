@@ -34,7 +34,7 @@ export class GlitchEnemy {
     if (type === 'scout') {
       this.name = "Growth Hacker";
       this.life = 20 * waveMultHP; // Buffed from 5
-      this.speed = 50 * waveMultSpd;
+      this.speed = 42 * waveMultSpd; // Nerfed from 50 (User Request)
       this.color = 0x00ff00;
       this.scale = 5.0;
     } else if (type === 'tank') {

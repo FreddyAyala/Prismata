@@ -202,10 +202,10 @@ export class GoomSystems {
             } else {
                 // Ammo Tiering
                 const ar = Math.random();
-                if (wave >= 4 && ar > 0.90) { type = 'ammo_bfg'; color = 0x00ff00; }
-                else if (wave >= 3 && ar > 0.70) { type = 'ammo_plasma'; color = 0x00ffff; }
-                else if (wave >= 2 && ar > 0.40) { type = 'ammo_launcher'; color = 0xff00ff; }
-                else { type = 'ammo_shotgun'; color = 0xffaa00; }
+                if (wave >= 4 && ar > 0.85) { type = 'ammo_bfg'; color = 0x00ff00; } // 15% BFG (Was 10%)
+                else if (wave >= 3 && ar > 0.60) { type = 'ammo_plasma'; color = 0x00ffff; } // 25-40% Plasma (Was >0.70)
+                else if (wave >= 2 && ar > 0.30) { type = 'ammo_launcher'; color = 0xff00ff; } // Launcher
+                else { type = 'ammo_shotgun'; color = 0xffaa00; } // Shotgun fallback
             }
         }
 
