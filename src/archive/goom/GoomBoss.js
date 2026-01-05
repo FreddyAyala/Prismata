@@ -11,8 +11,9 @@ export class GlitchBoss {
 
         // Boss Stats - MASSIVE HEALTH (Tuned Down)
         // Boss Stats - Rebalanced for Fair Fight
-        this.life = 5000;
-        this.maxLife = 5000;
+        // Boss Stats - Buffed (User Feedback: "Dies too easily to rockets")
+        this.life = 7500;
+        this.maxLife = 7500;
         this.speed = 4.0;
         this.damage = 15;
         this.scale = 16.0; // Increased from 12.0 (User feedback: still too small)
