@@ -11,11 +11,11 @@ export class GlitchBoss {
 
         // Boss Stats - MASSIVE HEALTH (Tuned Down)
         // Boss Stats - Rebalanced for Fair Fight
-        this.life = 5000; // Increased to 5000 (User Feedback: 2500 too easy)
+        this.life = 5000;
         this.maxLife = 5000;
         this.speed = 4.0;
-        this.damage = 15; // Nerfed from 25 (Prevent one-shots)
-        this.scale = 20.0;
+        this.damage = 15;
+        this.scale = 16.0; // Increased from 12.0 (User feedback: still too small)
         this.phase = 1; // 1, 2, 3, 4
         this.spawnTimer = 0;
         this.lastDamageTime = 0;
@@ -218,11 +218,11 @@ export class GlitchBoss {
         if (this.isDying) {
             this.deathTimer += delta;
 
-            // Shake violently (Increased Intensity)
+            // Shake violently (Reduced Intensity)
             this.mesh.position.add(new THREE.Vector3(
-                (Math.random() - 0.5) * 2.0,
-                (Math.random() - 0.5) * 2.0,
-                (Math.random() - 0.5) * 2.0
+                (Math.random() - 0.5) * 0.5, // Reduced from 2.0
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5
             ));
 
             // Death Spin
@@ -233,7 +233,7 @@ export class GlitchBoss {
             // Starts at roughly 1.0, expands to 3.0 before popping
             const progress = this.deathTimer / this.deathDuration;
             const wobble = (1.0 + progress * 2.0) + Math.sin(this.deathTimer * 20.0) * (0.2 * progress);
-            this.mesh.scale.setScalar(wobble);
+            this.mesh.scale.setScalar(wobble * this.scale); // FIX: Multiply by base scale (5.0)
 
             // Explosions & BLEEDING MONEY
             if (Math.random() < 0.4) { 

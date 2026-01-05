@@ -222,13 +222,13 @@ export class GoomGame {
       }
 
       const footer = document.querySelector('.gallery-footer');
-      if (footer) footer.style.display = '';
+      if (footer) footer.style.display = 'flex'; // Restore as Flex
       const dock = document.querySelector('.mobile-dock');
-      if (dock) dock.style.display = '';
+      if (dock) dock.style.display = 'flex'; // Restore as Flex
       const hint = document.querySelector('.interaction-hint');
       if (hint) {
-        hint.style.display = '';
-        hint.style.opacity = '';
+        hint.style.display = 'block';
+        hint.style.opacity = '1';
       }
 
       if (document.pointerLockElement) document.exitPointerLock();
@@ -346,7 +346,7 @@ export class GoomGame {
         if (res === 'damage_player_boss') {
           this.takePlayerDamage(25 * delta); // Contact damage
         } else if (res === 'dead') {
-        // VICTORY!
+          // VICTORY!
           this.boss = null;
           this.isVictory = true;
           this.killStats["THE AI BUBBLE"] = 1;
@@ -357,10 +357,10 @@ export class GoomGame {
           if (this.audio && this.audio.playVictorySong) this.audio.playVictorySong();
           else this.audio.playSound(300, 'square', 1.0, 1.0);
 
-          // Delay UI for 5.0s to let the explosion finish and sink in
+          // Delay UI for 2.0s to let the explosion finish and sink in (User Request: earlier)
           setTimeout(() => {
             this.ui.triggerWin(this.score, () => this.resetGame(), this.killStats);
-          }, 5000);
+          }, 2000);
         }
       }
     }
@@ -395,7 +395,7 @@ export class GoomGame {
       this.playerHealth = Math.min(100, this.playerHealth + 50);
       this.audio.playSound(500, 'sine', 0.5, 0.3); // High Pitch Stim
       this.audio.playSound(600, 'sine', 0.5, 0.4);
-    } else if (type === 'armor') { 
+    } else if (type === 'armor') {
       this.playerArmor = Math.min(200, this.playerArmor + 50); // Cap at 200
       this.audio.playSound(100, 'square', 1.0, 0.1); // CRACK / THUD
       this.audio.playSound(150, 'sawtooth', 0.8, 0.2);
@@ -497,7 +497,7 @@ export class GoomGame {
 
     let target = this.camera;
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const role = Math.random() < 0.8 ? 'destroyer' : 'hunter'; 
+    const role = Math.random() < 0.8 ? 'destroyer' : 'hunter';
 
     if (validTargets.length > 0) {
       if (role === 'destroyer') target = pick(validTargets);
@@ -553,17 +553,27 @@ export class GoomGame {
   updateEnemies(delta) {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
+      // SAFETY CHECK: Prevent crash if properties missing
+      if (!e || !e.mesh) {
+        this.enemies.splice(i, 1);
+        continue;
+      }
+
       const result = e.update(delta, this.camera);
 
       // Kamikaze / Suicide Logic
       if (result === 'kamikaze') {
         e.takeDamage(999); // Die instantly
-        this.systems.createExplosion(e.mesh.position, 0xff0000, true);
+        if (e.mesh) this.systems.createExplosion(e.mesh.position, 0xff0000, true);
         this.takePlayerDamage(20); // 20 DMG
         this.ui.flashDamage();
         // Push Player
         const pushDir = this.camera.position.clone().sub(e.mesh.position).normalize();
-        this.playerVelocity.add(pushDir.multiplyScalar(30.0));
+        if (this.playerVelocity) {
+          this.playerVelocity.add(pushDir.multiplyScalar(30.0));
+        } else if (this.player && this.player.velocity) {
+          this.player.velocity.add(pushDir.multiplyScalar(30.0));
+        }
 
       } else if (result === 'melee_hit') {
         // Melee Hit (Non-Suicidal)
@@ -576,7 +586,12 @@ export class GoomGame {
           this.audio.playSound(100, 'sawtooth', 0.5, 0.1);
           // Push Player Away HARD
           const pushDir = this.camera.position.clone().sub(e.mesh.position).normalize();
-          this.playerVelocity.add(pushDir.multiplyScalar(40.0)); // Big knockback
+
+          if (this.playerVelocity) {
+            this.playerVelocity.add(pushDir.multiplyScalar(40.0));
+          } else if (this.player && this.player.velocity) {
+            this.player.velocity.add(pushDir.multiplyScalar(40.0));
+          }
         }
       } else if (result === 'damage_player') { // Fallback for old return
         e.takeDamage(999);
@@ -796,7 +811,7 @@ export class GoomGame {
   }
 
   takePlayerDamage(amount) {
-    if (this.godMode) return;
+    if (this.godMode || this.isVictory || this.isGameOver) return; // FIX: No damage after win
 
     // ARMOR LOGIC: Absorb 66% of damage
     let damageToHealth = amount;
@@ -806,15 +821,11 @@ export class GoomGame {
         this.playerArmor -= absorb;
         damageToHealth = amount - absorb;
       } else {
-        // Armor breaks
-        const remaining = absorb - this.playerArmor;
+        damageToHealth = amount - this.playerArmor;
         this.playerArmor = 0;
-        damageToHealth = (amount * 0.34) + remaining;
       }
     }
 
-    this.playerHealth -= damageToHealth;
-    this.lastDamageTime = Date.now();
     this.lastDamageAmount = damageToHealth; // TRACK AMOUNT FOR FACE
     if (Math.random() < 0.1) this.audio.playSound(80, 'square', 0.1, 0.2);
     if (this.ui.hud && Math.random() < 0.3) {
@@ -966,7 +977,7 @@ export class GoomGame {
       if (this.isVictory || this.isGameOver) {
         // Optional: Return to main menu logic if needed
       }
-      return; 
+      return;
     }
 
     if (!this.active || this.isGameOver) return;
@@ -1042,12 +1053,12 @@ export class GoomGame {
       this.godMode = !this.godMode;
       this.playerHealth = 100;
       this.ui.showWarning(this.godMode ? "GOD MODE ON" : "GOD MODE OFF");
-      this.audio.playSound(1000, 'sawtooth', 0.5, 0.5); 
+      this.audio.playSound(1000, 'sawtooth', 0.5, 0.5);
       this.ui.updateHUD();
     }
     else if (this.cheatBuffer.endsWith("idkfa")) {
       this.weapons.forEach(w => w.ammo = w.maxAmmo);
-      this.weapons[0].ammo = -1; 
+      this.weapons[0].ammo = -1;
       this.ui.showWarning("VERY HAPPY AMMO ADDED");
       this.audio.playSound(800, 'square', 0.5, 0.5);
       this.ui.updateHUD();
@@ -1197,7 +1208,7 @@ export class GoomGame {
       if (distSq < 22500) {
         enemy.target = crystalMesh;
         enemy.role = 'destroyer';
-        enemy.retaliationTimer = 0; 
+        enemy.retaliationTimer = 0;
       }
     }
   }
