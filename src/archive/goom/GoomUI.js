@@ -677,7 +677,7 @@ export class GoomUI {
         window.addEventListener('keydown', keyH);
     }
 
-    triggerWin(score, onRestart, stats) {
+    triggerWin(score, onRestart, stats, elapsedTime = 0) {
         const hud = document.getElementById('goom-hud');
         if (!hud) return;
         if (document.pointerLockElement) document.exitPointerLock();
@@ -713,7 +713,8 @@ export class GoomUI {
         div.innerHTML = `
             <h1 style="font-size:70px; color:#00ff00; margin-bottom:10px; font-family:'Orbitron', sans-serif;">THREAT NEUTRALIZED</h1>
             <h2 style="font-size:30px; color:#ff00ff; margin-bottom:30px; font-family:'Orbitron', sans-serif; text-shadow:0 0 10px #ff00ff;">(We popped the AI bubble!!)</h2>
-            <h2 style="color:white; margin-bottom:40px; font-family:'Orbitron', sans-serif;">FINAL SCORE: ${score}</h2>
+            <h2 style="color:white; margin-bottom:10px; font-family:'Orbitron', sans-serif;">FINAL SCORE: ${score}</h2>
+            <h3 style="color:#00ff00; margin-bottom:40px; font-family:'Orbitron', sans-serif;">CLEARING TIME: ${this.formatTime(elapsedTime)}</h3>
             <div style="margin-bottom:40px; text-align:left; font-family:'Orbitron', sans-serif; font-size:18px;">
                 ${statsHtml}
             </div>
@@ -914,5 +915,12 @@ export class GoomUI {
             if (this.pauseMenu.parentNode) this.pauseMenu.parentNode.removeChild(this.pauseMenu);
             this.pauseMenu = null;
         }
+    }
+
+    formatTime(seconds) {
+        if (!seconds) return "00:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 }

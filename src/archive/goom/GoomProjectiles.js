@@ -450,7 +450,7 @@ export class GoomProjectiles {
     }
 
     fireMeleePulse(weapon) {
-        const range = 15.0; // Increased range
+        const range = 25.0; // Buffed range (was 15.0)
         let damage = weapon.damage;
 
         let isBerzerker = false;
@@ -492,8 +492,8 @@ export class GoomProjectiles {
             }
         }
 
-        // Apply Damage
         let hitSomething = false;
+        const pushDir = forward.clone(); // Ensure pushDir is defined
         for (const e of enemiesHit) {
             hitSomething = true;
             // Push back
@@ -504,9 +504,13 @@ export class GoomProjectiles {
             // VISUAL CONTACT POINT (At Glove Tip)
             const contactPoint = playerPos.clone().add(forward.clone().multiplyScalar(2.5));
 
-            // BIGGER EXPLOSION ON HIT
+            // BIGGER EXPLOSION ON HIT (Impact Point)
             const boomColor = isBerzerker ? 0xff0000 : 0xff00ff;
-            const boomScale = isBerzerker ? 12.0 : 6.0; // MASSIVE EXPLOSIONS (Was 8.0 / 2.0)
+            const boomScale = isBerzerker ? 15.0 : 6.0; // MASSIVE EXPLOSIONS (Was 12.0)
+            this.game.systems.createExplosion(e.mesh.position, boomColor, true, boomScale); // Explosion at Enemy center
+
+            // Secondary Contact Explosion (Visual)
+            const contactScale = isBerzerker ? 8.0 : 3.0;
 
             this.game.systems.createExplosion(contactPoint, boomColor, true, boomScale);
 
@@ -527,13 +531,38 @@ export class GoomProjectiles {
             }
         }
 
+        // ALWAYS EXPLODE (Exploding Fists)
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+        // Offset Logic: punchSide 0 = Left, 1 = Right
+        const isRight = this.game.punchSide === 1;
+        const fistOffset = right.clone().multiplyScalar(isRight ? 1.0 : -1.0); // 1.0 unit offset
+        const explodePos = playerPos.clone().add(forward.clone().multiplyScalar(4.0)).add(fistOffset);
+
+        // Accurate Air Explosion (At Fist)
+        if (isBerzerker) {
+            this.game.systems.createExplosion(explodePos, 0xff0000, false, 4.0); // Smaller Scale (Was 8.0), Not Shockwave
+            // SPLASH DAMAGE (Radius 20.0)
+            const splashRad = 20.0;
+            const splashDmg = 300; // Splash Damage
+
+            [...this.game.enemies].forEach(e => {
+                if (e.mesh.position.distanceTo(explodePos) < splashRad) {
+                    e.takeDamage(splashDmg);
+                    this.game.systems.createExplosion(e.mesh.position, 0xff0000, false, 2.0);
+                }
+            });
+            // Damage Boss
+            if (this.game.boss && this.game.boss.active && this.game.boss.mesh.position.distanceTo(explodePos) < splashRad + 10.0) {
+                this.game.boss.takeDamage(splashDmg, null, 'berzerker');
+            }
+        }
+
         // Visuals (Shockwave)
         if (this.game.systems.createSparks) {
-            const center = playerPos.clone().add(forward.multiplyScalar(2.5));
-            this.game.systems.createSparks(center, isBerzerker ? 0xff0000 : 0xff00ff, isBerzerker ? 150 : 80);
-            this.game.systems.createSparks(center, 0xffffff, 40);
+            this.game.systems.createSparks(explodePos, isBerzerker ? 0xff0000 : 0xff00ff, isBerzerker ? 150 : 80);
+            this.game.systems.createSparks(explodePos, 0xffffff, 40);
         }
-        return hitSomething;
+        return hitSomething || isBerzerker; // Always return true for Berzerker to feel impact
     }
 
     fireSingularity(weapon) {
@@ -565,9 +594,9 @@ export class GoomProjectiles {
             mesh,
             velocity: velocityDir.multiplyScalar(20), // Slow
             life: 8.0,
-            damage: alt.damage,
+            damage: alt.damage, // Base damage (will be multiplied for explosion)
             isSingularity: true,
-            splashRadius: 25.0
+            splashRadius: 40.0 // Huge Pull Radius
         });
     }
 
@@ -747,6 +776,24 @@ export class GoomProjectiles {
                 for (const e of this.game.enemies) {
                     const dist = p.mesh.position.distanceTo(e.mesh.position);
                     const hitRadius = (e.scale / 2) + 1.0;
+
+                    // SINGULARITY LOGIC (Continuous Damage)
+                    if (p.isSingularity) {
+                        const suckRadius = p.splashRadius || 25.0;
+                        if (dist < suckRadius) {
+                            // Pull enemy towards singularity
+                            const pullDir = new THREE.Vector3().subVectors(p.mesh.position, e.mesh.position).normalize();
+                            e.mesh.position.add(pullDir.multiplyScalar(0.2)); // Suck Effect
+
+                            // Damage Pulse (Random chance to simulate tick rate)
+                            if (Math.random() < 0.1) {
+                                e.takeDamage(p.damage * 0.1); // 10% damage per tick
+                                this.game.systems.createExplosion(e.mesh.position, 0xaa00aa, false, 0.5);
+                            }
+                        }
+                        continue; // Don't trigger standard hit
+                    }
+
                     if (dist < hitRadius) {
                         hit = true;
                         const wasDead = e.takeDamage(p.damage);
@@ -832,11 +879,29 @@ export class GoomProjectiles {
                         this.game.boss.takeDamage(dmg, null, 'normal');
                     }
 
-                } else if (p.isRocket || p.isBFG) {
-                    const isBFG = p.isBFG;
-                    const color = isBFG ? 0x00ff00 : (p.mesh.material ? p.mesh.material.color : 0xffffff);
-                    // ROCKET BUFF: Scale 3.0 (was 1.5)
-                    this.game.systems.createExplosion(p.mesh.position, color, true, isBFG ? 5.0 : 3.0);
+                } else if (p.isRocket || p.isBFG || p.isSingularity) {
+                    const isBFG = p.isBFG || p.isSingularity;
+                    const color = p.isSingularity ? 0xaa00aa : (isBFG ? 0x00ff00 : (p.mesh.material ? p.mesh.material.color : 0xffffff));
+                    // MASSIVE SCALE UP
+                    const scale = p.isSingularity ? 25.0 : (isBFG ? 5.0 : 3.0);
+                    this.game.systems.createExplosion(p.mesh.position, color, true, scale);
+
+                    // SINGULARITY IMPLOSION
+                    if (p.isSingularity) {
+                        // APOCALYPTIC DAMAGE
+                        const radius = 60.0; // Room clearing
+                        const dmg = 9999; // INSTA KILL
+                        [...this.game.enemies].forEach(e => {
+                            if (e.mesh.position.distanceTo(p.mesh.position) < radius) {
+                                e.takeDamage(dmg);
+                                this.game.systems.createExplosion(e.mesh.position, 0xff00ff, false, 3.0);
+                            }
+                        });
+                        if (this.game.boss && this.game.boss.mesh.position.distanceTo(p.mesh.position) < radius) {
+                            this.game.boss.takeDamage(2000, null, 'bfg'); // Huge Boss Damage
+                        }
+                        if (this.game.audio) this.game.audio.playSound(40, 'sine', 3.0, 1.5); // MAX BASS
+                    }
 
                     // BFG CHAOS (User Request: "Sparks and explosions everywhere")
                     if (isBFG) {

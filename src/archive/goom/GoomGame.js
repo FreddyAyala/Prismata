@@ -129,6 +129,16 @@ export class GoomGame {
     this.killStats = { normal: 0, imp: 0, wraith: 0, tank: 0, berzerker: 0, scout: 0, boss: 0 }; // Track Kills
     this.wave = 1;
 
+    // RESET BERZERKER & WORLD STATE
+    this.berzerkerMode = false;
+    this.berzerkerTimer = 0;
+    if (this.scene.fog && this.originalFogDensity !== undefined) {
+      this.scene.fog.color.setHex(0x000000); // Reset Fog Color
+      this.scene.fog.density = this.originalFogDensity;
+    }
+    const overlay = document.getElementById('rage-pulse');
+    if (overlay) overlay.style.opacity = '0';
+
     this.enemiesToSpawn = 0;
     this.waveInProgress = false;
 
@@ -174,6 +184,7 @@ export class GoomGame {
 
     this.startWave();
     this.startPickups();
+    this.startTime = Date.now(); // Track Clearing Time
   }
 
 
@@ -418,7 +429,8 @@ export class GoomGame {
 
           // Delay UI for 2.0s to let the explosion finish and sink in (User Request: earlier)
           setTimeout(() => {
-            this.ui.triggerWin(this.score, () => this.resetGame(), this.killStats);
+            const elapsedTime = (Date.now() - this.startTime) / 1000;
+            this.triggerWin(elapsedTime);
           }, 2000);
         }
       }
@@ -437,7 +449,12 @@ export class GoomGame {
       }
       if (this.player.mobileControls.getSwap()) {
         // Cycle Weapon
-        this.currentWeaponIdx = (this.currentWeaponIdx + 1) % this.weapons.length;
+        let nextIdx = (this.currentWeaponIdx + 1) % this.weapons.length;
+        // Skip 'DISASSEMBLER' if not in Berzerker Mode
+        if (!this.berzerkerMode && this.weapons[nextIdx].name === 'DISASSEMBLER') {
+          nextIdx = (nextIdx + 1) % this.weapons.length;
+        }
+        this.currentWeaponIdx = nextIdx;
         this.updateWeaponVisuals();
         this.ui.updateHUD();
       }
@@ -492,12 +509,12 @@ export class GoomGame {
 
   activateBerzerkerMode() {
     if (this.berzerkerMode) {
-      this.berzerkerTimer = 30.0; // Refresh
+      this.berzerkerTimer = 20.0; // Refresh to 20s
       return;
     }
 
     this.berzerkerMode = true;
-    this.berzerkerTimer = 30.0;
+    this.berzerkerTimer = 20.0; // Reduced from 30s
     this.originalWeaponIdx = this.currentWeaponIdx;
 
     // Switch to Disassembler
@@ -612,7 +629,11 @@ export class GoomGame {
     if (this.spawnInterval) clearInterval(this.spawnInterval);
 
     if (this.wave === 5) { this.startBossWave(); return; }
-    if (this.wave > 5) { this.triggerWin(); return; }
+    if (this.wave > 5) {
+      const elapsedTime = (Date.now() - this.startTime) / 1000;
+      this.triggerWin(elapsedTime);
+      return;
+    }
 
     this.waveInProgress = true;
 
@@ -1019,7 +1040,10 @@ export class GoomGame {
       if (this.audio) {
         this.audio.playBossDeath();
       }
-      setTimeout(() => this.triggerWin(), 2000);
+      setTimeout(() => {
+        const elapsedTime = (Date.now() - this.startTime) / 1000;
+        this.triggerWin(elapsedTime);
+      }, 2000);
     }
   }
 
@@ -1134,7 +1158,7 @@ export class GoomGame {
 
         // Force Right Punch
         this.punchSide = 1;
-        this.punchTimer = 0.1; // FASTER (Was 0.15)
+        this.punchTimer = 0.2; // Visible Punch (Was 0.1)
 
         this.projectiles.fireMeleePulse(weapon);
       }
@@ -1186,7 +1210,7 @@ export class GoomGame {
 
       // PUNCH ANIMATION STATE
       this.punchSide = isAlt ? 1 : 0; // Left Click = Left, Right Click = Right
-      this.punchTimer = 0.1; // FASTER (Was 0.15)
+      this.punchTimer = 0.2; // Visible Punch (Was 0.1)
 
       // Short range AoE Pulse
       const didHit = this.projectiles.fireMeleePulse(weapon);
@@ -1202,12 +1226,12 @@ export class GoomGame {
     this.audio.playSound(100, 'sawtooth', 2.0, 1.0);
   }
 
-  triggerWin() {
+  triggerWin(elapsedTime = 0) {
     this.isVictory = true;
     if (this.killStats) this.killStats.boss++; // Count the boss kill
     if (this.audio && this.audio.playVictorySong) this.audio.playVictorySong();
     document.exitPointerLock();
-    this.ui.triggerWin(this.ui.score, () => this.resetGame(), this.killStats);
+    this.ui.triggerWin(this.ui.score, () => this.resetGame(), this.killStats, elapsedTime);
   }
 
   resetGame() {
@@ -1474,8 +1498,8 @@ export class GoomGame {
       // PUNCH ANIMATION
       if (this.punchTimer > 0 && this.meleeMesh && this.meleeMesh.visible) {
         this.punchTimer -= delta;
-        const progress = Math.max(0, this.punchTimer / 0.1); // 1.0 to 0.0 (Updated to match new timer)
-        const extend = Math.sin(progress * Math.PI) * 1.2; // Standard Punch
+        const progress = Math.max(0, this.punchTimer / 0.2); // Slower for visibility (Was 0.1)
+        const extend = Math.sin(progress * Math.PI) * 1.5; // Longer Reach (Was 1.2)
 
         const leftFist = this.meleeMesh.children[0];
         const rightFist = this.meleeMesh.children[1];

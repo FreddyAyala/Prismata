@@ -46,7 +46,7 @@ export const WEAPONS = [
     }),
     new Weapon("BIG FREAKING GEMINI", 1250, 200, 0x00ff00, 'bfg', 10, 40.0, { // Max 10 (Was 5)
         cooldown: 3000,
-        damage: 10,
+        damage: 50, // Buffed from 10 for stronger ticks
         cost: 2,
         type: 'bfg_singularity',
         color: 0xaa00aa
